@@ -1,0 +1,115 @@
+-----------
+http://www.dehora.net/journal/2004/03/malignantvavavoomcontroller_a_linguistics_of_mvc.html
+
+March 08, 2004
+
+
+MalignantVavavoomController: A linguistics of MVC
+
+
+Terence Parr: all your mvc are belong to him. This is either a groundbreaking clarification, or taking the high ground through jargon (opinions may vary). Or both. I liked it.
+-----------
+From: Tony Collen
+Subject: [RT] StringTemplate: The answer to our templating needs?
+Date: Thu, 28 Oct 2004 20:15:46 -0700
+
+"Brought to you by the maniac that brings you ANTLR!"
+
+A while ago I was investigating different templating languages, and I
+came across one called StringTemplate [1]
+
+Of particular interest is the author's paper, "Enforcing Model-View
+Separation in Template Engines" [2].  Please read it. It's interesting.
+
+I don't consider myself a template or grammar/language parsing expert,
+but this guy seems to have put a ton of thought into what makes a good
+templating engine.  Specifically, his work seems grounded in some pretty
+solid language parsing theory.
+---------------
+	From: 	  danielf@nada.kth.se
+	Subject: 	Strict Separation and Attribute Rendering in Cocoon
+	Date: 	November 5, 2004 5:27:06 AM PST
+	To: 	  parrt@cs.usfca.edu
+
+Hi Terence!
+
+I have read your article: "Enforcing Strict Model View Separation in Template Engines" with great interest and spent some time thinking about how to apply your ideas in Cocoon. Especially I thought about applying your MVCR model in form handling, where one need the "inverse" of the rendering step to go from form input to model data.
+
+We currently has a discussion about rendering in template engines and in our form framework at cocoon-dev:
+
+http://marc.theaimsgroup.com/?t=109941988300003&r=1&w=2
+
+Parts of the discussion is of course about Cocoon specific details, but most of it is of more general nature. It would be very nice if you would like to join our discussion.
+
+/Daniel
+--------------------
+From:   bernhard@tibco.com
+Subject: Re: confirming ANTLR2004 registration
+Date: October 5, 2004 12:34:33 PM PDT
+To:   parrt@antlr.org
+Cc:   parrt@cs.usfca.edu
+
+I have been using your StringTemplate stuff and I must say its quite nice. I had written a bunch of code to transform xml files to java code (as well as some other languages), and it was a pain. I switched to using your stuff, and it forced my to rethink how I represented my XML files in memory.
+
+I am very happy to have stumbled upon this piece of software...its made my code 10x better and my life much easier. (Though I now have solved this problem twice...too bad I didn't know about your code before I wrote version one.)
+---------------
+	From: 	  scurrah@westnet.com.au
+	Subject: 	stringtemplate v2.0
+	Date: 	October 3, 2004 6:03:55 PM PDT
+	To: 	  parrt@cs.usfca.edu
+
+Hi,
+
+I just downloaded your lastest stringtemplate library - very impressive !
+----------------
+
+	From: 	  davidm@optimalmarkets.com
+	Subject: 	excellent article
+	Date: 	September 15, 2004 2:53:01 PM PDT
+	To: 	  parrt@antlr.org
+
+I've been exploring templates for the past several weeks (frustrated with Struts, and finding that
+my own mvc framework was taking too much time to develop - essentially all done in java
+ala ECS/htmlKona, but with mvc separation problems of its own!). Found your article today
+and it has changed the way I think about this significantly - many thanks, you're obviously
+a very smart fellow.
+
+David
+
+----------------------------------
+> Von: users-return-66947-m_rolappe=web.de at cocoon.apache.org
+> [mailto:users-return-66947-m_rolappe=web.de at cocoon.apache.org]Im
+Auftrag
+> von Derek Hohls
+> Gesendet: Montag, 3. Mai 2004 14:23
+> An: users at cocoon.apache.org
+> Betreff: JXTemplates - what's in a name?
+>
+>
+> An April 2004 post pointed me to Terence Parr's article on
+"Enforcing
+> Strict MV Separation in Template Engines".  (see article link at:
+> http://www.stringtemplate.org ).  This is a fascinating read and, to
+> me, a classic in the field.
+>
+
+====================
+
+cocoon-users at archives.real-time.com  cocoon-users at archives.real-time.com
+ Mon May 3 07:22:50 CDT 2004
+
+	• 	Previous message: Cocoon on SUN ONE WEBSERVER 6.x
+	• 	 Next message: AW: JXTemplates - what's in a name?
+	• 	 Messages sorted by:  [ date ]  [ thread ]  [ subject ]  [ author ]
+An April 2004 post pointed me to Terence Parr's article on "Enforcing
+Strict MV Separation in Template Engines".  (see article link at:
+http://www.stringtemplate.org ).  This is a fascinating read and, to
+me, a classic in the field.
+=====================
+http://www.manageability.org/blog/stuff/template-engines-in-java/view
+	4.  	StringTemplate - From the Terrence Parr, author of ANTLR, an extremely comprehensive template engine that includes "template inheritance". Terrence Parr has written a paper on that discusses how StringTemplate enforces Model-View separation, a very important read for the field.
+=====================
+http://jogin.com/weblog/archives/2004/03/19/template_systems
+A useful guide I've found when comparing template systems is Terence Parr's paper Enforcing Strict ModelView Separation in Template Engines [88k PDF]. In it, he proposes the following 5 rules which are implied by strict separation of model and view:
+
+

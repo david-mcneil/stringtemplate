@@ -1,0 +1,294 @@
+Hmm...for java code: don't really want obj.method in the template as
+you can't reuse the template for something else...you have separated
+view from logic, but exactly one logic.  You couldn't reuse Java code
+pretty print templates for another java output project, for example.
+WebObject has the template and then a .wod file that maps java code to
+the template tag refs.
+
+Push i as Integer(i) for each iterated template!  Should be able to
+ref <i>.
+
+Start from 0 to be consistent with java.  
+
+Dump an attribute: <{java}>.
+
+Apply template <a={java}:"<b><a></b>"> to a java attribute
+
+Java arg to a template ref: <foo(q={faq.getQuestion()})>.
+
+Must be able to evaluate an attribute ref in Java code.  Can do a
+simple word substitution I would say.  No point in forcing full java
+expr grammar.  Perhaps only allow limited expressions like attribute
+or attribute.method() as atoms and then expressions like >, <, + for
+cat.  Hmm...nah how about <foo(q={<faq>.getQuestion()})> so I can tell
+what the attributes are?  Might make expressions hard.  Could keep
+rule that < has to be escaped.
+
+Use com.sun.tools.Compiler and a work dir like resin/jsp to build
+snippets into a method.  Hmm...this has to be done on the fly for each
+template, hence, each template will need it's own (cached) class in
+the work dir.  if they use a single file with rule defs then they
+could get all those snippets into one file with "rulename"->methods
+like a grammar.  Makes sense then.  All snippets in one template file
+go in to one Java class.  Have a "static compile" mode where I build
+them a nice subclass of StringTemplate to use that makes setQuestion,
+setAnswer methods for the attributes like XMLC so they can do strong
+typing.  So I'll do both so you get best of both worlds...convenience
+and then type safety and perhaps a bit more speed.
+
+Build subclass of StringTemplate that holds {java} snippets for that
+template.  Could use name of template as class name.
+
+Switching
+
+<case{IF}>
+template
+<endcase>
+<case{FOR}>
+template
+<endcase>
+
+IF with java code
+
+<if{...}>
+<endif>
+
+currentln
+
+<if(var)>
+<endif(var)>
+
+but with expressions you don't want to have to repeat.
+
+Multiple rules in one file
+
+faqDisplay(q,a) ::=
+A rule def shows the args and the template
+<foo(q)>
+duh
+;;
+
+foo() ::=
+dork
+  ;;
+
+bar() <<
+  blort
+>>
+
+<p><b>FUTURE</b>
+ *
+<ul>
+<li>Add concat expressions for arguments; contents=a+","+b.
+<li>Add IF expressions that can test values for size, contents etc...
+<li>Apply method to object attribute: &lt;faq.terseView(...)>
+<li>Apply StringTemplate subclass to obj: &lt;faq:FAQTerseTemplate(...)>
+    looks for FAQTerseTemplate Java class in CLASSPATH.
+<li>Add interface toStringTemplate(StringTemplate t) so FAQEntry can fill
+    a template isolating model from view.
+<li>For connection to ASTs: allow a template to be applied after a tree
+    grammar rule has been invoked on the attribute to fill the template.
+    Either use subclass (heterogeneous AST) information to invoke
+    toStringTemplate(...) perhaps?  No, specify rule/method.  But still
+    need a SWITCH to indicate which template.  Hmm...
+    <font size=2><pre>
+    &lt;stat:switch(stat.getTokenType()) {
+              case IF : ifTemplate() ;
+              case FOR: forTemplate() ;
+          }>
+    </pre></font>
+    Seems to require side-effect free expressions or allow them to
+    provide an object that knows how to convert an AST to template name,
+    simulating polymorphism.  Need two switches: one to map AST to
+    template name and to the rule that will fill the template.  Well,
+    one switch will do: switch to a template and have the template say
+    what rule to invoke to fill it.
+</ul>
+
+2003-02-27 thinking of new syntax:
+
+<tableName>
+<searchBox()>
+<bold item=email> vs <bold(item=email)>
+<bullet item=names[i]> vs <bullet(item=names[i])>   hmm... does that names[i] ref automatically make it iterate over names?   sure...why not.  But what would multiple [i] refs mean?  No biggy unless   they are different sizes, right?
+
+How to make double template apply like "list of terseUser users"?
+
+<bullet item=terseUser users[i]> vs <bullet(item=terseUser(users[i]))>
+
+Perhaps smalltalk syntax of obj msg is better:
+
+<email bold>
+
+<users terseUser bullet>
+
+But that requires a "this"-like default argument, which is useful.What about multi args like searchBox that has no object target?
+<searchbox(resource=blort, title=search)>
+that must be like a method call.The problem is that you want the attribute to be viewed firstbecause it may be multi-valued.
+
+Or could be very programmy: distinguish between multivalued elements
+
+<singleValuedAttribute>
+
+<foreach multiValuedAttribute: bold>
+
+<foreach<foreach users: terseUser>: bullet>
+
+Nah...
+
+<<users:terseUser>: bullet>
+
+<(users[i]:terseUser>):bullet>
+
+<email:bold:centered>
+
+default arg is called "attr"?  "<b>$attr$</b>" and "<center>$attr$</center>"
+
+yep, that makes sense.  email:bold is same as bold(attr=email) or actually bold(attr=email, i=0, email[i]=email)
+
+What if I made names[i] make no more sense?  Then the default arg concept must be used so $attr$ is set to names.elementAt(i).  Still need to set i, however.  I really added it for $names:"<b>$names[i]$</b>"$, but now I'd do: $names:"<b>$attr$</b>"$.
+
+Multivalued attribute with 2 template applications:
+
+<users:terseUser():bullet()>
+
+uses default "attr" unless you have an extra arg or you don't use $attr$.  For example,
+
+<users:terseUser(u=attr):bullet(useTable=true)>
+
+attr is set to users.elementAt[i] and i is set to varying value as it iterates.  I think that users:terseUser(u=attr) should technically return an altered list of attributes to which I apply bullet.  In practice that could be expensive?  Or, could just replace vector elements as I go!  Cool then the result of that is indeed a Vector.  Actually: bad...can't modify incoming attributes.  So, reset attr to be result of applying terseUser() then call bullet.  Hmm...perhaps I should really make a vector as a result so that this works:
+
+<template(x=users:terseUser())>
+
+Sure.  Then syntax (ignoring separator) is
+
+<attribute>
+<template(...)>
+<attribute:"..."()>
+<attribute:template()>
+<attribute:template(...)>
+<attribute:template(...):template2(...)>
+
+Need separator spec.  Perhaps add <...; separator=","> clause?  What else could I put there?  Hmm...seems ok:
+
+<users; separator=",">
+<users:briefUser(); separator=",">
+
+used only if multi valued.
+
+"SELECT <cols; separator=","> FROM <table> ;"
+
+Has two contexts: argumentContext for template call and then context for duration of <...>?  Then names[i] is defined so you can ref in template:
+
+<names:bold(item=names[i])>
+
+That names[i] is set into the <...> context and then it's easy...don't need to add to arg context later and plus there may be multiple template applications...has to persist.
+
+<users:terseUser(u=names[i]):bullet(item=names[i])>
+
+Hmm...that makes no sense really.  Ok, names[i] lives in a context only for the surrounding expression.  So applyTemplate method creates a context that is used to hold it.
+
+What if they could define the default attribute name?
+
+<b>$x$</b>
+
+<b>Name: $p.firstName$ $p.lastName$</b><br>
+<b>Email: $p.email$</b><br>
+
+Hmm...can't think of syntax...leave for now until we have template defs:
+
+bold(x) ::= << <b>$x$</b> >> ;
+
+briefPerson(p) ::= <<
+<b>Name: $p.firstName$ $p.lastName$</b><br>
+<b>Email: $p.email$</b><br>
+$p.bio:center()$
+>>
+
+IF expressions?
+
+<if(expr)>
+...
+	<if(expr)>
+	...
+	<endif>
+...
+<endif>
+
+Have to use a stack or counter now to get the right endif :(
+
+------
+FEATURES
+
+Add "check disk every n seconds" instead of forcing method call so you can see new templates.  Or, add a "allways check disk" perhaps period=0 feature.
+
+Add debug feature where you show template and attributes + "set & not used" + "used and not set".
+
+indentation notes:
+-----------------
+You keep a whitespace stack, and you set a flag upon newline.  If you are
+printing anything other than a newline check the flag --if true unset it and
+spit indentation before the first char.  A chunk needs to know if it was
+indented or not and manipulate the stack properly.
+
+Monty
+
+-----Original Message-----
+From: Terence Parr [mailto:parrt@cs.usfca.edu]
+Sent: Tuesday, April 01, 2003 10:56 AM
+To: mzukowski@yci.com
+Cc: Loring.Craymer@jpl.nasa.gov
+Subject: Re: what ya think of string template?
+
+....
+
+Glad you like it. :)
+
+Yeah, indentation is somethign I'll attack for ANTLR output kinda 
+stuff.  Hmm...how do you know when to use the whitespace before the 
+attribute and when not to?
+
+Seems like you could just do this anyway:
+
+$names:numberedListItem():{    $attr$}$
+
+[multiple template application] which puts whitespace in front of each 
+numbered item.  I wonder how that will work when we need nested tabs.  
+Perhaps I need a predefined function called spaces or tabs that you can 
+pass in an int too.
+
+Ter
+----------------------
+4-11-2003
+
+Ok, so tom wants to be able to use an attribute as a string template name:
+
+$foo()$ where foo is an attribute not a literal template called foo.st
+
+Use "value of foo then function call operator":
+
+$(foo)()$
+
+cool!
+
+------------------------
+4-12-2003
+
+Ashar brings up good point that
+
+$name:bold():italics()$
+
+really should carry the template along not evaluate to text...only the
+outermost expression should become text I guess; or actually when you
+do a toString() on whole thing.
+
+Anyway, you might find a way to set the attributes of the result.  Not
+sure how you'd reference them though.
+-----------------------
+5-15-2003
+
+We need to have some way to check for setting an attribute that
+doesn't exist for sure.  Must have more error messages to listener.
+
+Make StringTemplate to List interface or collection.
+----------------------

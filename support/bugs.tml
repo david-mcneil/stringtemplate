@@ -1,0 +1,522 @@
+StringTemplate Bugs, Requests, Changes
+
+#### Releases
+
+2.1: January 22, 2005
+
+2.0: July 16, 2004
+
+1.0.3: Feb 5, 2004
+
+1.0.2: Oct 14, 2003
+
+#### Fixed bugs and changes
+
+03-28-2005
+
+o added ability to use indirect property names.  $user.(propName)$
+evaluates (propName) to find the name of the property and then looks
+it up in user object.
+
+01-22-2005
+
+o Empty output for a single attribute expression one a line by itself gets no newline (i.e., you don't get a blank line).
+
+01-02-2005
+
+o You can access public fields now instead of via just accessors
+
+o empty (i.e., no char output) values in an iteration do not get a separator if specified.  This will be 99% of the time what you want.  Only if pure IF (no else).
+
+12-25-2004
+
+o Made convertArrayToList() handle long[] also and made "a.{f1,f2}" type aggregate attributes properly convert incoming arrays to lists for normalization.
+
+12-24-2004
+
+o Made a template lookup that is not defined throw an IllegalArgumentException rather than generate an error directly.
+
+12-19-2004
+
+o Made null indirect template generate nothing; used to generate null-ptr exception.
+
+11-20-2004
+
+o trap all antlr generated errors now and send to listener.
+
+11-07-2004
+
+o Added 
+<<
+	/** Specify a StringTemplateWriter implementing class to use for
+	 *  filtering output
+	 */
+	public void setStringTemplateWriter(Class c) {
+		userSpecifiedWriter = c;
+	}
+>>
+and made StringTemplate.toString() sensitive to it.
+
+11-04-2004
+
+o added support for nonlocal file encodings; added property fileCharEncoding.  The template loading routines are now sensitive to this property. Defaults to the file.encoding system property.
+
+11-03-2004
+
+o STG.templateIsDefinedInThisGroup -> isDefinedInThisGroup
+o added isDefined(name) that checks whole hierarchy
+
+10-31-2004
+
+o addressed whitespace at begin/end of template .st file issue.  Decided to let it continue to strip all front/back whitespace and then make you add it directly.  This is a simple rule and can be made to do what you want.  It is consistent with the strip  newline before \>\> rule too.
+
+o added <\ > for space char
+
+o updated testing harness to be same as ANTLR 3.0's which is more sophisticated.
+
+o the newline immediately preceding >> in a template group file is tossed out just like the newline right after the \<<
+
+10-30-2004
+
+o newlines ignored before <else> and <endif>.  Rule is: kill a single newline 
+after <if>, <<, <else>, and <endif> (but for <endif> only if it's on a line by itself) . Kill newlines before <else> and <endif> and >>.
+
+o added <\n>, <\r>, <\t>
+
+o fixed \n refs in TestStringTemplate unit tests to be portable newline reference.
+
+10-29-2004
+
+o added $!...!$ and <!...!> comments (version 2.1b3)
+
+10-10-2004
+
+o allow HashMap, Hashtable precisely but not Map in attribute.property lookup
+
+o $attributes$ is a text string when lint mode on that recursively dumps
+  out types, properties, etc... (no values)
+
+09-25-2004
+
+o Templates track their embedded instances; can ask for embedded
+
+o added isXXX accessor properties so x.special invokes x.getSpecial then x.isSpecial if not successful.
+
+o bug in st.attribute...if no attributes table, got null ptr exception
+
+07-07-2004
+
+o given the big changes to ST, I'm going to deprecate attr and use "it" as the default iterator attribute.  Says "iterator" and is sort of like "this".  I looked at "this", "that", "iter", and even "the".  "ith"  even [i].
+
+07-01-2004
+
+o a.b yields a's b attribute if a is stringtemplate, which lets you treat a list of templates or nested set of templates as a data structure.  For example, given a list of templates representing output rules from antlr, i can generate both the C function definitions for those rules and the list of C function declarations:
+
+<rules:{public void <attr.name>(<attr.args);}>
+<rules:{public void <attr.name>(<attr.args) {<attr.body>\}}>
+
+o applying a template to a list of attributes reused the same template, but you need a new one to get a new attribute set etc...
+
+o apply a template to a list of attributes did a toString() rather than build up a list of templates to apply later.
+
+o to prevent recursion, formally defined parameters hide any (dynamically) enclosing scope.  The attributes can be null or have values still, but you cannot inherit an attribute from an enclosing scope, bypassing an empty local attribute formally defined in that template.  See test case that used to cause infinite recursion. Hmm...can i limit to the case where same template is up the call stack somewhere?  Any other inheritance should be ok, right?  This
+is not always what you want.  If you set the font for a table, then nested
+tables cannot inherit the font.  However it prevents you from forgetting to
+set the rows attr in the nested, which would cause an infinite recursive loop.  Actually figured out precisely what it should be.  Can't avoid infinite recursion without expensive tests so make part of lintMode:
+
+StringTemplate: error: possible recursive self-reference to stats in template ifstat
+
+If you get a value in getAttribute that refers to the current template or an enclosing template, must be in an infinite loop.  Can't stop it, but error to errorListener.  Ok, now I really have it.  In ASTExpr.write, if the object to write out is a ST, then it walks up enclosing chain and makes sure it is unique.  Otherwise, it's infinite recursion.  Same template, different instance is fine.  Only in lintMode! throws IllegalStateException.
+
+Back to formal arg always hides enclosing value, though if you stick in a looped attribute set then I catch it in lint mode.
+
+
+06-26-2004
+
+o added helper method setAttribute(String,int)
+
+o removed ability to pass hashtable in as initial args...security hole.
+
+06-24-2004
+
+o included templates like <font()> computed the text right away rather
+  than lazily evaluating when the outer template evaluated.  Missed some
+  parameters that way.
+
+o when embedding a template inside another via setAttribute, it must set the
+  enclosingInstance so that it can inherit attributes.  This was not working
+  when you setAttribute("foo"...) multiple times for attribute foo.  It was
+  just adding stuff to the internal array without checking to see if it was
+  a ST.
+
+05-08-2004
+
+o Improved test harness so we can time tests; added some eval speed tests.
+
+05-07-2004
+
+o nested IF works
+
+o $else$ clause added
+
+o antlr lexer used to chunk now two predefined $..$ and <..>
+
+o added group file format
+
+o changed boolean so that you are testing its value not presence/absence
+
+o added formal parameter checking.  Can only set attributes that exist at
+a template or enclosing template.  Can only ref attributes that exist at
+that template or above.  Throws NoSuchElement exceptions.
+
+o added general notion of StringTemplateWriter so you can do output filters.
+
+o predefined auto indentation filter (default used).
+
+o properties that return arrays are converted to iterators.  Factored out
+this normalization code into static ASTExpr methods. Did not handle properties that return collections as multi-valued values.
+
+05-03-2004
+
+o Added Collection and Iterator stuff in ASTExpr writeAttribute.  Can dump or apply template to either Map, Collection, or Iterator now.
+
+o anything iteratable can be used for "APPLY" template
+
+
+01-23-2004
+
+o Fixed some errors in the escape char when in anonymous templates {...}
+
+o Fixed so nested anonymous templates works now.
+
+o Changed some protections and so on so that can override behavior more
+  easily.
+
+5-16-2003
+
+o Make StringTemplate to List interface or collection.
+  [Fixed 5-17-2003]
+
+o Need $(foo)()$.  What about $names:(boldtemplate)():italics()$?
+  What about $(foo)()+(bar)()$?  $(foo+".template")()$
+  [Fixed 5-17-2003]
+
+4-11-2003
+
+o if a template name is not found, it will still try to apply it to an
+  attribute
+  [Fixed 5-15-2003]
+
+o fix missing end $.  now it consumes the rest of the file.
+  [Fixed 5-15-2003. Well, it still consumes, but now the listener gets
+   the error actually.]
+
+o add more messages that go to the error listener
+  [Fixed 5-15-2003]:
+	 added warning(msg) to listener
+	 added setLintMode(true), makes setting of unknown attr a warning
+
+4-01-2003 [Fixed 5-15-2003]
+
+o attr is not re-evaluated in template application to a vector--args
+  are evaluated a priori!
+  $members:link(url=attr.homepage, title=attr.name)$
+  does not work!
+
+#### Wanted features
+
+o is it possible to generate <lineNumber> somehow during output (perhaps in the output filter) so that we can generate code that knows what line it's on in the input file?
+
+o should i add direct field access?  I guess, why not, right?  It would look for properties then fields if not found, right?
+
+o what about predefined maps that convert an attribute to a value (don't allow computations?).  For example, someone did this with a computed hash lookup:
+
+declare() ::= "private <(("type" + <it.type.name>))() <it.name>;"
+typeINTEGER_TYPE() ::= "int"
+typeBOOLEAN_TYPE() ::= "boolean"
+
+where it.type.name is "INTEGER_TYPE" etc...
+
+o Hmm...it seems like I need another rule that says something if entire line is an expression that does not evaluate to anything, then skip the line.  This like:
+<<
+<foo>
+<bar>
+>>
+will get you two blank links if you don't have values there.  Hmm...might be hard to detect for the <if> stuff.  I'm adding to list.
+
+o if you ref row() from within org/antlr/stringtemplate/test/page.st then if not
+  found in group, it should perhaps look in the same dir as enclosing template.
+  Sometimes the group has no root dir and the classpath is used a la TestStringTEmplate.
+
+o when you get an exception like no getTitle in object foo, show the template
+ nesting
+
+o I think that a length operator of an attribute is reasonable in ST and *possibly* reasonable to compare against.  Technically it's not a function *of* the data, just about the data. :)
+
+1) For improved readability I would like to indent the contents of templates
+one level without affecting the indentation of the output.  For example:
+
+a(x) ::= <<
+	$b(y=x)$$c(x=x)$>>
+b(y) ::= <<
+	$y$>>
+c(x) ::= <<
+	$x$>>
+
+2) It would be nice to declare a groups parent in the template rather than
+in Java code.  For example something like this where the name "super"
+corresponds to a file named "super.sgt" that is in the same place that
+"sub.sgt" was loaded from:
+
+group sub : super;
+
+3) It seems that the line numbers in parser error messages are relative to
+the template rather than the file.  This is a bit of a nuisance.
+
+4) I would like to write a template that produces a multi-valued result
+(without having a multi-valued input).  I don't see how to do this. 
+
+5) I tried to write a template like the following, but it failed with a
+"java.lang.NullPointerException at
+org.antlr.stringtemplate.language.TemplateParser.action(TemplateParser.java:
+132)".  It looks like the results of a template execution cannot be used as
+the name of a template to execute.  As a work-around I passed the results of
+the template execution to another template as a parameter, which then
+executed it via (x)().
+
+test1() ::= <<
+$("foo":test2())()$
+
+
+test2( it ) ::= "$it$"
+
+foo() ::= "foo"
+
+o allow >>> on end fo template in group.  foo ::= <<The <items>>>
+
+o (When Squarespace encounters an .st
+error while your template is in "development mode", it pipes the errors to
+the top of the HTML template--kinda neat).
+
+o parallel array walking, 
+
+o have 
+
+<<
+$items:(format)()$
+>>
+
+walk format if it's a list also.
+
+o inheritance spec for group files
+
+o relative page access ./samedir
+
+o add note in doc about no dots in filenames.
+
+o $list:{x | <b>$x$</b> }$
+
+o allow properties to become parameters
+
+$users:{<ID>: <lastName>}$
+$users:foo()$
+
+foo() ::= "<ID>: <lastName>"
+
+where users is a list of User objects with properties ID and lastName.
+Could be slow to add new attributes in new scope for every property.  Might
+be many!  Do on demand?  I.e., include the iterated value's properties in the
+scope lookup?  Heh, that might work.
+
+#### BUGS
+
+12-19-2004
+
+With an IF, is the auto-indent working properly?  Does it get the indent of the IF clause *plus* the ELSE clause for the else?
+
+positiveClosureBlock(alts,decls,decision,decisionNumber,maxK) ::= <<
+    int cnt<decisionNumber>=0;
+    <decls>
+loop<decisionNumber>:
+    do {
+        int alt<decisionNumber>=0;
+        <decision>
+        switch (alt<decisionNumber>) {
+            <alts:altSwitchCase()>
+            default :
+                if ( cnt<decisionNumber> >= 1 ) break loop<decisionNumber>;
+                <if(LEXER)>
+                else System.err.println("line "+getLine()+": no viable alt in decision <decisionNumber> LA(1)=="+(char)input.LA(1));<\n>
+                <else>
+                else reportEarlyExit(<decisionNumber>);<\n>                <endif>
+        }
+        cnt<decisionNumber>++;
+    } while (true);
+>>
+
+yields this:
+                        switch (alt3) {
+                            case 1 :
+                                match(9);
+                                break;
+                                    default :
+                        if ( cnt3 >= 1 ) break loop3;
+                                                else reportEarlyExit(3);
+    
+                                                        }
+
+
+10-5-2004
+
+David Scurrah: lots of newline issues in testing.
+
+09-03-2004:
+
+Burns:
+
+	The source:
+
+	.TopNavBarInActive {
+	color: #245EDC;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	line-height: 13px;
+	text-align: center;
+	}
+	.DataHeader {
+	font-size: 11px;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	color: #333333;
+	}
+	.SchoolName {
+	color: #2F9A3C;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 18px;
+	line-height: 22px;
+	}
+
+
+	what was sent (the template is used to gen an email):
+
+	TopNavBarInActive {
+	color: #245EDC;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	line-height: 13px;
+	text-align: center;
+	}
+	DataHeader {
+	font-size: 11px;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	color: #333333;
+	}
+	SchoolName {
+	color: #2F9A3C;
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 18px;
+	line-height: 22px;
+	}
+
+	putting a tab before the . fixed it.
+
+09-01-2004:
+
+mm at iserve.dk
+While I was testing a html template including static text I discovered
+that the Danish letter √ò (OE) causes the parser to insert questionmarks
+for every special character - in my case the Danish letters √Ü (AE), √ò
+(OE), and √Ö (AA). However this is not the case when √ò (OE) is omitted.
+
+
+08-17-2004:
+
+DMcneil@metamatrix.com:
+I used StringTemplate and observed the following which seems like a bug to me.  When "a" is calling "c" if both templates have an argument named "x" then the argument value cannot be passed from a to c using the expected syntax.  As long as the argument names are different the expected syntax works (see the case where "a" calls "b").
+
+-David
+        String templates = 
+            "group problem; \n" + 
+            
+            "a(x) ::= <<\n" + 
+            "$b(y=x)$$c(x=x)$>>\n" + 
+            
+            "b(y) ::= <<\n" + 
+            "$y$>>\n" + 
+            
+            "c(x) ::= <<\n" + 
+            "$x$>>"; 
+        
+        StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates)); 
+        StringTemplate template = group.getInstanceOf("a"); 
+        template.setAttribute("x", "V"); 
+        String expected = "VV"; 
+        String actual = "V"; 
+        String result = template.toString(); 
+        System.out.println(result);
+
+08-09-2004:
+
+From: 	  rmuller@xiam.nl
+	Subject: 	Modifiying/extending StringTemplate
+	Date: 	August 9, 2004 8:13:13 AM PDT
+	To: 	  parrt@antlr.org
+
+First of all: your paper "Enforcing Strict Model-View Separation in Template
+Engines" is GREAT! Because of this paper I discovered another pearl:
+StringTemplate. We are very enthusiastic about this product and we consider
+to use it in a (small) e-Business project we currently working on to get
+"real live" experience.
+
+I suspect you are a very busy man, but I hope you are able (and willing) to
+answer a few questions:
+
+1. How do you deal with extension/modifications. Do you like to receive our
+modifications or do you prefer that we publish the modified software by our
+selfs?
+
+For instance:
+a)  if the StringTemplate files are loaded by the class path we like:
+Thread.currentThread().getContextClassLoader();
+instead of
+this.getClass().getClassLoader();
+b) we need the support of Iterator and Enumeration Classes. However, this is
+easy to implement by our selfs
+c) we like to implement logging by more transparent logging API
+
+2. Thread safety: (nothing about this subject in the docs, what we think
+...)
+StringTemplate is not thread safe, use StringTemplate.getInstanceOf() to get
+a local work copy;
+StringTemplateGroup is not thread safe, manipulation of the "templates"
+HashMap must be made thread-safe
+
+06-22-2004:
+
+Matthew reported antlr not putting errors into listener and not catching some.  I think they are caught now, but are not put into listener!  Add reportError etc...  Also names could be fully qualified.  Right now I just show the template name.  Put in group too and nested template names :)
+
+12-14-2003:
+
+o Matthew Ford: Catch all Antlr errors. Report on full path of attribute not found ie. books.rows.title not just title.
+
+o Matthew Ford: Upgrade obj.toString to convertToString() which
+<<
+	returns null if obj == null return null
+	else calls obj.toString() if obj has toString() method (if toString()
+	throws
+	any exception return errormessage)
+	else returns ""+obj; to handle intrinsics like int etc.
+>>
+	Well actually I wanted to solve the problem where
+<<
+	 obj.toString() returns null.
+>>
+	Your original code would return "" in this case when toString() returrns
+	null.  Also wanted to catch errors thrown by toString() and return error message string as result.  Very visable in the output!
+
+o Ford:  return a.toString() + b.toString(); in add() does not handle the null return from toString() case
