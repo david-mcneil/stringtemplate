@@ -12,6 +12,13 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+03-30-2005
+
+o added template context upon no such element.  It says stuff like:
+<<
+no such attribute: decisionNumber in template context [outputFile lexer cyclicDFA cyclicDFAState cyclicDFAEdge lookaheadTest]
+>>
+
 03-28-2005
 
 o added ability to use indirect property names.  $user.(propName)$
