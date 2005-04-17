@@ -1,0 +1,1892 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+  <title>Python StringTemplate Documentation</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <h1>Python StringTemplate Documentation</h1>
+
+  <p>Terence Parr<br>
+  University of San Francisco<br>
+  <tt>parrt@cs.usfca.edu</tt><br>
+  <em>Copyright 2003-2005</em><br>
+  <a href=
+  "http://www.stringtemplate.org"><b>http://www.stringtemplate.org</b></a><br>
+
+  (StringTemplate released under BSD License)</p>
+
+  <p>Python version created by</p>
+
+  <p>Marq Kole<br>
+  <tt>marq dot kole at xs4all dot nl</tt><br>
+  <em>Copyright 2003-2005</em><br></p>
+
+  <p>Version 0.2, January 10, 2005</p>
+
+  <p>Note that the <tt>TestStringTemplates.py</tt> file has many tests that
+  are an excellent set of examples. Also, I highly recommend you read the
+  (academic-oriented) paper, <a href=
+  "http://www.cs.usfca.edu/~parrt/papers/mvc.templates.pdf"><b>Enforcing
+  Model-View Separation in Template Engines</b></a>. There are some more
+  examples including nested menu generation that will be of interest.</p>
+
+  <h2>Acknowledgements</h2>
+
+  <p>Tom Burns (CEO jGuru.com) co-designed <tt>StringTemplate</tt> and
+  listened to me think out loud incessantly. I would also like to thank
+  Monty Zukowski for planting the <tt>template</tt> "meme" in my head back
+  in the mid 1990's. Loring Craymer and Monty both are helping me hone
+  these ideas for use in source-to-source language translation. Matthew
+  Ford has done a huge amount of thinking about StringTemplate and has
+  submitted numerous suggestions and patches. Anthony Casalena at <a href=
+  "http://www.squarespace.com"><b>http://www.squarespace.com</b></a> has
+  been a big help beta-testing <tt>StringTemplate</tt>.</p>
+
+  <h2>Introduction</h2>
+
+  <p>A <tt>StringTemplate</tt> is a "document" with holes in it where you
+  can stick values. <tt>StringTemplate</tt> breaks up your template into
+  chunks of text and attribute expressions, which are by default enclosed
+  in dollar signs <tt>$</tt><em>attribute-expression</em><tt>$</tt> (to
+  make them easy to see in HTML files). <tt>StringTemplate</tt> ignores
+  everything outside of attribute expressions, treating it as just text to
+  spit out when you call <tt>StringTemplate.toString()</tt>. For example,
+  the following template has two chunks, a literal and a reference to
+  attribute <tt>name</tt>:</p>
+  <pre><font size="2">
+Hello, $name$
+  </font></pre>
+
+  <p>Using templates in Python code is very easy. Here is the requisite
+  example that prints "<tt>Hello, World</tt>":</p>
+  <pre><font size="2">
+import stringtemplate
+
+hello = stringtemplate.StringTemplate("Hello, $name$")
+hello["name"] = "World"
+print hello
+  </font></pre>
+
+  <p><tt>StringTemplate</tt> is not a "system" or "engine" or "server";
+  it's a library with two primary classes of interest:
+  <tt>StringTemplate</tt> and <tt>StringTemplateGroup</tt>. You can
+  directly create a <tt>StringTemplate</tt> in Python code, you can load a
+  template from a file, and you can load a single file with many templates
+  (a template group file).</p>
+
+  <p>The Java version of <tt>StringTemplate</tt> evolved over years
+  developing the following sites:</p>
+
+  <ul>
+    <li><a href="http://www.jguru.com"><b>http://www.jguru.com</b></a></li>
+
+    <li><a href=
+    "http://www.knowspam.net"><b>http://www.knowspam.net</b></a></li>
+
+    <li><a href=
+    "http://www.peerscope.com"><b>http://www.peerscope.com</b></a></li>
+
+    <li><a href="http://www.antlr.org"><b>http://www.antlr.org</b></a></li>
+  </ul>
+
+  <p>The need for dynamically-generated web pages, such as the book
+  description pages at Amazon.com, has led to the development of numerous
+  template engines in an attempt to make web application development
+  easier, improve flexibility, reduce maintenance costs, and allow parallel
+  code and HTML development. These enticing benefits, which have driven the
+  proliferation of template engines, derive entirely from a single
+  principle: separating the specification of a page's business logic and
+  data computations from the specification of how a page displays such
+  information. With separate encapsulated specifications, template engines
+  promote component reuse, pluggable site "looks", single-points-of-change
+  for common components, and high overall system clarity.</p>
+
+  <p>StringTemplate distinguishes itself by strictly enforcing the
+  separation of business logic from display. After examining hundreds of
+  template files that I created over years of development, I found that I
+  needed only the following four basic canonical operations:</p>
+
+  <ul>
+    <li>attribute reference; e.g., <tt>$phoneNumber$</tt></li>
+
+    <li>template reference (like #include or macro expansion); e.g.,
+    <tt>$searchbox()$</tt></li>
+
+    <li>conditional include of subtemplate (an IF statement); e.g.,
+    <tt>$if(title)$&lt;title&gt;$title$&lt;/title&gt;$endif$</tt></li>
+
+    <li>template application to list of attributes; e.g.,
+    <tt>$names:bold()$</tt></li>
+  </ul>
+
+  <p>where template references can be recursive. Things like setting
+  variables, loops, arbitrary method calls into the model etc... are simply
+  unnecessary and lead to entangled specifications.</p>
+
+  <p>While <tt>StringTemplate</tt> evolved while I was building websites,
+  in the back of my mind I kept wondering how useful it would be in my
+  research area (parser generators and other code generators). With the 2.0
+  release I have augmented <tt>StringTemplate</tt> to better support text
+  code generators such as auto-indentation and template group files. Along
+  with the group file format, you will see formal arguments for templates
+  so that many previously-undetected errors can be trapped such as
+  referencing an attribute that is not set by the controller.</p>
+
+  <h2>Defining Templates</h2>
+
+  <h3>Creating Templates With Python Code</h3>
+
+  <p>Here is a simple piece of Python that creates and uses a template on
+  the fly:</p>
+  <pre><font size="2">
+import stringtemplate
+
+query = stringtemplate.StringTemplate("SELECT $column$ FROM $table$;")
+query["column"] = "name"
+query["table"] = "User"
+  </font></pre>
+
+  <p>where <tt>StringTemplate</tt> considers anything in <tt>$...$</tt> to
+  be something it needs to pay attention to. By setting attributes, you are
+  "pushing" values into the template for use when the template is printed
+  out. The attribute values are set by referencing their names. Invoking
+  <tt>query.toString()</tt> would yield</p>
+  <pre><font size="2">
+SELECT name FROM User;
+  </font></pre>
+
+  <p>You can set an attribute multiple times, which simply means that the
+  attribute is multi-valued. For example, adding another
+  <tt>setAttribute()</tt> call makes attribute <tt>column</tt>
+  multi-valued:</p>
+  <pre><font size="2">
+import stringtemplate
+
+query = stringtemplate.StringTemplate("SELECT $column$ FROM $table$;")
+query["column"] = "name"
+query["column"] = "email"
+query["table"] = "User"
+  </font></pre>
+
+  <p>Invoking <tt>str(query)</tt> would now yield</p>
+  <pre><font size="2">
+SELECT nameemail FROM User;
+  </font></pre>
+
+  <p>Ooops...there is no separator between the multiple values. If you want
+  a comma, say, between the column names, then change the template to
+  record that formatting information:</p>
+  <pre><font size="2">
+import stringtemplate
+
+query = stringtemplate.StringTemplate("SELECT $column; separator=\",\"$ FROM $table$;")
+query["column"] = "name"
+query["column"] = "email"
+query["table"] = "User"
+  </font></pre>
+
+  <p>Note that the right-hand-side of the separator specification in this
+  case is a string literal; therefore, I have escaped the double-quotes as
+  the template is specified in a Python string. Of course, you can also use
+  a mixture of single and double quotes:</p>
+  <pre><font size="2">
+import stringtemplate
+
+query = stringtemplate.StringTemplate('SELECT $column; separator=","$ FROM $table$;')
+query["column"] = "name"
+query["column"] = "email"
+query["table"] = "User"
+  </font></pre>
+
+  <p>In general, the right-hand-side can be any attribute expression.
+  Invoking <tt>str(query)</tt> would now yield</p>
+  <pre><font size="2">
+SELECT name,email FROM User;
+  </font></pre>
+
+  <p>Attributes can be any object at all. <tt>StringTemplate</tt> calls
+  <tt>str()</tt> on each object as it writes the template out. The
+  separator is not used unless the attribute is multi-valued.</p>
+
+  <h3>Loading Templates From Files</h3>
+
+  <p>To load a template from the disk you must use a
+  <tt>StringTemplateGroup</tt> that will manage all the templates you load,
+  caching them so you do not waste time talking to the disk for each
+  template fetch request (you can change it to not cache; see below). You
+  may have multiple template groups. Here is a simple example that loads
+  the previous SQL template from file <tt>/tmp/theQuery.st</tt>:</p>
+  <pre><font size="2">
+SELECT $column; separator=","$ FROM $table$;
+  </font></pre>
+
+  <p>The Python code creates a <tt>StringTemplateGroup</tt> called
+  <tt>myGroup</tt> rooted at <tt>/tmp</tt> so that requests for template
+  <tt>theQuery</tt> forces a load of file <tt>/tmp/theQuery.st</tt>.</p>
+  <pre><font size="2">
+import stringtemplate
+
+group = stringtemplate.StringTemplateGroup("myGroup", "/tmp")
+query = group.getInstanceOf("theQuery")
+query["column"] = "name"
+query["column"] = "email"
+query["table"] = "User"
+  </font></pre>
+
+  <p>If you have a directory hierarchy of templates such as file
+  <tt>/tmp/jguru/bullet.st</tt>, you would reference them relative to the
+  root; in this case, you would ask for template
+  <tt>jguru/bullet()</tt>.</p>
+
+  <p><b>Note</b>: StringTemplate strips whitespace from the front and back
+  of all loaded template files. You can add, for example,
+  <tt>&lt;\n&gt;</tt> at the end of the file to get an extra carriage
+  return.</p>
+
+  <h2>StringTemplate Group Files</h2>
+
+  <p>Java Version 2.0 of StringTemplate introduces the notion of a group
+  file that has two main attractions. First, it allows you to define lots
+  of small templates more conveniently because they may all be defined
+  within a single file. Second, you may specify formal template arguments
+  that help <tt>StringTemplate</tt> detect errors (such as setting unknown
+  attributes) and make the templates easier to read. Here is a sample group
+  file (I'm using <tt>&lt;...&gt;</tt> delimiters) with two templates,
+  <tt>vardef</tt> and <tt>method</tt>, that could be used to generate C
+  files:</p>
+  <pre><font size="2">
+group simple;
+
+vardef(type,name) ::= "&lt;type&gt; &lt;name&gt;;"
+
+method(type,name,args) ::= &lt;&lt;
+&lt;type&gt; &lt;name&gt;(&lt;args; separator=","&gt;) {
+  &lt;statements; separator="\n"&gt;
+}
+&gt;&gt;
+  </font></pre>
+
+  <p>Single line templates are enclosed in double quotes while multi-line
+  templates are enclosed in double angle-brackets. Every template must
+  define arguments even if the formal argument list if blank.</p>
+
+  <p>Using templates in a group file is straightforwards. A
+  <tt>StringTemplateGroup</tt> constructor accepts any <tt>file</tt> or
+  file-like object so you can pass in a string or file or whatever:</p>
+  <pre><font size="2">
+import stringtemplate
+import StringIO from StringIO
+
+templates = "group simple; vardef(type,name) ..." # templates from above
+group = stringtemplate.StringTemplateGroup(StringIO(templates))
+t = group.getInstanceOf("vardef")
+t["type"] = "int"
+t["name"] = "foo"
+print t
+  </font></pre>
+
+  <p>The output would be: "<tt>int foo;</tt>".</p>
+
+  <h3>Formal argument error handling</h3>
+
+  <p>When using a group file format to specify templates, you must specify
+  the formal arguments for that template. If you try to set an attribute
+  that is not specifically formally defined that template, you will get a
+  <tt>KeyError</tt>.</p>
+
+  <h3>Newline handling</h3>
+
+  <p>The first newline following the <tt>&lt;&lt;</tt> in a template
+  definition is ignored as it is usually used just to get the first line of
+  text for the template at the start of a line. In other words, if you want
+  to have a blank line at the start of your template, use:</p>
+  <pre><font size="2">
+foo() ::= &lt;&lt;
+
+2nd line is not blank, but first is
+&gt;&gt;
+  </font></pre>
+
+  <p>or</p>
+  <pre><font size="2">
+foo() ::= &lt;&lt;&lt;\n&gt;
+same as before; newline then this line
+&gt;&gt;
+  </font></pre>
+
+  <p>The last newline before the <tt>&gt;&gt;</tt> is also ignored and is
+  included in the output. To add a final newline, add an extra line or
+  <tt>&lt;\n&gt;</tt> before the <tt>&gt;&gt;</tt>:</p>
+  <pre><font size="2">
+foo() ::= &lt;&lt;
+rodent
+
+&gt;&gt;
+  </font></pre>
+
+  <p>or</p>
+  <pre><font size="2">foo() ::= &lt;&lt;
+rodent&lt;\n&gt;
+&gt;&gt;
+  </font></pre>
+
+  <p>Template:</p>
+  <pre><font size="2">
+foo() ::= &lt;&lt;
+rodent
+&gt;&gt;
+  </font></pre>
+
+  <p>on the other hand, is identical to</p>
+  <pre><font size="2">
+foo() ::= "rodent"
+  </font></pre>
+
+  <h3>Group file format</h3>
+  <pre><font size="2">
+group
+    : "group" name:ID SEMI (template)*
+    ;
+
+template
+    : name:ID LPAREN (args)? RPAREN DEFINED_TO_BE TEMPLATE
+    |   ID DEFINED_TO_BE ID // alias one template to be another
+    ;
+
+args: ID (COMMA ID)*
+    ;
+  </font></pre>
+
+  <table cellspacing="0" border="1" summary="">
+    <tr>
+      <td><b>An aside</b>: All along, during my website construction days,
+      I kept in mind that any text output follows a format and, thus,
+      output sentences conform to a language. Consequently, a grammar
+      should describe the output rather than a bunch of ad hoc print
+      statements in code. This helped me formalize the study of templates
+      because I could compare templates (output grammars) to well
+      established ideas from formal language theory and context-free
+      grammars. This allowed me to show, among other things, that
+      <tt>StringTemplate</tt> can easily generate any document describable
+      with an XML DTD even though it is deliberately limited. The group
+      file format should look very much like a grammar to you.</td>
+    </tr>
+  </table>
+
+  <p>See the scoping rules section for information on how formal arguments
+  affect attribute look up.</p>
+
+  <p>I use <tt>.stg</tt> file extension, which you might also want to
+  use.</p>
+
+  <h2>Functionality Summary</h2>
+
+  <h3>Attribute References</h3>
+
+  <h4>Named attributes</h4>
+
+  <p>The most common thing in a template besides plain text is a simple
+  named attribute reference such as:</p>
+  <pre><font size="2">
+Your email: $email$
+  </font></pre>
+
+  <p>The template will look up the value of <tt>email</tt> and insert it
+  into the output stream when you ask the template to print itself out. If
+  <tt>email</tt> has no value, then it evaluates to the empty string and
+  nothing is printed out for that attribute expression.</p>
+
+  <h4>Property references</h4>
+
+  <p>If a named attribute is an aggregate with a property (ala JavaBeans),
+  you may reference that property using
+  <em>attribute</em>.<em>property</em>. For example:</p>
+  <pre><font size="2">
+Your name: $person.name$
+Your email: $person.email$
+  </font></pre>
+
+  <p><tt>StringTemplate</tt> ignores the actual object type stored in
+  attribute <tt>person</tt> and simply invokes <tt>getName()</tt> and
+  <tt>getEmail()</tt> via reflection. As a special case, StringTemplate
+  tries <tt>x.isFoo()</tt> for <tt>x.foo</tt> if <tt>x</tt> is
+  <tt>Boolean</tt>.</p>
+
+  <p>Because the type is ignored, you can pass in whatever existing Java
+  aggregate (class) you have such as <tt>User</tt> or <tt>Person</tt>:</p>
+  <pre><font size="2">
+u = database.lookupPerson("parrt@jguru.com")
+st["person"] = u
+  </font></pre>
+
+  <p>Or, if a suitable aggregate doesn't exist, you can make a connector or
+  "glue" object and pass that in instead:</p>
+  <pre><font size="2">
+st["person"] = Connector()
+  </font></pre>
+
+  <p>where <tt>Connector</tt> is defined as:</p>
+  <pre><font size="2">
+class Connector:
+    def getName(self):
+        return "Terence"
+    def getEmail(self):
+        return "parrt@jguru.com"
+  </font></pre>
+
+  <p>The ability to reference aggregrate properties saves you the trouble
+  of having to pull out the properties with Python code like this:</p>
+  <pre><font size="2">
+u = database.lookupPerson("parrt@jguru.com")
+st["name"] = u.getName()
+st["email"] = u.getEmail()
+  </font></pre>
+
+  <p>and having template:</p>
+  <pre><font size="2">
+Your name: $name$
+Your email: $email$
+  </font></pre>
+
+  <p><b>Warning</b>: The latter is more widely applicable and totally
+  decoupled from code and logic; i.e., it's "better" but much less
+  convenient. Be very careful that the property methods do not have any
+  side-effects like updating a counter or whatever. This breaks the rule of
+  order of evaluation independence.</p>
+
+  <h4>Map key/value pair access</h4>
+
+  <p>You may pass in <tt>dictionary</tt> instances. Rather than creating an
+  aggregate object (though I make it easier for you with the automatic
+  aggregate creation in the next section) you can pass in a
+  <tt>dictionary</tt> that has keys referencable within templates. For
+  example,</p>
+  <pre><font size="2">
+import stringtemplate
+
+a = stringtemplate.StringTemplate("$user.name$, $user.phone$")
+user = {}
+user["name"] = "Terence"
+user["phone"] = "none-of-your-business"
+a["user"] = user
+results = str(a)
+  </font></pre>
+
+  <p>yields a result of "Terence, none-of-your-business".</p>
+
+  <h4>Automatic aggregate creation</h4>
+
+  <p>You may pass in an aggregrate attribute name to
+  <tt>setAttribute()</tt> now:</p>
+  <pre><font size="2">
+import stringtemplate
+
+st = stringtemplate.StringTemplate("$items:{$it.last$, $it.first$\n}$")
+st.setAttribute("items.{first,last}", "John", "Smith")
+st.setAttribute("items.{first,last}", "Baron", "Von Munchhausen")
+expecting = \
+    "Smith, John\n" + \
+    "Von Munchhausen, Baron\n"
+  </font></pre>
+
+  <p>Note that the template, <tt>st</tt>, expects the <tt>items</tt> to be
+  aggregates with properties <tt>first</tt> and <tt>last</tt>. By using
+  attribute name</p>
+  <pre><font size="2">
+items.{first,last}
+  </font></pre>
+
+  <p>You are telling <tt>StringTemplate</tt> to take the following two
+  arguments as properties <tt>first</tt> and <tt>last</tt>.</p>
+
+  <p>I have created variants of the <tt>setAttribute()</tt> method to
+  handle from 2 to 5 properties. This is really handy. :)</p>
+
+  <h3>Template References</h3>
+
+  <p>You may reference other templates to have them included just like the
+  C language preprocessor <tt>#include</tt> construct behaves. For example,
+  if you are building a web page (<tt>page.st</tt>) that has a search box,
+  you might want the search box stored in a separate template file, say,
+  <tt>searchbox.st</tt>. This has two advantages:</p>
+
+  <ol>
+    <li>You can reuse the template over and over (no cut/paste)</li>
+
+    <li>You can change one template and all search boxes change on the
+    whole site.</li>
+  </ol>
+
+  <p>Using method call syntax, just reference the foreign template:</p>
+  <pre><font size="2">
+&lt;html&gt;
+&lt;body&gt;
+...
+$searchbox()$
+...
+&lt;/body&gt;
+&lt;/html&gt;
+  </font></pre>
+
+  <p>The invoking Python code would still just create the overall page and
+  the enclosing page template would automatically create an instance of the
+  referenced template and insert it:</p>
+  <pre><font size="2">
+import stringtemplate
+
+group = stringtemplate.StringTemplateGroup("webpages", "/usr/local/site/templates")
+page = group.getInstanceOf("page")
+  </font></pre>
+
+  <p>If the template you want to reference, say <tt>searchbox</tt>, is in a
+  subdirectory of the <tt>StringTemplateGroup</tt> root directory called
+  <tt>misc</tt>, then you must reference the template as:
+  <tt>misc/searchbox()</tt>.</p>
+
+  <p>The included template may access attributes. How can you set the
+  attribute of an included template? There are two ways: inheriting
+  attributes and passing parameters.</p>
+
+  <h4>Accessing Attributes Of Enclosing Template</h4>
+
+  <p>Any included template can reference the attributes of the enclosing
+  template instance. So if <tt>searchbox</tt> references an attribute
+  called <tt>resource</tt>:</p>
+  <pre><font size="2">
+&lt;form ...&gt;
+...
+&lt;input type=hidden name=resource value=$resource$&gt;
+...
+&lt;/form&gt;
+  </font></pre>
+
+  <p>you could set attribute <tt>resource</tt> in the enclosing template
+  <tt>page</tt>:</p>
+  <pre><font size="2">
+page = group.getInstanceOf("page")
+page["resource"] = "faqs"
+  </font></pre>
+
+  <p>This "inheritance" of attributes feature is particularly handy for
+  setting generally useful attributes like <tt>siteFontTag</tt>.</p>
+
+  <h4>Passing Parameters To Another Template</h4>
+
+  <p>Another, more obvious, way to set the attributes of an included
+  template is to pass in values as parameters, making them look like C
+  macro invocations rather than includes. The syntax looks like a set of
+  attribute assignments:</p>
+  <pre><font size="2">
+&lt;html&gt;
+&lt;body&gt;
+...
+$searchbox(resource="faqs")$
+...
+&lt;/body&gt;
+&lt;/html&gt;
+  </font></pre>
+
+  <p>where I am setting the attribute of the included <tt>searchbox</tt> to
+  be the string literal <tt>"faqs"</tt>.</p>
+
+  <p>The right-hand-side of the assignment may be any expression such as an
+  attribute reference or even a reference to another template like
+  this:</p>
+  <pre><font size="2">
+$boldMe(item=copyrightNotice())$
+  </font></pre>
+
+  <h3>Attribute Expressions</h3>
+
+  <p>When setting parameters or testing IF conditionals, you may find it
+  handy to use the plus "string concatenate" operator. For example, when
+  building web pages, you will find it useful to create a template called
+  <tt>link</tt> and then use it to generate HTML link tags; you may want to
+  change the way every link looks on your site and it's convenient to have
+  one place to change things. The template might look like:</p>
+  <pre><font size="2">
+&lt;a href="$url$"&gt;&lt;b&gt;$title$&lt;/b&gt;&lt;/a&gt;
+  </font></pre>
+
+  <p>Then in a page template you might reference:</p>
+  <pre><font size="2">
+...$link(url="http://www.jguru.com", title="jGuru")$...
+  </font></pre>
+
+  <p>or you could use attributes to set the link parameters:</p>
+  <pre><font size="2">
+...$link(url=person.homePage, title=person.name)$...
+  </font></pre>
+
+  <p>Sometimes you may want to compute the URL; usually it is enough to
+  concatenate strings:</p>
+  <pre><font size="2">
+...$link(url="/faq/view?ID="+faqid, title=faqtitle)$...
+  </font></pre>
+
+  <p>where <tt>faqid</tt> and <tt>faqtitle</tt> are attributes you would
+  have to set for the template that referenced <tt>link</tt>.</p>
+
+  <p>You may parenthesize any expression:</p>
+  <pre><font size="2">
+...$link(url=("/faq/view?ID="+faqid), title=faqtitle)$...
+  </font></pre>
+
+  <h3>Template Application</h3>
+
+  <p>Imagine a simple template called <tt>bold</tt>:</p>
+  <pre><font size="2">
+&lt;b&gt;$item$&lt;/b&gt;
+  </font></pre>
+
+  <p>Just as with template <tt>link</tt> described above, you can reference
+  it from a template by invoking it like a method call:</p>
+  <pre><font size="2">
+$bold(item=name)$
+  </font></pre>
+
+  <p>What if you want something bold and italicized? You could simply nest
+  the template reference:</p>
+  <pre><font size="2">
+$bold(item=italics(item=name))$
+  </font></pre>
+
+  <p>where template <tt>italics</tt> is defined as:</p>
+  <pre><font size="2">
+&lt;i&gt;$item$&lt;/i&gt;
+  </font></pre>
+
+  <p>using a different attribute with the same name, <tt>item</tt>; the
+  attributes have different values just like you would expect if these
+  template references where Python method calls and <tt>item</tt> were a
+  local variable. Parameters and attribute references are scoped like a
+  programming language.</p>
+
+  <p>Think about what you are really trying to say here. You want to say
+  "make name italics and then make it bold", or "apply italics to the name
+  and then apply bold." There is an "apply template" syntax that is a
+  literal translation:</p>
+  <pre><font size="2">
+$name:italics():bold()$
+  </font></pre>
+
+  <p>where the templates are applied in the order specified from left to
+  right. This is much more clear, particularly if you had three templates
+  to apply:</p>
+  <pre><font size="2">
+$name:courierFont():italics():bold()$
+  </font></pre>
+
+  <p>For this syntax to work, however, the applied templates have to
+  reference a standard attribute because you are not setting the attribute
+  in a parameter assignment. In general for syntax
+  <em>expr</em>:<em>template</em>(), an attribute called <tt>it</tt> is set
+  to the value of <em>expr</em>. So, the definition of <tt>bold</tt> (and
+  analogously <tt>italics</tt>), would have to be:</p>
+  <pre><font size="2">
+&lt;b&gt;$it$&lt;/b&gt;
+  </font></pre>
+
+  <p>to pick up the value of <tt>name</tt> in our examples above.</p>
+
+  <h4>Applying Templates To Multi-Valued Attributes</h4>
+
+  <p>Where template application really shines though is when an attribute
+  is multi-valued. One of the most common web page generation issues is
+  making lists of items either as bullet lists or table rows etc...
+  Applying a template to a multi-valued attribute means that you want the
+  template applied to each of the values.</p>
+
+  <p>Consider a list of names (i.e., you set attribute <tt>names</tt>
+  multiple times) that you want in a bullet list. If you have a template
+  called <tt>listItem</tt>:</p>
+  <pre><font size="2">
+&lt;li&gt;$it$&lt;/li&gt;
+  </font></pre>
+
+  <p>then you can do this:</p>
+  <pre><font size="2">
+&lt;ul&gt;
+$names:listItem()$
+&lt;/ul&gt;
+  </font></pre>
+
+  <p>and each name will appear as a bullet item. For example, if you set
+  <tt>names</tt> to <tt>"Terence"</tt>, <tt>"Tom"</tt>, and <tt>"Jim"</tt>,
+  then you would see:</p>
+  <pre><font size="2">
+&lt;ul&gt;
+&lt;li&gt;Terence&lt;/li&gt;
+&lt;li&gt;Tom&lt;/li&gt;
+&lt;li&gt;Jim&lt;/li&gt;
+&lt;/ul&gt;
+  </font></pre>
+
+  <p>in the output.</p>
+
+  <p>Whenever you apply a template to an attribute or multi-valued
+  attribute, the default attribute <tt>it</tt> is set. Another attribute
+  <tt>i</tt> (of type <tt>Integer</tt>) is also set to the value's index
+  number starting from 1. For example, if you wanted to make your own style
+  of numbered list, you could reference <tt>i</tt> to get the index:</p>
+  <pre><font size="2">
+$names:numberedListItem()$
+  </font></pre>
+
+  <p>where template <tt>numberedListItem</tt> is defined as:</p>
+  <pre><font size="2">
+$i$. $it$&lt;br&gt;
+  </font></pre>
+
+  <p>In this case, the output would be:</p>
+  <pre><font size="2">
+1. Terence&lt;br&gt;
+2. Tom&lt;br&gt;
+3. Jim&lt;br&gt;
+  </font></pre>
+
+  <p>If there is only one attribute value, then <tt>i</tt> will be 1.</p>
+
+  <h4>Applying Multiple Templates To Multi-Valued Attributes</h4>
+
+  <p>The result of applying a template to a multi-valued attribute is
+  another multi-valued attribute containing the results of the application.
+  You may apply another template to the results of the first template
+  application, which comes in handy when you need to format the elements of
+  a list before they go into the list. For example, to bold the elements of
+  a list do the following (given the appropriate template definitions from
+  above):</p>
+  <pre><font size="2">
+$names:bold():listItem()$
+  </font></pre>
+
+  <p>If you actually want to apply a template to the combined (string)
+  result of a previous template application, enclose the previous
+  application in parenthesis. The parenthesis will force immediate
+  evaluation of the template application, resulting in a string. For
+  example,</p>
+  <pre><font size="2">
+$(names:bold()):listItem()$
+  </font></pre>
+
+  <p>results in a single list item full of a bunch of bolded names. Without
+  the parenthesis, you get a list of items that are bolded.</p>
+
+  <h4>Applying Alternating Templates To Multi-Valued Attributes</h4>
+
+  <p>When generating lists of things, you often need to change the color or
+  other formatting instructions depending on the list position. For
+  example, you might want to alternate the color of the background for the
+  elements of a list. The easiest and most natural way to specify this is
+  with an alternating list of templates to apply to an expression of the
+  form:
+  <tt>$</tt><em>expr</em>:<em>t1</em>(),<em>t2</em>(),...,<em>tN</em>()<tt>$</tt>.
+  To make an alternating list of blue and green names, you might say:</p>
+  <pre><font size="2">
+$names:blueListItem(),greenListItem()$
+  </font></pre>
+
+  <p>where presumably <tt>blueListItem</tt> template is an HTML
+  <tt>&lt;table&gt;</tt> or something that lets you change background
+  color. <tt>names[0]</tt> would get <tt>blueListItem()</tt> applied to it,
+  <tt>names[1]</tt> would get <tt>greenListItem()</tt>, and
+  <tt>names[2]</tt> would get <tt>blueListItem()</tt>, etc...</p>
+
+  <p>If <tt>names</tt> is single-valued, then <tt>blueListItem()</tt> is
+  applied and that's it.</p>
+
+  <h4>Applying Anonymous Templates</h4>
+
+  <p>Some templates are so simple or so unlikely to be reused that it seems
+  a waste of time making a separate template file and then referencing it.
+  <tt>StringTemplate</tt> provides <em>anonymous subtemplates</em> to
+  handle this case. The templates are anonymous in the sense that they are
+  not named; they are directly applied in a single instance.</p>
+
+  <p>For example, to show a name list do the following:</p>
+  <pre><font size="2">
+&lt;ul&gt;
+$names:{&lt;li&gt;$it$&lt;/li&gt;}$
+&lt;/ul&gt;
+  </font></pre>
+
+  <p>where anything enclosed in curlies is an anonymous subtemplate if, of
+  course, it's within an attribute expression. Note that in the
+  subtemplate, I must enclose the <tt>it</tt> reference in the template
+  expression delimiters. You have started a new template exactly like the
+  surrounding template and you must distinguish between text and attribute
+  expressions.</p>
+
+  <p>You can apply multiple templates very conveniently. Here is the bold
+  list of names again with anonymous templates:</p>
+  <pre><font size="2">
+&lt;ul&gt;
+$names:{&lt;b&gt;$it$&lt;/b&gt;}:{&lt;li&gt;$it$&lt;/li&gt;}$
+&lt;/ul&gt;
+  </font></pre>
+
+  <p>The output would look like:</p>
+  <pre><font size="2">
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Terence&lt;/b&gt;&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Tom&lt;/b&gt;&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Jim&lt;/b&gt;&lt;/li&gt;
+&lt;/ul&gt;
+  </font></pre>
+
+  <p>Anonymous templates work on single-valued attributes as well.</p>
+
+  <h4>Indirect template references</h4>
+
+  <p>Sometimes the name of the template you would like to include is itself
+  a variable. So, rather than using "<tt>&lt;item:format()&gt;</tt>" you
+  want the name of the template, <tt>format</tt>, to be a variable rather
+  than a literal. Just enclose the template name in parenthesis to indicate
+  you want the immediate value of that attribute and then add <tt>()</tt>
+  like a normal template invocation and you get
+  "<tt>&lt;item:(someFormat)()&gt;</tt>", which means "look up attribute
+  <tt>someFormat</tt> and use its value as a template name; appy to
+  <tt>item</tt>." This deliberately looks similar to the C function call
+  indirection through a function pointer (e.g., "<tt>(*fp)()</tt>" where fp
+  is a pointer to a function). A better way to look at it though is that
+  the <tt>(someFormat)</tt> implies <em>immediately evaluate someFormat and
+  use as the template name</em>.</p>
+
+  <p>Usually this "variable template" situation occurs when you have a list
+  of items to format and each element may require a different template.
+  Rather than have the controller code create a bunch of instances, one
+  could consider it better to have <tt>StringTemplate</tt> do the
+  creation--the controller just names what format to use.</p>
+
+  <p>Consider generating a list of Java declarations that are initialized
+  to 0, false, null, etc... One solution is to define a template for
+  <tt>int</tt>, <tt>Object</tt>, <tt>Array</tt>, etc... declarations and
+  then pass in an aggregate object that has the variable declaration object
+  and the format. In a template group file you might have:</p>
+  <pre><font size="2">
+group Java;
+
+file(variables,methods) ::= &lt;&lt;
+&lt;variables:{&lt;it.decl:(it.format)()&gt;}; separator="\n"&gt;
+&lt;methods&gt;
+&gt;&gt;
+intdecl() ::= "int &lt;it.name&gt; = 0;"
+intarray() ::= "int[] &lt;it.name&gt; = null;"
+  </font></pre>
+
+  <p>Your code might look like:</p>
+  <pre><font size="2">
+import stringtemplate
+import StringIO from StringIO
+
+group = stringtemplate.StringTemplateGroup(StringIO(templates),
+                            AngleBracketTemplateLexer.class)
+f = group.getInstanceOf("file")
+f.setAttribute("variables.{decl,format}", new Decl("i","int"), "intdecl")
+f.setAttribute("variables.{decl,format}", new Decl("a","int-array"), "intarray")
+print "f =", f
+expecting = ""+newline+newline
+  </font></pre>
+
+  <p>For this simple unit test, I used the following dummy decl class:</p>
+  <pre><font size="2">
+class Decl:
+    def __init__(self, name, type_):
+        self.name = name
+        self.type = type_
+    def getName(self):
+        return self.name
+    def getType(self):
+        return self.type
+  </font></pre>
+
+  <p>The value of <tt>str(f)</tt> is:</p>
+  <pre><font size="2">
+int i = 0;
+int[] a = null;
+  </font></pre>
+
+  <p>Missing attributes (i.e., <tt>None</tt> valued attributes) used as
+  indirect template attribute generate nothing just like referencing a
+  missing attribute.</p>
+
+  <h3>Conditionally Included Subtemplates (IF statements)</h3>
+
+  <p>There are many situations when you want to conditionally include some
+  text or another template. <tt>StringTemplate</tt> provides simple
+  IF-statements to let you specify conditional includes. For example, in a
+  dynamic web page you usually want a slightly different look depending on
+  whether or not the viewer is "logged in" or not. Without a conditional
+  include, you would need two templates: <tt>page_logged_in</tt> and
+  <tt>page_logged_out</tt>. You can use a single <tt>page</tt> definition
+  with <tt>if(</tt><em>expr</em><tt>)</tt> attribute actions instead:</p>
+  <pre><font size="2">
+&lt;html&gt;
+...
+&lt;body&gt;
+$if(member)$
+$gutter/top_gutter_logged_in()$
+$else$
+$gutter/top_gutter_logged_out()$
+$endif$
+...
+&lt;/body&gt;
+&lt;/html&gt;
+  </font></pre>
+
+  <p>where template <tt>top_gutter_logged_in</tt> is located in the
+  <tt>gutter</tt> subdirectory of my <tt>StringTemplateGroup</tt>.</p>
+
+  <p>IF actions test the presence or absence of an attribute unless the
+  object is a <tt>bool</tt>, in which case it tests the attribute for
+  <tt>True</tt>/<tt>False</tt>. The only operator allowed is "not" and
+  means either "not present" or "not true". For example,
+  "<tt>$if(!member)$...$endif$</tt>".</p>
+
+  <h4>Whitespace issues</h4>
+
+  <p>There is a simple, but not perfect rule: kill a single newline
+  <b>after</b> <tt>&lt;if&gt;</tt>, <tt>&lt;&lt;</tt>,
+  <tt>&lt;else&gt;</tt>, and <tt>&lt;endif&gt;</tt> (but for
+  <tt>&lt;endif&gt;</tt> only if it's on a line by itself) . Kill newlines
+  <b>before</b> <tt>&lt;else&gt;</tt> and <tt>&lt;endif&gt;</tt> and
+  <tt>&gt;&gt;</tt>. For example,</p>
+  <pre><font size="2">
+a &lt;if(foo)&gt;big&lt;else&gt;small&lt;endif&gt; dog
+  </font></pre>
+
+  <p>is identical to:</p>
+  <pre><font size="2">
+a &lt;if(foo)&gt;
+big
+&lt;else&gt;
+small
+&lt;endif&gt;
+ dog
+  </font></pre>
+
+  <p>It is very difficult to get the newline rule to work "properly"
+  because sometimes you want newlines and sometimes you don't. I decided to
+  chew up as many as is reasonable and then let you explicitly say
+  <tt>&lt;\n&gt;</tt> when you need to.</p>
+
+  <h2>Functionality Summary</h2>
+
+  <table cellspacing="0" border="1" summary="">
+    <tr>
+      <td><b>Syntax</b></td>
+
+      <td><b>Description</b></td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>attribute</em>&gt;</td>
+
+      <td>Evaluates to the value of <em>attribute</em><tt>.__str__()</tt>
+      if it exists else empty string.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>multi-valued-attribute</em>&gt;</td>
+
+      <td>Concatenation of <tt>__str__()</tt> invoked on each element. If
+      <em>multi-valued-attribute</em> is missing this evaluates to the
+      empty string.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>multi-valued-attribute</em>;
+      separator=<em>expr</em>&gt;</td>
+
+      <td>Concatenation of <tt>__str__()</tt> invoked on each element
+      separated by <em>expr</em>.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>template</em>(<em>argument-list</em>)&gt;</td>
+
+      <td>Include <em>template</em>. The <em>argument-list</em> is a list
+      of attribute assignments where each assignment is of the form
+      <em>attribute</em>=<em>expr</em>.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>(expr)</em>(<em>argument-list</em>)&gt;</td>
+
+      <td>Include <em>template</em> whose name is computed via
+      <em>expr</em>. The <em>argument-list</em> is a list of attribute
+      assignments where each assignment is of the form
+      <em>attribute</em>=<em>expr</em>. Example <tt>$(titleFont)()$</tt>
+      looks up <tt>titleFont</tt>'s value and uses that as template name.
+      Can also apply an indirect template to an attribute.</td>
+    </tr>
+
+    <tr>
+      <td>
+      &lt;<em>attribute</em>:<em>template</em>(<em>argument-list</em>)&gt;</td>
+
+      <td>Apply <em>template</em> to <em>attribute</em>. The optional
+      <em>argument-list</em> is evaluated before application so that you
+      can set attributes within <em>template</em>. The default attribute
+      <tt>it</tt> is set to the value of <em>attribute</em>. Example:
+      <tt>$data:bold()</tt> applies <tt>bold()</tt> to <tt>data</tt>'s
+      value. If <em>attribute</em> is multi-valued, then the optional
+      <em>argument-list</em> is evaluated before each application so that
+      you can set attributes within <em>template</em>. Also, the default
+      attribute <tt>it</tt> is set to the value of each element in
+      turn.</td>
+    </tr>
+
+    <tr>
+      <td>
+      &lt;<em>attribute</em>:<em>(expr)</em>(<em>argument-list</em>)&gt;</td>
+
+      <td>Apply <em>template</em>, whose name is computed from
+      <em>expr</em>, to <em>attribute</em>. The optional
+      <em>argument-list</em> is evaluated before application so that you
+      can set attributes within <em>template</em>. The default attribute
+      <tt>it</tt> is set to the value of <em>attribute</em>. Example
+      <tt>$data:(name)()$</tt> looks up <tt>name</tt>'s value and uses that
+      as template name to apply to <tt>data</tt>.</td>
+    </tr>
+
+    <tr>
+      <td>
+      &lt;<em>multi-valued-attribute</em>:<em>t1</em>(<em>argument-list</em>):
+      ... :<em>tN</em>(<em>argument-list</em>)&gt;</td>
+
+      <td>Apply multiple templates in order from left to right. The result
+      of a template application upon a multi-valued attribute is another
+      multi-valued attribute. The overall expression evaluates to the
+      concatenation of all elements of the final multi-valued attribute
+      resulting from <em>templateN</em>'s application.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;<em>attribute</em>:{<em>anonymous-template</em>}&gt;</td>
+
+      <td>Concatenate the results of applying a template with no name to
+      each element of <em>multi-valued-attribute</em>.</td>
+    </tr>
+
+    <tr>
+      <td>
+      &lt;<em>attribute</em>:<em>t1</em>(),<em>t2</em>(),...,<em>tN</em>()&gt;</td>
+
+      <td>Apply an alternating list of templates to the elements of
+      <em>attribute</em>.</td>
+    </tr>
+
+    <tr>
+      <td>&lt;if(<em>attribute</em>)&gt;<em>subtemplate</em>
+      &lt;else&gt;<em>subtemplate2</em> &lt;endif&gt;</td>
+
+      <td>If <em>attribute</em> has a value or is a <tt>True</tt>
+      <tt>bool</tt> object, include <em>subtemplate</em> else include
+      <em>subtemplate2</em>. These conditionals may be nested.</td>
+    </tr>
+
+    <tr>
+      <td>
+      &lt;if(!<em>attribute</em>)&gt;<em>subtemplate</em>&lt;endif&gt;</td>
+
+      <td>If <em>attribute</em> has no value or is a <tt>False</tt>
+      <tt>boolean</tt> object, include <em>subtemplate</em>. These
+      conditionals may be nested.</td>
+    </tr>
+
+    <tr>
+      <td><tt>\$</tt> or <tt>\&lt;</tt></td>
+
+      <td>escaped delimiter prevents <tt>$</tt> or <tt>&lt;</tt> from
+      starting an attribute expression and results in that single
+      character.</td>
+    </tr>
+
+    <tr>
+      <td><tt>&lt;\ &gt;</tt>, <tt>&lt;\n&gt;</tt>, <tt>&lt;\t&gt;</tt>,
+      <tt>&lt;\r&gt;</tt></td>
+
+      <td>special characters: space, newline, tab, carriage return.</td>
+    </tr>
+
+    <tr>
+      <td><tt>&lt;! comment !&gt;</tt>, <tt>$! comment !$</tt></td>
+
+      <td>Comments, ignored by StringTemplate.</td>
+    </tr>
+  </table>
+
+  <h2>Setting the Expression Delimiters</h2>
+
+  <p>By default, expressions in a template are delimited by dollar signs:
+  <tt>$...$</tt>. This works great for the most common case of HTML
+  generation because the attribute expressions are clearly highlighted in
+  the text. Sometimes, with other formats like SQL statement generation,
+  you may want to change the template expression delimiters to avoid a
+  conflict and to make the expressions stand out.</p>
+
+  <p>As of 2.0, the start and stop strings are limited to either
+  <tt>$...$</tt> or <tt>&lt;...&gt;</tt> (unless you build your own lexical
+  analyzer to break apart templates into chunks).</p>
+
+  <p>To use the angle bracket delimiters you must create a
+  <tt>StringTemplateGroup</tt>:</p>
+  <pre><font size="2">
+import stringtemplate
+
+group = stringtemplate.StringTemplateGroup("sqlstuff", "/tmp", AngleBracketTemplateLexer.Lexer)
+query = stringtemplate.StringTemplate(group, "SELECT &lt;column&gt; FROM &lt;table&gt;;")
+query["column"] = "name"
+query["table"] = "User"
+  </font></pre>
+
+  <p>All templates created through the group or in anyway associated with
+  the group will assume your the angle bracket delimiters. It's smart to be
+  consistent across all files of similar type such as "all HTML templates
+  use <tt>$...$</tt>" and "all SQL templates use <tt>&lt;...&gt;</tt>".</p>
+
+  <h2>Caching</h2>
+
+  <p>By default templates are loaded from disk just once. During
+  development, however, it is convenient to turn caching off. Also, you may
+  want to turn off caching so that you can quickly update a running site.
+  You can set a simple refresh interval using
+  <tt>StringTemplateGroup.setRefreshInterval(...)</tt>. When the interval
+  is reached, all templates are thrown out. Set interval to 0 to refresh
+  constantly (no caching). Set the interval to a huge number like
+  <tt>sys.maxint</tt> to have no refreshing at all.</p>
+
+  <h2>Template Inheritance</h2>
+
+  <p>Recall that a StringTemplateGroup is a collection of related templates
+  such as all templates associated with the look of a web site. If you want
+  to design a similar look for that site (such as for premium users), you
+  don't really want to cut-n-paste the original template files for use in
+  the new look. Changes to the original will not be propogated to the new
+  look.</p>
+
+  <p>Just like you would do with a class definition, a template group may
+  inherit templates from another group, the <em>supergroup</em>. If
+  template <em>t</em> is not found in a group, it is looked up in the
+  supergroup, if present. This works regardless of whether you use a group
+  file format or load templates from the disk via a
+  <tt>StringTemplateGroup</tt> object. Currently you cannot use the group
+  file syntax to specify a supergroup. I am investigating how this should
+  work. In the meantime, you must explicitly set the super.</p>
+
+  <p>From my unit tests, here is a simple inheritance of a template,
+  <tt>bold</tt>:</p>
+  <pre><font size="2">
+import stringtemplate
+
+supergroup = stringtemplate.StringTemplateGroup("super")
+subgroup = stringtemplate.StringTemplateGroup("sub")
+supergroup.defineTemplate("bold", "&lt;b&gt;$it$&lt;/b&gt;")
+subgroup.setSuperGroup(supergroup)
+st = stringtemplate.StringTemplate(subgroup, "$name:bold()$")
+st["name"] = "Terence"
+expecting = "&lt;b&gt;Terence&lt;/b&gt;"
+  </font></pre>
+
+  <p>The supergroup has a bold definition but the subgroup does not.
+  Referencing <tt>$name:bold()$</tt> works because subgroup looks into its
+  supergroup if it is not found.</p>
+
+  <p>You may override templates:</p>
+  <pre><font size="2">
+supergroup.defineTemplate("bold", "&lt;b&gt;$it$&lt;/b&gt;")
+subgroup.defineTemplate("bold", "&lt;strong&gt;$it$&lt;/strong&gt;")
+  </font></pre>
+
+  <p>And you may refer to a template in a supergroup via
+  <tt>super.</tt><em>template</em><tt>()</tt>:</p>
+  <pre><font size="2">
+import stringtemplate
+
+group = stringtemplate.StringTemplateGroup(...)
+subGroup = new stringtemplate.StringTemplateGroup(...)
+subGroup.setSuperGroup(group)
+group.defineTemplate("page", "$font()$:text")
+group.defineTemplate("font", "Helvetica")
+subGroup.defineTemplate("font", "$super.font()$ and Times")
+st = subGroup.getInstanceOf("page")
+  </font></pre>
+
+  <p>The string <tt>str(st)</tt> results in "<tt>Helvetica and
+  Times:text</tt>".</p>
+
+  <p>Just like object-oriented programming languages,
+  <tt>StringTemplate</tt> has polymorphism. That is, template names are
+  looked up dynamically relative to the invoking templates group. The
+  classic demonstration of dynamic message sends in Python, for example,
+  would be the following example:</p>
+  <pre><font size="2">
+class A:
+    def page(self):
+		    self.bold()
+    def bold(self):
+		    print "A.bold"
+
+class B(A):
+    def bold(self):
+		    print "B.bold"
+
+a = B()
+a.page()
+  </font></pre>
+
+  <p>This prints "<tt>B.bold</tt>" not "<tt>A.bold</tt>" because the
+  receiver determines how to answer a message. So, I have created a
+  <tt>B</tt> object meaning that any message, such as <tt>bold()</tt>,
+  invoked will first look in class <tt>B</tt> for <tt>bold()</tt>.</p>
+
+  <p>Similarly, a template's group determines where it starts looking for a
+  template. In this case, both super and sub groups define a <tt>bold</tt>
+  template mirroring the Python above. Because I create template
+  <tt>st</tt> as a member of the <tt>subGroup</tt> and reference to
+  <tt>bold</tt> starts looking in <tt>subGroup</tt> even though
+  <tt>page</tt> is the template referring to <tt>bold</tt>.</p>
+  <pre><font size="2">
+import stringtemplate
+
+group = stringtemplate.StringTemplateGroup("super")
+subGroup = stringtemplate.StringTemplateGroup("sub")
+subGroup.setSuperGroup(group)
+group.defineTemplate("bold", "&lt;b&gt;$it$&lt;/b&gt;")
+group.defineTemplate("page", "$name:bold()$")
+subGroup.defineTemplate("bold", "&lt;strong&gt;$it$&lt;/strong&gt;")
+st = subGroup.getInstanceOf("page")
+st["name"] = "Ter"
+expecting = "&lt;strong&gt;Ter&lt;/strong&gt;"
+  </font></pre>
+
+  <h2>Template And Attribute Lookup Rules</h2>
+
+  <h3>Template lookup</h3>
+
+  <p>When you request a named template via
+  <tt>StringTemplateGroup.getInstanceOf()</tt> or within a template, there
+  is a specific sequence used to locate the template.</p>
+
+  <p>If a template, <em>t</em>, references another template and <em>t</em>
+  is not specifically associated with any group, <em>t</em> is implicitly
+  associated with a default group whose root directory is "<tt>.</tt>", the
+  current directory. The referenced template will be looked up in the
+  current directory.</p>
+
+  <p>If a template <em>t</em> is associated with a group, but was not
+  defined via a group file format, lookup a referenced template in the
+  group's template table. If not there, look for it on the disk under the
+  group's root dir (it might have appeared dynamically on disk). If not
+  found, recursively look at any supergroup of the group. If not found at
+  all, record this fact and don't look again on the disk until refresh
+  interval.</p>
+
+  <p>If the template's associated group was defined via a group file, then
+  that group is searched first. If not found, the template is looked up in
+  any supergroup. The refresh interval is not used for group files because
+  the group file is considered complete and enduring.</p>
+
+  <h3>Attribute scoping rules</h3>
+
+  <p>A <tt>StringTemplate</tt> is a list of chunks, text literals and
+  attribute expressions, and an attributes table. To render a template to
+  string, the chunks are written out in order; the expressions are
+  evaluated only when asked to during rendering. Attributes referenced in
+  expressions are looked up using a very specific sequence similar to an
+  inheritance mechanism.</p>
+
+  <p>When you nest a template within another, such as when a <tt>page</tt>
+  template references a <tt>searchbox</tt> template, the nested template
+  may see any attributes of the enclosing instance or its enclosing
+  instances. This mechanism is called <em>dynamic scoping</em>. Contrast
+  this with <em>lexical scoping</em> used in most programming languages
+  like Java where a method may not see the variables defined in invoking
+  methods. Dynamic scoping is very natural for templates. For example, if
+  <tt>page</tt> has an attribute/value pair <tt>font</tt>/<tt>Times</tt>
+  then <tt>searchbox</tt> could reference <tt>$font$</tt> when nested
+  within a <tt>page</tt> instance.</p>
+
+  <p>Reference to attribute <em>a</em> in template <em>t</em> is resolved
+  as follows:</p>
+
+  <ol>
+    <li>Look in <em>t</em>'s attribute table</li>
+
+    <li>Look in <em>t</em>'s arguments</li>
+
+    <li>Look in <em>t</em>'s enclosing template instance</li>
+  </ol>
+
+  <p>This process is recursively executed until <em>a</em> is found or
+  there are no more enclosing template instances.</p>
+
+  <p>When using a group file format to specify templates, you must specify
+  the formal arguments for that template. If you try to access an attribute
+  that is not formally defined in that template or an enclosing template,
+  you will get a <tt>KeyError</tt>.</p>
+
+  <p>When building code generators with <tt>StringTemplate</tt>, large
+  heavily nested template tree structures are commonplace and, due to
+  dynamic attribute scoping, a nested template could inadvertently use an
+  attribute from an enclosing scope. This could lead to infinite recursion
+  during rendering. To prevent this, formal arguments on template
+  <em>t</em> hide any attribute value with that name in any enclosing
+  scope. Here is a test case that illustrates the point.</p>
+  <pre><font size="2">
+import stringtemplate
+
+templates = \
+    "group test;" +newline+ \
+    "block(stats) ::= \"{$stats$}\""
+group = stringtemplate.StringTemplateGroup(StringReader(templates))
+b = group.getInstanceOf("block")
+b["stats"] = group.getInstanceOf("block")
+expecting = "{{}}"
+  </font></pre>
+
+  <p>Even though <tt>block</tt> has a <tt>stats</tt> value that refers to
+  itself, there is no recursion because each instance of <tt>block</tt>
+  hides the <tt>stats</tt> value from above since <tt>stats</tt> is a
+  formal argument.</p>
+
+  <p>Sometimes self-recursive (hence infinitely recursive) structures occur
+  through programming error and they are nasty to track down. If you turn
+  on "lint mode", <tt>StringTemplate</tt> will attempt to find cases where
+  a template instance is being evaluated during the evaluation of itself.
+  For example, here is a test case that causes and traps infinite
+  recursion.</p>
+  <pre><font size="2">
+import os
+import stringtemplate
+import StringIO from StringIO
+
+templates = \
+    "group test;" +os.linesep+ \
+    "block(stats) ::= \"$stats$\"" + \
+    "ifstat(stats) ::= \"IF true then $stats$\"\n"
+stringtemplate.StringTemplate.setLintMode(True)
+group = stringtemplate.StringTemplateGroup(StringIO(templates))
+b = group.getInstanceOf("block")
+ifstat = group.getInstanceOf("ifstat")
+b["stats"] = ifstat    # block has if stat
+ifstat["stats"] = b    # but make the "if" contain block
+try:
+    result = str(b)
+except stringtemplate.IllegalStateException, ise:
+    ...
+  </font></pre>
+
+  <p>The nested template stack trace from <tt>ise.getMessage()</tt> will be
+  similar to:</p>
+  <pre><font size="2">
+infinite recursion to &lt;ifstat([stats])@4&gt; referenced in &lt;block([stats])@3&gt;; stack trace:
+&lt;ifstat([stats])@4&gt;, attributes=[stats=&lt;block()@3&gt;]&gt;
+&lt;block([stats])@3&gt;, attributes=[stats=&lt;ifstat()@4&gt;], references=[stats]&gt;
+&lt;ifstat([stats])@4&gt; (start of recursive cycle)
+...
+  </font></pre>
+
+  <h3>Lazy evaluation</h3>
+
+  <p>Attributes are <em>lazily evaluated</em> in the sense that referencing
+  <em>a</em> does not actually invoke the lookup mechanism described here
+  until the template is asked to render itself to text. Lazy evaluation is
+  surprising useful in both the web and code generation worlds because such
+  order decoupling allows code to set attributes when it is convenient or
+  efficient not necessarily before templates reference those attributes.
+  For example, a complicated web page consisting of many nested templates
+  all may reference <tt>$userName$</tt>, but the value of <tt>userName</tt>
+  does not need to be set until right before the entire page is rendered to
+  text via <tt>toString()</tt>. Even applying a template to a multi-valued
+  attribute does not actually lookup and evaluate attributes until the
+  entire overall template tree structure is rendered. Applying a template
+  to an attribute yields a template not a string. You may ask the resulting
+  template for its attributes even though they have not been computed.</p>
+
+  <h2>Output Filters</h2>
+
+  <p>2.0 introduces the notion of a <tt>StringTemplateWriter</tt>. All text
+  rendered from a template goes through one of these writers before being
+  placed in the output buffer. I added this primarily for auto-indentation
+  for code generation, but it also could be used to remove whitespace (as a
+  compression) from HTML output. If you don't care about indentation, you
+  can simply implement <tt>write()</tt>:</p>
+  <pre><font size="2">
+class StringTemplateWriter:
+    def pushIndentation(self, indent)
+        raise NotImplementedError
+    def popIndentation(self):
+        raise NotImplementedError
+    def write(self, str):
+        raise NotImplementedError
+  </font></pre>
+
+  <p>Here is a "pass through" writer that is already defined in the
+	<tt>stringtemplate</tt> module:</p>
+  <pre><font size="2">
+## Just pass through the text
+class NoIndentWriter(AutoIndentWriter):
+    def __init__(self, out):
+        super(NoIndentWriter, self).__init__(out)
+    def write(self, str):
+        self.out.write(str)
+  </font></pre>
+
+  <p>Use it like this:</p>
+  <pre><font size="2">
+import stringtemplate
+from StringIO import StringIO
+
+out = StringIO()
+group = stringtemplate.StringTemplateGroup("test")
+group.defineTemplate("bold", "&lt;b&gt;$x$&lt;/b&gt;")
+nameST = stringtemplate.StringTemplate(group, "$name:bold(x=name)$")
+nameST["name"] = "Terence"
+# write to 'out' with no indentation
+nameST.write(stringtemplate.NoIndentWriter(out))
+print "output:", str(out)
+  </font></pre>
+
+  <p>Instead of using <tt>nameST.toString()</tt>, which calls
+  <tt>write</tt> with a string write and returns its value, manually invoke
+  <tt>write</tt> with your writer.</p>
+
+  <p>If you want to always use a particular output filter, then use</p>
+  <pre><font size="2">
+stringtemplate.StringTemplateGroup.setStringTemplateWriter(userSpecifiedWriterClass)
+  </font></pre>
+
+  <p>The <tt>StringTemplate.__str__()</tt> method is sensitive to the
+  group's writer class.</p>
+
+  <h3>Auto-indentation</h3>
+
+  <p>Starting with the Java <tt>StringTemplate</tt> version 2.0 auto-indentation
+	is turned on by default. To turn it off, use <tt>NoIndentWriter</tt> rather
+	than (the default) <tt>AutoIndentWriter</tt>.</p>
+
+  <p>At the simplest level, the indentation looks like a simple column
+  count:</p>
+  <pre><font size="2">
+My dogs' names 
+  $names; separator="\n"$
+The last, unindented line
+  </font></pre>
+
+  <p>will yield output like:</p>
+  <pre><font size="2">
+My dog's names
+  Fido
+  Rex
+  Stinky
+The last, unindented line
+  </font></pre>
+
+  <p>where the last line gets "unindented" after displaying the list.
+  <tt>StringTemplate</tt> tracks the characters to the left of the
+  <tt>$</tt> or <tt>&lt;</tt> rather than the column number so that if you
+  indent with tabs versus spaces, you'll get the same indentation in the
+  output.</p>
+
+  <p>When there are nested templates, <tt>StringTemplate</tt> tracks the
+  combined indentation:</p>
+  <pre><font size="2">
+// &lt;user&gt; is indented two spaces
+main(user) ::= &lt;&lt;
+Hi
+\t$user:quote(); separator="\n"$
+&gt;&gt;
+
+quote ::= " '$it$'"
+  </font></pre>
+
+  <p>In this case, you would get output like:</p>
+  <pre><font size="2">
+Hi
+\t 'Bob'
+\t 'Ephram'
+\t 'Mary'
+  </font></pre>
+
+  <p>where the combined indentation is tab plus space for the attribute
+  references in template <tt>quote</tt>. Expression <tt>$user$</tt> is
+  indented by 1 tab and hence any attribute generated from it (in this case
+  the <tt>$attr$</tt> of <tt>quote()</tt>) must have at least the tab.</p>
+
+  <p>Consider generating nested statement lists as in C. Any statements
+  inside must be nested 4 spaces. Here are two templates that could take
+  care of this:</p>
+  <pre><font size="2">
+function(name,body) ::= &lt;&lt;
+void $name$() $body$
+&gt;&gt;
+
+slist(statements) ::= &lt;&lt;
+{
+    $statements; separator="\n"$
+}&gt;&gt;
+  </font></pre>
+
+  <p>Your code would create a <tt>function</tt> template instance and an
+  <tt>slist</tt> instance, which gets passed to the <tt>function</tt>
+  template as attribute <tt>body</tt>. The following Python code:</p>
+  <pre><font size="2">
+f = group.getInstanceOf("function")
+f["name"] = "foo"
+body = group.getInstanceOf("slist")
+body["statements"] = "i=1;"
+nestedSList = group.getInstanceOf("slist")
+nestedSList["statements"] = "i=2;"
+body["statements"] = nestedSList
+body["statements"] = "i=3;"
+f["body"] = body
+  </font></pre>
+
+  <p>should generate something like:</p>
+  <pre><font size="2">
+void foo() {
+    i=1;
+    {
+        i=2;
+    }
+    i=3;
+}
+  </font></pre>
+
+  <p>Indentation can only occur at the start of a line so indentation is
+  only tracked in front of attribute expressions following a newline.</p>
+
+  <p>The one exception to indentation is that naturally, <tt>$if$</tt>
+  actions do not cause indentation as they do not result in any output.
+  However, the subtemplates (THEN and ELSE clauses) will see indentations.
+  For example, in the following template, the two subtemplates are indented
+  by exactly 1 space each:</p>
+  <pre><font size="2">
+     $if(foo)$
+ $x$
+\t\t$else
+ $y$
+$endif$
+  </font></pre>
+
+  <h2>Examples</h2>
+
+  <p>You should look at
+  <tt>stringtemplate.test.TestStringTemplate.py</tt>, which
+  contains a many tests.</p>
+
+  <h3>Fill-a-Table Example</h3>
+
+  <p>The manner in which a template engine handles filling an HTML table
+  with data often provides good insight into its programming and design
+  strategy. It illustrates the interaction of the model and view via the
+  controller. Using <tt>StringTemplate</tt>, the view may not access the
+  model directly; rather the view is the passive recipient of data from the
+  model.</p>
+
+  <p>First, imagine we have objects of type <tt>User</tt> that we will pull
+  from a simulated database:</p>
+  <pre><font size="2">
+class User:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    def getName(self):
+		    return self.name
+    def getAge(self):
+		    return self.age
+  </font></pre>
+
+  <p>Our database is just a static list:</p>
+  <pre><font size="2">
+users = [User("Boris", 39),
+         User("Natasha", 31),
+         User("Jorge", 25),
+         User("Vladimir", 28)]
+  </font></pre>
+
+  <p>Here is my simple overall page design template, <tt>page.st</tt>:</p>
+  <pre><font size="2">
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;$title$&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;$title$&lt;/h1&gt;
+
+$body$
+
+&lt;/body&gt;
+&lt;/html&gt;
+  </font></pre>
+
+  <p>The body attribute of <tt>page.st</tt> will be set to the following
+  template <tt>users.inline.st</tt> by my web server infrastructure (part
+  of the controller):</p>
+  <pre><font size="2">
+&lt;table border=1&gt;
+$users:{
+  &lt;tr&gt;
+    &lt;td&gt;$it.name$&lt;/td&gt;&lt;td&gt;$it.age$&lt;/td&gt;
+  &lt;/tr&gt;
+}$
+&lt;/table&gt;
+  </font></pre>
+
+  <p>Again, <tt>it</tt> is the default attribute passed to a template when
+  you apply that template to an attribute or attributes. <tt>it.name</tt>
+  gets the <tt>name</tt> property, if it exists, from the <tt>it</tt>
+  object ala JavaBeans. That is, <tt>StringTemplate</tt> uses reflection to
+  call the <tt>getName()</tt> method on the incoming object. By using
+  reflection, I avoid a type dependence between model and view.</p>
+
+  <p>Now, imagine the server and templates are set up to format data. My
+  page definition is part of the controller that pulls data from the model
+  (the database) and pushes into the view (the template). That is all the
+  page definition should do--interpret the data and set some attributes in
+  the view. The view only formats data and does no interpretation.</p>
+  <pre><font size="2">
+class UserListPage(SamplePage):
+    ## This "controller" pulls from "model" and pushes to "view"
+    def generateBody(self, bodyST):
+        list_ = users    # normally pull from database
+        # filter list if you want here (not in template)
+        bodyST["users"] = list_
+
+    def getTitle(self):
+		    return "User List"
+  </font></pre>
+
+  <p>Notice that the controller and model have no HTML in them at all and
+  that the template has no code with side-effects or logic that can break
+  the model-view separation. If you wanted to only see users with age &lt;
+  30, you would filter the list in <tt>generateBody()</tt> rather than
+  alter your template. The template only displays information once the
+  controller pulls the right data from the model.</p>
+
+  <p>Pushing factorization further, you could make a <tt>row.st</tt>
+  component in order to reuse the table row HTML:</p>
+  <pre><font size="2">
+&lt;tr&gt;
+  &lt;td&gt;$it.name$&lt;/td&gt;&lt;td&gt;$it.age$&lt;/td&gt;
+&lt;/tr&gt;
+  </font></pre>
+
+  <p>Then the user list template reduces to the more readable:</p>
+  <pre><font size="2">
+&lt;table border=1&gt;
+$users:row()$
+&lt;/table&gt;
+  </font></pre>
+
+  <p>Naturally, you could go one step further and make another component
+  for the entire table (putting it in file <tt>table.st</tt>):</p>
+  <pre><font size="2">
+&lt;table border=1&gt;
+$elements:row()$
+&lt;/table&gt;
+  </font></pre>
+
+  <p>then the body template would simply be:</p>
+  <pre><font size="2">
+$table(elements=users)$
+  </font></pre>
+
+  <h2>Complete Grammar</h2>
+
+  <p><tt>StringTemplate</tt> has multiple grammars that describe templates
+  at varying degrees of detail. At the grossest level of granularity, the
+  <tt>group.g</tt> grammar accepts a list of templates with formal template
+  arguments. Each of these templates is broken up into chunks of literal
+  text and attribute expressions via <tt>template.g</tt>. The default lexer
+  uses <tt>$...$</tt> delimiters, but the <tt>angle.bracket.template.g</tt>
+  lexer provides <tt>&lt;...&gt;</tt> delimiters. Each of the attribute
+  expression chunks is processed by <tt>action.g</tt>. It builds trees
+  (ASTs) representing the operation indicated in the expression. These ASTs
+  represent the "precompiled" templates, which are evaluated by the tree
+  grammar <tt>eval.g</tt> each time a <tt>StringTemplate</tt> is rendered
+  to string with <tt>toString()</tt>.</p>
+
+  <p>The grammar files are:</p>
+
+  <ul>
+    <li><tt>group.g</tt>: read a group file full of templates</li>
+
+    <li><tt>template.g</tt>: break an individual template into chunks</li>
+
+    <li><tt>angle.bracket.template.g</tt>: <tt>&lt;...&gt;</tt> template
+    lexer</li>
+
+    <li><tt>action.g</tt>: parse attribute expressions into ASTs</li>
+
+    <li><tt>eval.g</tt>: evaluate expression ASTs during
+    <tt>toString()</tt></li>
+  </ul>
+
+  <p>Anything outside of the <tt>StringTemplate</tt> start/stop delimiters
+  is ignored. The ANTLR grammar inside the attribute action is:</p>
+  <pre><font size="2">
+action
+    :   templatesExpr (SEMI optionList)?
+    |   "if" LPAREN ifCondition RPAREN
+    ;
+
+optionList
+    :   "separator" ASSIGN expr
+    ;
+
+ifCondition
+    :   ifAtom
+    |   NOT ifAtom
+    ;
+
+ifAtom
+    :   expr
+    ;
+
+expr:   atom (PLUS atom)*
+    ;
+
+atom:   attribute
+    |   templateInclude
+    |   LPAREN expr RPAREN  // regular old parens
+    ;
+
+templatesExpr
+    :   expr ( COLON template (COMMA template)* )*
+    ;
+
+nonAlternatingTemplateExpr
+    :   expr ( COLON template )*
+    ;
+
+template
+    :   (   namedTemplate       // foo()
+        |   anonymousTemplate   // {foo}
+        )
+    ;
+
+namedTemplate
+    :   ID argList
+    ;
+
+anonymousTemplate
+    :   ANONYMOUS_TEMPLATE
+    ;
+
+attribute
+    :   ID
+    |   objPropertyRef
+    |   STRING
+    |   INT
+    ;
+
+templateInclude
+    :   ID argList
+    |   "super" DOT ID argList
+    ;
+
+objPropertyRef
+    :   ID (DOT ID)+
+    ;
+
+argList
+    :   LPAREN RPAREN
+    |   LPAREN argumentAssignment (COMMA argumentAssignment)* RPAREN
+    ;
+
+argumentAssignment
+    :   ID ASSIGN nonAlternatingTemplateExpr
+    ;
+  </font></pre>
+
+  <p>An identifier is:</p>
+  <pre><font size="2">
+ID  : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'/')*
+    ;
+  </font></pre>
+
+  <p>Strings are double-quoted with optional embedded escaped characters
+  that are translated (escapes are not translated outside of strings; for
+  example, text outside of attribute expressions do not get escape chars
+  translated except <tt>\\$</tt>, <tt>\\&lt;</tt> and <tt>\\&gt;</tt>).</p>
+  <pre><font size="2">
+STRING
+    :   '"' (ESC_CHAR | ~'"')* '"'
+    ;
+  </font></pre>
+
+  <p>Anonymous templates are enclosed in curlies:</p>
+  <pre><font size="2">
+ANONYMOUS_TEMPLATE
+    :   '{' (ESC_CHAR | ~'}')* '}'
+    ;
+  </font></pre>
+
+  <p>The translated escapes are:</p>
+  <pre><font size="2">
+ESC_CHAR
+    :   '\\'
+        (   'n'
+        |   'r'
+        |   't'
+        |   'b'
+        |   'f'
+        |   '"'
+        |   '\\'
+        )
+     ;
+  </font></pre>
+
+  <p>but other escapes are allowed and ignored.</p>
+
+  <p>The other unspecified operators are:</p>
+  <pre><font size="2">
+COMMA  : ',' ;
+DOT    : '.' ;
+ASSIGN : '=' ;
+COLON  : ':' ;
+PLUS   : '+' ;
+SEMI   : ';' ;
+NOT    : '!' ;
+LPAREN : '(' ;
+RPAREN : ')' ;
+  </font></pre>
+
+  <h2>A Common Syntax Question</h2>
+
+  <p>Why have a template like:</p>
+  <pre><font size="2">
+Check this faq entry: $link(url="/faq/view?ID="+id, title="A FAQ")$.
+  </font></pre>
+
+  <p>instead of</p>
+  <pre><font size="2">
+Check this faq entry: $link(url="/faq/view?ID="+$id$, title="A FAQ")$.
+  </font></pre>
+
+  <p>using <tt>$id$</tt> instead of <tt>id</tt> for that attribute
+  reference? The simplest answer is that you are already within the scope
+  of an attribute expression between the <tt>$...$</tt> and hence
+  <tt>StringTemplate</tt> knows that <tt>id</tt> must be a reference to an
+  attribute by the grammar alone. The template delimiters mark the
+  beginning and end of what <tt>StringTemplate</tt> cares about.</p>
+
+  <p>Another way to look at it is the following. Surely syntax (i) makes
+  the most sense:</p>
+
+  <p>(i) <tt>SELECT $col+blort$ FROM $table$</tt></p>
+
+  <p>(ii) <tt>SELECT $$col$+$blort$$ FROM $table$</tt></p>
+
+  <p>(iii) <tt>SELECT $col$+$blort$ FROM $table$</tt></p>
+
+  <p>Syntax (ii) is rather verbose and redundant wouldn't you say? Syntax
+  (iii) doesn't even work because the + is outside the realm of
+  <tt>StringTemplate</tt> delimiters.</p>
+</body>
+</html>

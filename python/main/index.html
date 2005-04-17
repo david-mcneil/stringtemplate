@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>The Python StringTemplate Template Engine</title>
+  </head>
+  <body bgcolor="#FFFFFF" text="#000000">
+    <h1>The Python StringTemplate Template Engine</h1>
+    <p>Brought to you by that maniac that brings you <a href=
+    "http://www.antlr.org"><b>ANTLR</b></a>! Terence Parr<br>
+     University of San Francisco<br>
+     <tt>parrt@cs.usfca.edu</tt><br>
+     <em>Copyright 2003-2005</em><br>
+     <a href=
+    "http://www.stringtemplate.org"><b>http://www.stringtemplate.org</b></a><br>
+     (<tt>StringTemplate</tt> released under BSD License)</p>
+    <p>Python version created by</p>
+    <p>Marq Kole<br>
+     <tt>marq dot kole at xs4all dot nl</tt><br>
+     <em>Copyright 2003-2005</em><br>
+    </p>
+    <h2>Download 0.2 (second alpha)</h2>
+    <ul class="noindent">
+      <li><a href=
+      "http://www.antlr.org/download/PyStringTemplate-0.2.tar.gz"><b>Python
+      StringTemplate 0.2 (binaries, source, doc</b></a></li>
+      <li><a href=
+      "http://www.stringtemplate.org/python/doc/release-0.2.html"><b>0.2
+      Release Notes</b></a></li>
+    </ul>
+    <h2>Introduction</h2>
+    <tt>StringTemplate</tt> is a template engine for generating source
+    code, web pages, emails, or any other formatted text output. It evolved
+    over years of effort developing the following sites: 
+    <ul class="noindent">
+      <li><a href=
+      "http://www.jguru.com"><b>http://www.jguru.com</b></a></li>
+      <li><a href=
+      "http://www.knowspam.net"><b>http://www.knowspam.net</b></a></li>
+      <li><a href=
+      "http://www.peerscope.com"><b>http://www.peerscope.com</b></a></li>
+      <li><a href=
+      "http://www.antlr.org"><b>http://www.antlr.org</b></a></li>
+    </ul>
+    A template engine is a code generator that emits text using templates
+    embedded with actions or data references. Engines generally espouse a
+    model-view pattern in an attempt to separate the data source and
+    template. A container such as a Servlet web server may act as a
+    controller, orchestrating instantiation and controlling model-view
+    interaction. The Java 2.0 release makes <tt>StringTemplate</tt> much
+    better at code generation while not detracting from the previous HTML
+    generation-centric focus. The simplest way to describe
+    <tt>StringTemplate</tt> is as a "document" with holes in it where you
+    can stick values. The main distinguishing characteristic between it and
+    the many other engines is <tt>StringTemplate</tt>'s strict enforcement
+    of separation between model (business logic) and view (template). My
+    recent WWW2004 paper, "<a href=
+    "http://www.cs.usfca.edu/~parrt/papers/mvc.templates.pdf"><b>Enforcing
+    Strict Model-View Separation in Template Engines</b></a>", was <a href=
+    "http://www.www2004.org/awards.htm"><b>nominated for best
+    paper</b></a>. 
+    <h2>Evaluating StringTemplate</h2>
+    All template engines are trying to solve the same problem so you should
+    be surprised if <tt>StringTemplate</tt> looked different from other
+    engines. <tt>StringTemplate</tt> strives to provide sufficient power
+    while limiting certain functionality to enforce <em>strict
+    separation</em> of view from model and controller. Ask not about
+    <tt>StringTemplate</tt>'s expressivity, ask about how well it enforces
+    separation. My 5 years experience building commercial sites indicates
+    that you don't have to sacrifice enforcement of separation to get
+    sufficient power. You might find my <a href=
+    "http://www.stringtemplate.org/www2004.ppt"><b>slides from the WWW2004
+    conference</b></a> a useful quick introduction. 
+    <h2>Current release (Java 2.1, Python 0.2)</h2>
+    <ul>
+      <li><a href=
+      "http://www.stringtemplate.org/doc/doc.tml,%20Documentation"><b>http://www.stringtemplate.org/doc/doc.tml,
+      Documentation</b></a></li>
+      <li><a href=
+      "http://www.stringtemplate.org/doc/api/overview-summary.html,%20API"><b>
+      http://www.stringtemplate.org/doc/api/overview-summary.html,
+      API</b></a></li>
+      <li><a href=
+      "http://www.stringtemplate.org/bugs.tml,%20Bugs/Requests/Changes"><b>http://www.stringtemplate.org/bugs.tml,
+      Bugs/Requests/Changes</b></a></li>
+      <li><a href=
+      "http://www.antlr.org/share/1068077308564/StringTemplate.zip,%20C#%201.0.2%20Port">
+      <b>http://www.antlr.org/share/1068077308564/StringTemplate.zip, C#
+      1.0.2 Port</b></a></li>
+    </ul>
+    <h2>Examples</h2>
+    <p>These are examples for the Java version of
+    <tt>StringTemplate</tt>.</p>
+    <ul>
+      <li><a href=
+      "http://www.codegeneration.net/tiki-read%3Cem%3Earticle.php?articleId=65">
+      <b>Generating Java and XML Using StringTemplate</b></a></li>
+      <li><a href="http://www.stringtemplate.org/www2004.ppt"><b>slides
+      from the WWW2004 conference</b></a></li>
+      <li><a href=
+      "http://www.stringtemplate.org/MSR-StringTemplate.ppt"><b>slides from
+      my presentation at Microsoft Research, July 2004</b></a></li>
+      <li><a href=
+      "http://www.stringtemplate.org/StringTemplateEvolution.ppt"><b>slides
+      from my presentation at UC Berkeley's Harmonia group, December
+      2004</b></a></li>
+      <li><a href=
+      "http://homepages.ihug.com.au/~zenaan/zenaan/files/#stringtemplate"><b>
+      An example by Zenaan Harkness using StringTemplate with
+      tables</b></a></li>
+    </ul>
+    <p>Check the documentation and the paper.</p>
+    <h2>Showcase</h2>
+    <p><a href="http://www.squarespace.com"><b>Squarespace.com web
+    publishing site</b></a>. StringTemplate is used in their production
+    site; templates are exposed to bloggers. Founder Anthony Casalena
+    says,</p>
+    <blockquote>
+      StringTemplate was PERFECT for this. We needed a system that would:
+      (1) Be extremely fast/simple and (2) ENSURE that users can do nothing
+      to harm our system. Velocity would have been nearly impossible to
+      enforce security with. There were numerous attacks related to
+      invoking classLoaders by referencing getClass on random objects, not
+      to mention that the very paradigm of the templates caused us to write
+      code that did not strictly enforce view vs. controller, further
+      resulting in code <em>we</em> had written that could have been
+      insecure in many cases. It wasn't just impossible to stop users, but
+      also ourselves in many cases.
+    </blockquote>
+    <h2>Publications</h2>
+    The following publication was nominated for 
+    <h2>best paper</h2>
+    at WWW 2004 conference: <a href=
+    "http://www.cs.usfca.edu/~parrt/papers/mvc.templates.pdf"><b>Enforcing
+    Strict Model-View Separation in Template Engines</b></a>. Here is the
+    abstract: 
+    <blockquote>
+      The mantra of every experienced web application developer is the
+      same: thou shalt separate business logic from display. Ironically,
+      almost all template engines allow violation of this separation
+      principle, which is the very impetus for HTML template engine
+      development. This situation is due mostly to a lack of formal
+      definition of separation and fear that enforcing separation
+      emasculates a template's power. I show that not only is strict
+      separation a worthy design principle, but that you can enforce
+      separation while providing a potent template engine. I demonstrate my
+      StringTemplate engine, used to build jGuru.com and other commercial
+      sites, at work solving some nontrivial generational tasks.
+    </blockquote>
+    <blockquote>
+      My goal is to formalize the study of template engines, thus,
+      providing a common nomenclature, a means of classifying template
+      generational power, and a way to leverage interesting results from
+      formal language theory. I classify three types of restricted
+      templates analogous to Chomsky's type 1..3 grammar classes and
+      formally define separation including the rules that embody
+      separation.
+    </blockquote>
+    <blockquote>
+      Because this paper provides a clear definition of model-view
+      separation, template engine designers may no longer blindly claim
+      enforcement of separation. Moreover, given theoretical arguments and
+      empirical evidence, programmers no longer have an excuse to entangle
+      model-view.
+    </blockquote>
+    <h2>Requires</h2>
+    <p>For the Python version of StringTemplate you need at least <a href=
+    "http://www.antlr.org/download.html"><b>ANTLR 2.7.5 or
+    later</b></a>.</p>
+  </body>
+</html>
