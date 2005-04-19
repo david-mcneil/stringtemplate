@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050401): "template.g" -> "TemplateParser.py"$
+### $ANTLR 2.7.5 (20050419): "template.g" -> "TemplateParser.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -12,6 +12,7 @@ if version < '2.3':
 import stringtemplate
 from ChunkToken import ChunkToken
 from StringRef import StringRef
+from NewlineRef import NewlineRef
 ### header action <<< 
 ### preamble action>>>
 
@@ -27,16 +28,17 @@ EOF                 = antlr.EOF
 NULL_TREE_LOOKAHEAD = antlr.NULL_TREE_LOOKAHEAD
 MIN_USER_TYPE       = antlr.MIN_USER_TYPE
 LITERAL = 4
-ACTION = 5
-IF = 6
-ELSE = 7
-ENDIF = 8
-NL = 9
-EXPR = 10
-ESC = 11
-SUBTEMPLATE = 12
-INDENT = 13
-COMMENT = 14
+NEWLINE = 5
+ACTION = 6
+IF = 7
+ELSE = 8
+ENDIF = 9
+NL = 10
+EXPR = 11
+ESC = 12
+SUBTEMPLATE = 13
+INDENT = 14
+COMMENT = 15
 
 
 ###/** A parser used to break up a single template into chunks, text literals
@@ -60,6 +62,7 @@ class Parser(antlr.LLkParser):
     ):    
         
         s = None
+        nl = None
         try:      ## for error handling
             pass
             while True:
@@ -71,6 +74,12 @@ class Parser(antlr.LLkParser):
                     s = self.LT(1)
                     self.match(LITERAL)
                     this.addChunk(StringRef(this,s.getText()))
+                elif la1 and la1 in [NEWLINE]:
+                    pass
+                    nl = self.LT(1)
+                    self.match(NEWLINE)
+                    if self.LA(1) != ELSE and self.LA(1) != ENDIF:
+                       this.addChunk(NewlineRef(this,nl.getText()))
                 elif la1 and la1 in [ACTION,IF]:
                     pass
                     self.action(this)
@@ -149,6 +158,7 @@ _tokenNames = [
     "<2>", 
     "NULL_TREE_LOOKAHEAD", 
     "LITERAL", 
+    "NEWLINE", 
     "ACTION", 
     "IF", 
     "ELSE", 
@@ -165,14 +175,14 @@ _tokenNames = [
 ### generate bit set
 def mk_tokenSet_0(): 
     ### var1
-    data = [ 384L, 0L]
+    data = [ 768L, 0L]
     return data
 _tokenSet_0 = antlr.BitSet(mk_tokenSet_0())
 
 ### generate bit set
 def mk_tokenSet_1(): 
     ### var1
-    data = [ 496L, 0L]
+    data = [ 1008L, 0L]
     return data
 _tokenSet_1 = antlr.BitSet(mk_tokenSet_1())
     

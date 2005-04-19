@@ -494,8 +494,15 @@ class TestNullTemplateApplication(unittest.TestCase):
 	t = stringtemplate.StringTemplate(group, "$names:bold(x=it)$")
 	t["names"] = "Terence"
 	# sys.stderr.write(str(t)+'\n')
-	expecting=""; # bold not found...empty string
-	self.assertEqual(str(t), expecting)
+	#expecting="" # bold not found...empty string
+	#self.assertEqual(str(t), expecting)
+	expecting = "Can't load template bold.st"
+	error = ""
+	try:
+	    result = str(t)
+	except ValueError, ve:
+	    error = str(ve)
+	self.assertEqual(error, expecting)
 
 
 class TestNullTemplateToMultiValuedApplication(unittest.TestCase):
@@ -508,8 +515,15 @@ class TestNullTemplateToMultiValuedApplication(unittest.TestCase):
 	t["names"] = "Terence"
 	t["names"] = "Tom"
 	# sys.stderr.write(str(t)+'\n')
-	expecting="" # bold not found...empty string
-	self.assertEqual(str(t), expecting)
+	#expecting="" # bold not found...empty string
+	#self.assertEqual(str(t), expecting)
+	expecting = "Can't load template bold.st"
+	error = ""
+	try:
+	    result = str(t)
+	except ValueError, ve:
+	    error = str(ve)
+	self.assertEqual(error, expecting)
 
 
 class TestChangingAttrValueTemplateApplicationToVector(unittest.TestCase):
@@ -910,7 +924,6 @@ class TestNestedIFTemplate(unittest.TestCase):
 	expecting = \
             "ackfoo"+os.linesep+ \
             "stuff"+os.linesep+ \
-            ""+os.linesep+ \
             "junk"
 	self.assertEqual(str(t), expecting)
 
@@ -1184,6 +1197,37 @@ class TestNestedIF(unittest.TestCase):
 	e = e.getInstanceOf()
 	expecting = "blort"
 	self.assertEqual(str(e), expecting)
+
+
+class TestEmbeddedMultiLineIF(unittest.TestCase):
+
+    def setUp(self):
+        self.group = stringtemplate.StringTemplateGroup("test")
+        self.main = stringtemplate.StringTemplate(self.group, "$sub$")
+        self.sub = stringtemplate.StringTemplate(self.group, 
+            "begin" +os.linesep+ \
+            "$if(foo)$" +os.linesep+ \
+            "$foo$" +os.linesep+ \
+            "$else$" +os.linesep+ \
+            "blort" +os.linesep+ \
+            "$endif$" +os.linesep
+	    )
+
+    def runTest(self):
+	self.sub["foo"] = "stuff"
+	self.main["sub"] = self.sub
+	expecting = \
+            "begin" +os.linesep+ \
+            "stuff"
+	self.assertEqual(str(self.main), expecting)
+
+        self.main = stringtemplate.StringTemplate(self.group, "$sub$")
+	self.sub = self.sub.getInstanceOf()
+	self.main["sub"] = self.sub
+        expecting = \
+            "begin"+os.linesep+ \
+            "blort"
+        self.assertEqual(str(self.main), expecting)
 
 
 class TestSimpleIndentOfAttributeList(unittest.TestCase):
@@ -2101,6 +2145,70 @@ class TestCharLiterals(unittest.TestCase):
 	self.assertEqual(result, expecting)
 
 
+class TestEmptyIteratedValueGetsSeparator(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "$names; separator=\",\"$")
+	t["names"] = "Terence"
+	t["names"] = ""
+	t["names"] = ""
+	t["names"] = "Tom"
+	t["names"] = "Frank"
+	t["names"] = ""
+	# empty values get separator still
+	expecting = "Terence,,,Tom,Frank,"
+	result = str(t)
+	self.assertEqual(result, expecting)
+
+
+class TestEmptyIteratedConditionalValueGetsNoSeparator(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "$users:{$if(it.ok)$$it.name$$endif$}; separator=\",\"$")
+	t.setAttribute("users.{name,ok}", "Terence", True)
+	t.setAttribute("users.{name,ok}", "Tom", False)
+	t.setAttribute("users.{name,ok}", "Frank", True)
+	t.setAttribute("users.{name,ok}", "Johnny", False)
+	# empty conditional values get no separator
+	expecting = "Terence,Frank,"
+	# haven't solved the last empty value problem yet
+	result = str(t)
+	self.assertEqual(result, expecting);
+
+
+class TestEmptyIteratedConditionalWithElseValueGetsSeparator(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "$users:{$if(it.ok)$$it.name$$else$$endif$}; separator=\",\"$")
+	t.setAttribute("users.{name,ok}", "Terence", True)
+	t.setAttribute("users.{name,ok}", "Tom", False)
+	t.setAttribute("users.{name,ok}", "Frank", True)
+	t.setAttribute("users.{name,ok}", "Johnny", False)
+	# empty conditional values get no separator
+	expecting = "Terence,,Frank,"
+	# haven't solved the last empty value problem yet
+	result = str(t)
+	self.assertEqual(result, expecting)
+
+
 class TestWhiteSpaceAtEndOfTemplate(unittest.TestCase):
 
     def runTest(self):
@@ -2110,15 +2218,97 @@ class TestWhiteSpaceAtEndOfTemplate(unittest.TestCase):
 	# users.list references row.st which has a single blank line at the end.
 	# I.e., there are 2 \n in a row at the end
 	# ST should eat all whitespace at end
-	listST.setAttribute("users", Connector())
-	listST.setAttribute("users", Connector2())
+	listST["users"] = Connector()
+	listST["users"] = Connector2()
 	pageST["title"] = "some title"
 	pageST["body"] = listST
 	expecting ="some title" +os.linesep+ \
             "Terence parrt@jguru.comTom tombu@jguru.com"
 	result = str(pageST)
-	# sys.stderr.write("'"+result+"'\n")
+	# sys.stderr.write("'" + result + "'\n")
 	self.assertEqual(result, expecting)
+
+class Duh:
+
+    def __init__(self):
+	self.users = []
+
+
+class TestSizeZeroButNonNullListGetsNoOutput(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "$duh.users:{name: $it$}; separator=\", \"$")
+	t["duh",] = Duh()
+	expecting = ""
+	result = str(t)
+	self.assertEqual(result, expecting)
+
+
+class TestSizeZeroOnLineByItselfGetsNoOutput(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "begin\n" + \
+	    "$name$\n" + \
+	    "$users:{name: $it$}$\n" + \
+	    "$users:{name: $it$}; separator=\", \"$\n" + \
+	    "end\n" \
+	    )
+	expecting = "begin\nend\n"
+	result = str(t)
+	self.assertEqual(result, expecting)
+
+
+class TestSizeZeroOnLineWithIndentGetsNoOutput(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup("test")
+	self.errors = ErrorBuffer()
+	self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+	t = stringtemplate.StringTemplate(self.group, \
+	    "begin\n" + \
+	    "  $name$\n" + \
+	    "	$users:{name: $it$}$\n" + \
+	    "	$users:{name: $it$$\\n$}$\n" + \
+	    "end\n" \
+	    )
+	expecting = "begin\nend\n"
+	result = str(t)
+	self.assertEqual(result, expecting)
+
+
+class TestSimpleAutoIndent(unittest.TestCase):
+
+    def runTest(self):
+	a = stringtemplate.StringTemplate( \
+	    "$title$: {\n" + \
+	    "	$name; separator=\"\n\"$\n" + \
+	    "}" \
+	    )
+	a["title"] = "foo"
+	a["name"] = "Terence"
+	a["name"] = "Frank"
+	results = str(a)
+	# sys.stderr.write("'" + results + "'\n")
+	expecting = \
+	    "foo: {\n" + \
+	    "	Terence\n" + \
+	    "	Frank\n" + \
+	    "}"
+	self.assertEqual(results, expecting)
 
 
 if __name__ == '__main__':
@@ -2194,6 +2384,7 @@ if __name__ == '__main__':
     suite.addTest(TestEscapesOutsideExpressions())
     suite.addTest(TestElseClause())
     suite.addTest(TestNestedIF())
+    suite.addTest(TestEmbeddedMultiLineIF())
     suite.addTest(TestSimpleIndentOfAttributeList())
     suite.addTest(TestIndentOfMultilineAttributes())
     suite.addTest(TestIndentOfMultipleBlankLines())
@@ -2225,7 +2416,14 @@ if __name__ == '__main__':
     suite.addTest(TestEmbeddedComments())
     suite.addTest(TestEmbeddedCommentsAngleBracketed())
     suite.addTest(TestCharLiterals())
+    suite.addTest(TestEmptyIteratedValueGetsSeparator())
+    suite.addTest(TestEmptyIteratedConditionalValueGetsNoSeparator())
+    suite.addTest(TestEmptyIteratedConditionalWithElseValueGetsSeparator())
     suite.addTest(TestWhiteSpaceAtEndOfTemplate())
+    suite.addTest(TestSizeZeroButNonNullListGetsNoOutput())
+    suite.addTest(TestSizeZeroOnLineByItselfGetsNoOutput())
+    suite.addTest(TestSizeZeroOnLineWithIndentGetsNoOutput())
+    suite.addTest(TestSimpleAutoIndent())
 
     doGUI = options.guiRunner
     if doGUI:

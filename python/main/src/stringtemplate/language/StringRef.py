@@ -13,8 +13,10 @@ class StringRef(Expr):
     #  is a literal -- not sensitive to attribute values.
     #
     def write(self, this, out):
+	n = 0
 	if self.str:
-	    out.write(self.str)
+	    n = out.write(self.str)
+	return n
 
     def __str__(self):
 	if self.str:

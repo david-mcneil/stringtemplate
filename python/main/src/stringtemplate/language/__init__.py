@@ -12,6 +12,7 @@ from Expr import *
 from FormalArgument import *
 from GroupLexer import *
 from GroupParser import *
+from NewlineRef import *
 from StringRef import *
 from StringTemplateAST import *
 from TemplateParser import *

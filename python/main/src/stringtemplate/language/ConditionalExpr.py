@@ -18,13 +18,13 @@ class ConditionalExpr(ASTExpr):
     def setSubtemplate(self, subtemplate):
         self.subtemplate = subtemplate
 
-    def getSubtemplate():
+    def getSubtemplate(self):
         return self.subtemplate
 
     def setElseSubtemplate(self, elseSubtemplate):
         self.elseSubtemplate = elseSubtemplate
 
-    def getElseSubtemplate():
+    def getElseSubtemplate(self):
         return self.elseSubtemplate
 
     ## To write out the value of a condition expr, invoke the evaluator in eval.g
@@ -33,10 +33,11 @@ class ConditionalExpr(ASTExpr):
     #
     def write(self, this, out):
         if not self.exprTree or not this or not out:
-            return
+            return 0
         # sys.stderr.write('evaluating conditional tree: ' + exprTree.toStringList())
         eval_ = ActionEvaluator.Walker()
 	eval_.initialize(this,self,out)
+	n = 0
         try:
             # get conditional from tree and compute result
             cond = self.exprTree.getFirstChild()
@@ -58,11 +59,12 @@ class ConditionalExpr(ASTExpr):
                 #
                 s = self.subtemplate.getInstanceOf()
                 s.setEnclosingInstance(this)
-                s.write(out)
+                n = s.write(out)
             elif self.elseSubtemplate:
                 # evaluate ELSE clause if present and IF condition failed
                 s = self.elseSubtemplate.getInstanceOf()
                 s.setEnclosingInstance(this)
-                s.write(out)
+                n = s.write(out)
         except antlr.RecognitionException, re:
             this.error('can\'t evaluate tree: ' + exprTree.toStringList(), re)
+	return n

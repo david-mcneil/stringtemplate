@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050401): "eval.g" -> "ActionEvaluator.py"$
+### $ANTLR 2.7.5 (20050419): "eval.g" -> "ActionEvaluator.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -59,27 +59,28 @@ WS = 27
 ### user code<<<
 
 class Walker(antlr.TreeParser):
-    
-    # ctor ..
-    def __init__(self, *args, **kwargs):
-        antlr.TreeParser.__init__(self, *args, **kwargs)
-        self.tokenNames = _tokenNames
-        ### __init__ header action >>> 
-        self.this = None
-        self.out = None
-        self.chunk = None
-        ### __init__ header action <<< 
-    
-    ### user action >>>
-    def initialize(self, this, chunk, out):
-       self.this = this
-       self.chunk = chunk
-       self.out = out
-    
-    def reportError(self, e):
-       self.this.error("template parse error", e)
-    ### user action <<<
+
+# ctor ..
+def __init__(self, *args, **kwargs):
+    antlr.TreeParser.__init__(self, *args, **kwargs)
+    self.tokenNames = _tokenNames
+    ### __init__ header action >>> 
+    self.this = None
+    self.out = None
+    self.chunk = None
+    ### __init__ header action <<< 
+
+### user action >>>
+def initialize(self, this, chunk, out):
+   self.this = this
+   self.chunk = chunk
+   self.out = out
+
+def reportError(self, e):
+   self.this.error("template parse error", e)
+### user action <<<
     def action(self, _t):    
+        numCharsWritten = 0
         
         action_AST_in = None
         if _t != antlr.ASTNULL:
@@ -89,7 +90,7 @@ class Walker(antlr.TreeParser):
             pass
             e=self.expr(_t)
             _t = self._retTree
-            self.chunk.writeAttribute(self.this,e,self.out)
+            numCharsWritten = self.chunk.writeAttribute(self.this,e,self.out)
         
         except antlr.RecognitionException, ex:
             self.reportError(ex)
@@ -97,6 +98,7 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
         
         self._retTree = _t
+        return numCharsWritten
     
     def expr(self, _t):    
         value = None
@@ -545,7 +547,7 @@ class Walker(antlr.TreeParser):
             e=self.expr(_t)
             _t = self._retTree
             if e:
-                self.this.rawSetAttribute(argumentContext,arg.getText(), e)
+               self.this.rawSetAttribute(argumentContext,arg.getText(), e)
             _t = _t27
             _t = _t.getNextSibling()
         

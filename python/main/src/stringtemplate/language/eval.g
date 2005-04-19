@@ -38,11 +38,14 @@ options {
         self.this.error("template parse error", e)
 }
 
-action
+action returns [numCharsWritten = 0]
 {
     e = None
 }
-    :   e = expr {self.chunk.writeAttribute(self.this,e,self.out)}
+    :   e = expr
+        {
+          numCharsWritten = self.chunk.writeAttribute(self.this,e,self.out)
+        }
     ;
 
 expr returns [value]
@@ -183,18 +186,18 @@ argList[initialContext]
     if not argumentContext:
         argumentContext = {}
 }
-        : #( ARGS (argumentAssignment[argumentContext])* )
-        ;
+    :   #( ARGS (argumentAssignment[argumentContext])* )
+    ;
 
 argumentAssignment[argumentContext]
 {
     e = None
 }
-        : #( ASSIGN arg:ID e=expr
-            {
-                if e:
-                     self.this.rawSetAttribute(argumentContext,arg.getText(), e)
-            }
-          )
-        ;
+    :   #( ASSIGN arg:ID e=expr
+           {
+             if e:
+                 self.this.rawSetAttribute(argumentContext,arg.getText(), e)
+           }
+        )
+    ;
 

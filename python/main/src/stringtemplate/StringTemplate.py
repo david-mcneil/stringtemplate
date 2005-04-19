@@ -16,7 +16,7 @@ from stringtemplate.language import FormalArgument, ChunkToken, \
                                     GroupLexer, GroupParser, \
                                     ActionLexer, ActionParser, \
                                     AttributeReflectionController, \
-                                    ConditionalExpr
+                                    ConditionalExpr, NewlineRef
 
 ## Generic StringTemplate output writer filter
 #
@@ -68,18 +68,24 @@ class AutoIndentWriter(StringTemplateWriter):
     def write(self, str_):
         # sys.stderr.write('write(' + str(str_) + ')' + \
         #                  '; indents=' + str(self.indents) + '\n')
+        n = 0
         for c in str(str_):
             if c == '\n':
                 self.atStartOfLine = True
             elif self.atStartOfLine:
-                self.indent()
+                n += self.indent()
                 self.atStartOfLine = False
+            n += 1
             self.out.write(c)
+        return n
 
     def indent(self):
+        n = 0
         for ind in self.indents:
             if ind:
-                self.out.write(ind)
+		self.out.write(ind)
+                n += len(ind)
+        return n
 
 AutoIndentWriter.BUFFER_SIZE = 50
 
@@ -92,6 +98,7 @@ class NoIndentWriter(AutoIndentWriter):
 
     def write(self, str):
         self.out.write(str)
+        return len(str)
 
 ## Lets you specify where errors, warnings go. Warning: debug is useless at
 #  the moment.
@@ -543,9 +550,9 @@ class StringTemplate(object):
                 self.attributes = {}
             if isinstance(value, StringTemplate):
                 value.setEnclosingInstance(self)
-
-            # convert value if array
-            #value = ASTExpr.convertArrayToList(value)
+            #else:
+            #    # convert value if array
+            #    value = ASTExpr.convertArrayToList(value)
             # convert plain collections
             # get exactly in self scope (no enclosing)
             obj = self.attributes.has_key(name)
@@ -583,6 +590,10 @@ class StringTemplate(object):
             aggr = Aggregate(self)
             for i in range(len(values)):
                 value = values[i]
+                if isinstance(value, StringTemplate):
+                    value.setEnclosingInstance(self)
+                #else:
+                #    value = AST.Expr.convertArrayToList(value)
                 property_ = properties[i]
                 aggr[property_] = value
             self.setAttribute(aggrName, aggr)
@@ -626,12 +637,27 @@ class StringTemplate(object):
     #  for all instances of self template.
     #
     def write(self, out):
+        n = 0
         self.setPredefinedAttributes()
         if self.chunks:
-            for a in self.chunks:
-                a.write(self, out)
+	    i = 0
+	    while i < len(self.chunks):
+	        a = self.chunks[i]
+                chunkN = a.write(self, out)
+                # NEWLINE expr-with-no-output NEWLINE => NEWLINE
+                # Indented $...$ have the indent stored with the ASTExpr
+                # so the indent does not come out as a StringRef
+                if not chunkN and (i-1) >= 0 and \
+                   isinstance(self.chunks[i-1], NewlineRef) and \
+                   (i+1) < len(self.chunks) and \
+                   isinstance(self.chunks[i+1], NewlineRef):
+                    #sys.stderr.write('found pure \\n blank \\n pattern\n')
+                    i += 1 # make it skip over the next chunk, the NEWLINE
+                n += chunkN
+		i += 1
         if StringTemplate.lintMode:
             self.checkForTrouble()
+        return n
 
     ## Resolve an attribute reference.  It can be in three possible places:
     #
@@ -659,7 +685,8 @@ class StringTemplate(object):
     #  This method is not static so people can override its functionality.
     #
     def get(self, this, attribute):
-        #sys.stderr.write('get(' + self.getName() + ', ' + str(attribute) + ')\n')
+        #sys.stderr.write('get(' + self.getName() + ', ' + str(attribute) +
+        #                 ')\n')
         if not this:
             return None
 
@@ -1037,7 +1064,7 @@ class StringTemplate(object):
         return retval
 
 # Set class data attribute values.
-StringTemplate.VERSION = "2.1rc1"
+StringTemplate.VERSION = "2.1"
 StringTemplate.debugMode = False
 StringTemplate.lintMode = False
 StringTemplate.templateCounter=0
@@ -1221,14 +1248,14 @@ class StringTemplateGroup(object):
 
     def getInstanceOf(self, name):
         st = self.lookupTemplate(name)
-        if not st:
-            return None
+        #if not st:
+        #    return None
         return st.getInstanceOf()
 
     def getEmbeddedInstanceOf(self, enclosingInstance, name):
         st = self.getInstanceOf(name)
-        if not st:
-            return None
+        #if not st:
+        #    return None
         st.setEnclosingInstance(enclosingInstance)
         return st
 
@@ -1273,10 +1300,9 @@ class StringTemplateGroup(object):
                 # an override.
                 self.templates[name] = st
             else:
-                # not found
-                # remember that this sucker doesn't exist
-                self.error('Can\'t load template ' + self.getFileNameFromTemplateName(name))
+                # not found; remember that this sucker doesn't exist
                 self.templates[name] = StringTemplateGroup.NOT_FOUND_ST
+                raise ValueError('Can\'t load template ' + self.getFileNameFromTemplateName(name))
 
         elif st is StringTemplateGroup.NOT_FOUND_ST:
             return None
@@ -1435,7 +1461,11 @@ class StringTemplateGroup(object):
     #  or above it in the group hierarchy?
     #
     def isDefined(self, name):
-        return self.lookupTemplate(name) != None
+        try:
+            self.lookupTemplate(name)
+            return True
+        except ValueError:
+            return False
 
     def parseGroup(self, r):
         try:

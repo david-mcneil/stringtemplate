@@ -53,19 +53,21 @@ class ASTExpr(Expr):
     #
     def write(self, this, out):
         if not self.exprTree or not this or not out:
-            return
+            return 0
         out.pushIndentation(self.getIndentation())
         #sys.stderr.write('evaluating tree: ' +
 	#                 self.exprTree.toStringList() + '\n')
         eval_ = ActionEvaluator.Walker()
 	eval_.initialize(this,self,out)
+        n = 0
         try:
 	    # eval and write out tree
-            eval_.action(self.exprTree)
+            n = eval_.action(self.exprTree)
         except antlr.RecognitionException, re:
             self.error('can\'t evaluate tree: ' + self.exprTree.toStringList(),
 	               re)
         out.popIndentation()
+        return n
 
 # -----------------------------------------------------------------------------
 #             HELP ROUTINES CALLED BY EVALUATOR TREE WALKER
@@ -117,6 +119,8 @@ class ASTExpr(Expr):
 		#                 str(ithValue) + '\n')
                 resultVector.append(embedded)
                 i += 1
+            if not len(resultVector):
+                resultVector = None
 
             return resultVector
 
@@ -125,7 +129,7 @@ class ASTExpr(Expr):
             #sys.stderr.write('setting attribute ' +
 	    #                 ASTExpr.DEFAULT_ATTRIBUTE_NAME +
 	    #                 ' in arg context of ' + embedded.getName() +
-	    #   	             ' to ' + str(attributeValue) + '\n')
+	    #                 ' to ' + str(attributeValue) + '\n')
             argumentContext = {}
             argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = attributeValue
             argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue
@@ -174,17 +178,29 @@ class ASTExpr(Expr):
         	try:
 	            m = getattr(o, methodName)
         	except AttributeError, ae:
-                    this.error('Can\'t get property ' + propertyName +
-		               ' using method get/is' + methodSuffix +
-                               ' from ' + o.__class__.__name__ +
-			       ' instance', ae)
+                    # try for a visible field
+                    try:
+                        f = getattr(o, propertyName)
+                        try:
+                            value = o.f
+                            return value
+                        except AttributeError, ae2:
+                            this.error('Can\'t get property ' + propertyName +
+                                       ' using method get/is' + methodSuffix +
+                                       ' or direct field access from ' +
+                                       o.__class__.__name__ + ' instance', ae2)
+                    except AttributeError, ae:
+                        this.error('Can\'t get property ' + propertyName +
+                                   ' using method get/is' + methodSuffix +
+                                   ' or direct field access from ' +
+                                   o.__class__.__name__ + ' instance', ae)
             try:
                 value = m()
             except Exception, e:
                 this.error('Can\'t get property ' + propertyName +
 		           ' using method get/is' + methodSuffix +
-                           ' from ' + o.__class__.__name__ +
-			   ' instance', e)
+                           ' or direct field access from ' +
+                           o.__class__.__name__ + ' instance', e)
 
         return value
 
@@ -250,11 +266,12 @@ class ASTExpr(Expr):
         separator = None
         if self.options:
             separator = self.options["separator"]
-        self._write(this, o, out, separator)
+        return self._write(this, o, out, separator)
 
     def _write(self, this, o, out, separator):
         if not o:
-            return
+            return 0
+        n = 0
         try:
             if isinstance(o, stringtemplate.StringTemplate):
                 o.setEnclosingInstance(this)
@@ -269,8 +286,8 @@ class ASTExpr(Expr):
                         o.getEnclosingInstance().getTemplateDeclaratorString() +
 			'; stack trace:\n' + o.getEnclosingInstanceStackTrace())
                 else:
-                    out.write(o)
-                return
+                    n = out.write(o)
+                return n
 
             if isinstance(o, list) or \
 	       isinstance(o, tuple) or \
@@ -281,17 +298,35 @@ class ASTExpr(Expr):
                 i = 0
                 for iterValue in o:
                     i += 1
+                    charWrittenForValue = 0
 		    if isinstance(o, dict):
-                        self._write(this, o[iterValue], out, separator)
+                        charWrittenForValue += \
+                            self._write(this, o[iterValue], out, separator)
 		    else:
-                        self._write(this, iterValue, out, separator)
-                    if i < len(o) and separator:
-                        out.write(separatorString)
+                        charWrittenForValue += \
+                            self._write(this, iterValue, out, separator)
+                    n += charWrittenForValue
+                    #if i < len(o) and separator:
+                    #    out.write(separatorString)
+		    if i < len(o):
+	                valueIsPureConditional = False
+		    	if isinstance(iterValue, stringtemplate.StringTemplate):
+			    chunks = iterValue.getChunks()
+			    firstChunk = chunks[0]
+			    valueIsPureConditional = \
+			        isinstance(firstChunk, stringtemplate.language.ConditionalExpr) \
+				and \
+				not firstChunk.getElseSubtemplate()
+		    	emptyIteratedValue = valueIsPureConditional and \
+		        		     not charWrittenForValue
+			if not emptyIteratedValue and separator:
+		            n += out.write(separatorString)
             else:
-                out.write(str(o))
-                return
+                n = out.write(str(o))
+                return n
         except IOError, io:
             this.error('problem writing object: ' + o, io)
+        return n
 
     ## A separator is normally just a string literal, but is still an AST that
     #  we must evaluate.  The separator can be any expression such as a template

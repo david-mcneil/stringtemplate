@@ -20,8 +20,8 @@ options {
 class AngleBracketTemplateLexer extends Lexer;
 
 options {
-    k=7; // see "<endif>"
     importVocab = TemplateParser;
+    k=7; // see "<endif>"
     charVocabulary = '\u0001'..'\uFFFE';
 }
 
@@ -52,26 +52,43 @@ options {
 }
 
 LITERAL
-    :   ( options { greedy=true; }
-          { col=self.getColumn() }
+    :   { self.LA(1) != '\r' and self.LA(1) != '\n' }?
+        ( options { generateAmbigWarnings=false; }
+          {
+            loopStartIndex = self.text.length()
+            col = self.getColumn()
+          }
         : '\\'! '<'  // allow escaped delimiter
         | '\\'! '>'
         | '\\' ~('<'|'>')   // otherwise ignore escape char
-        | { self.upcomingELSE(3) or self.upcomingENDIF(3) }?
-          NL! {$newline}
-        | { self.upcomingELSE(2) or self.upcomingENDIF(2) }?
-          NL! {$newline}
-        | NL  {$newline} // newline not before else or endif
         | ind:INDENT
           {
-              if col == 1 and self.LA(1) == '<':
-                  self.currentIndent = ind.getText()
-              else:
-                  self.currentIndent = None
+            if col == 1 and self.LA(1) == '<':
+                // store indent in ASTExpr not in a literal
+                self.currentIndent = ind.getText()
+                // reset length to wack text
+                self.text.setLength(loopStartIndex)
+            else:
+                self.currentIndent = None
           }
-        | ~'<'
+        | ~('<'|'\r'|'\n')
         )+
+        { if not len($getText): $skip } // pure indent?
     ;
+
+protected
+INDENT
+    :   ( options {greedy=true;}: ' ' | '\t')+
+    ;
+
+NEWLINE
+    :   ('\r')? '\n'
+        {
+          $newline
+          self.currentIndent = None
+        }
+    ;
+
 
 ACTION
 options {
@@ -108,9 +125,9 @@ NL
 options {
     generateAmbigWarnings=false; // single '\r' is ambig with '\r' '\n'
 }
-	: '\r'
-	| '\n'
-	| '\r' '\n'
+        : '\r'
+        | '\n'
+        | '\r' '\n'
     ;
 
 protected
@@ -128,11 +145,6 @@ ESC :   '\\' ('<'|'>'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
 protected
 SUBTEMPLATE
     :    '{' (SUBTEMPLATE|ESC|~'}')+ '}'
-    ;
-
-protected
-INDENT
-    :   ( options {greedy=true;}: ' ' | '\t')+
     ;
 
 protected
