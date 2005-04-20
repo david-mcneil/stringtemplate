@@ -1,0 +1,17 @@
+// $ANTLR 2.7.5 (20050401): group.g -> GroupParserTokenTypes.txt$
+GroupParser    // output token vocab name
+LITERAL_group="group"=4
+ID=5
+SEMI=6
+LPAREN=7
+RPAREN=8
+DEFINED_TO_BE=9
+TEMPLATE=10
+COMMA=11
+STAR=12
+PLUS=13
+OPTIONAL=14
+SL_COMMENT=15
+ML_COMMENT=16
+NL=17
+WS=18
