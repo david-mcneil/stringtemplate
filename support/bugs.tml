@@ -232,6 +232,14 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o make iteration of a HashMap create key/value aggregate so people can do this:
+<<
+<dl>
+$map:{  <dt>$it.key$</dt>
+   <dd>$it.value$</dd>
+}$</dl>
+>>
+
 o is it possible to generate <lineNumber> somehow during output (perhaps in the output filter) so that we can generate code that knows what line it's on in the input file?
 
 o should i add direct field access?  I guess, why not, right?  It would look for properties then fields if not found, right?
