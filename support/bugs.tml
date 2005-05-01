@@ -2,6 +2,8 @@ StringTemplate Bugs, Requests, Changes
 
 #### Releases
 
+2.2: ???
+
 2.1: January 22, 2005
 
 2.0: July 16, 2004
@@ -11,6 +13,12 @@ StringTemplate Bugs, Requests, Changes
 1.0.2: Oct 14, 2003
 
 #### Fixed bugs and changes
+
+05-01-2005
+
+o Collections, Maps, and Iterators that are non-null but have no elements
+  return false in conditionals; e.g., $if(users)$ is false if users is
+  an empty list.
 
 03-30-2005
 
