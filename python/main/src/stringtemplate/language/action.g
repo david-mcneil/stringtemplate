@@ -42,8 +42,15 @@ action returns [opts = None]
         ;
 
 optionList! returns [opts = {}]
-    :   "separator" ASSIGN e:expr {opts["separator"] = #e}
-    ;
+        :   "separator" ASSIGN e:expr {opts["separator"] = #e}
+        ;
+
+templatesExpr
+        :   expr
+            ( c:COLON^ { #c.setType(APPLY) }
+              template ( COMMA! template )*
+            )*
+        ;
 
 ifCondition
         :   ifAtom
@@ -51,32 +58,59 @@ ifCondition
         ;
 
 ifAtom
-    :   expr
-    ;
+        :   expr
+        ;
 
-expr:   atom (PLUS^ atom)*
-    ;
+expr
+        :   primaryExpr ( PLUS^ primaryExpr )*
+        ;
 
-atom:   attribute
-    |   (templateInclude)=>templateInclude  // (see past parens to arglist)
-    |   eval:LPAREN^ templatesExpr RPAREN!  // parens implies "evaluate to string"
-        {#eval.setType(VALUE)}
-    ;
+primaryExpr
+        :   atom
+            ( DOT^
+              ( ID
+              | valueExpr
+              )
+            )*
+        |   (templateInclude)=>templateInclude
+            // (see past parens to arglist)
+        |   valueExpr
+        ;
 
-templatesExpr
-    :   expr ( c:COLON^ {#c.setType(APPLY)} template (COMMA! template)* )*
-    ;
+valueExpr
+        :   eval:LPAREN^ templatesExpr RPAREN!
+            // parens implies "evaluate to string"
+            {
+                #eval.setType(VALUE)
+                #eval.setText("value")
+            }
+        ;
+
+/*
+objPropertyRef
+        :   ID
+            ( DOT^
+              ( ID
+              | lp:LPAREN^ expr RPAREN!
+                {
+                    #lp.setType(VALUE)
+                    #lp.setText("value")
+                }
+              )
+            )+
+        ;
+*/
 
 nonAlternatingTemplateExpr
-    :   expr ( c:COLON^ {#c.setType(APPLY)} template )*
-    ;
+        :   expr ( c:COLON^ {#c.setType(APPLY)} template )*
+        ;
 
 template
-    :   (   namedTemplate       // foo()
-        |   anonymousTemplate   // {foo}
-        )
-        {#template = #(#[TEMPLATE],template)}
-    ;
+        :   (   namedTemplate       // foo()
+            |   anonymousTemplate   // {foo}
+            )
+            { #template = #(#[TEMPLATE],template) }
+        ;
 
 namedTemplate
         :       ID argList
@@ -96,12 +130,11 @@ anonymousTemplate
         }
         ;
 
-attribute
-    :   ID
-    |   objPropertyRef
-    |   STRING
-    |   INT
-    ;
+atom
+        :   ID
+        |   STRING
+        |   INT
+        ;
 
 templateInclude
         :       ( ID argList
@@ -116,13 +149,9 @@ templateInclude
  *  breaks encapsulation
  */
 indirectTemplate!
-    :   LPAREN e:expr RPAREN args:argList
-        {#indirectTemplate = #(#[VALUE,"value"],e,args)}
+        :   LPAREN e:expr RPAREN args:argList
+            { #indirectTemplate = #(#[VALUE,"value"],e,args) }
         ;
-
-objPropertyRef
-    :   ID (DOT^ ID)+
-    ;
 
 argList
         :!      LPAREN! RPAREN! {#argList = #[ARGS,"ARGS"];}
@@ -151,7 +180,8 @@ options {
         ;
 
 INT
-        :       ('0'..'9')+ ;
+        :       ('0'..'9')+
+        ;
 
 STRING
         :       '"'! (ESC_CHAR[True] | ~'"')* '"'!
@@ -179,26 +209,23 @@ ESC_CHAR[doEscape]
                 )
         ;
 
-LPAREN : '(' ;
-RPAREN : ')' ;
-COMMA  : ',' ;
-DOT    : '.' ;
-ASSIGN : '=' ;
-COLON  : ':' ;
-PLUS   : '+' ;
-SEMI   : ';' ;
-NOT    : '!' ;
+LPAREN  : '(' ;
+RPAREN  : ')' ;
+COMMA   : ',' ;
+DOT     : '.' ;
+ASSIGN  : '=' ;
+COLON   : ':' ;
+PLUS    : '+' ;
+SEMI    : ';' ;
+NOT     : '!' ;
 
 WS
-        :       ( ' '
-		| '\t'
-                | ( options {
-		      generateAmbigWarnings=false;
-		    }
-		  : '\r'
-		  | '\n'
-		  | '\r' '\n'
-		  ) {$newline}
-		) {$skip}
+        :   ( ' '
+            | '\t'
+            | ( options { generateAmbigWarnings=false; }
+              : '\r'
+              | '\n'
+              | '\r' '\n'
+              ) { $newline }
+            ) { $skip }
         ;
-

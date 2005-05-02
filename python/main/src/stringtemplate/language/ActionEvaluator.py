@@ -40,13 +40,13 @@ LPAREN = 11
 RPAREN = 12
 LITERAL_separator = 13
 ASSIGN = 14
-NOT = 15
-PLUS = 16
-COLON = 17
-COMMA = 18
-ID = 19
-LITERAL_super = 20
-DOT = 21
+COLON = 15
+COMMA = 16
+NOT = 17
+PLUS = 18
+DOT = 19
+ID = 20
+LITERAL_super = 21
 ANONYMOUS_TEMPLATE = 22
 STRING = 23
 INT = 24
@@ -132,7 +132,7 @@ class Walker(antlr.TreeParser):
                 pass
                 value=self.templateApplication(_t)
                 _t = self._retTree
-            elif la1 and la1 in [ID,DOT,STRING,INT]:
+            elif la1 and la1 in [DOT,ID,STRING,INT]:
                 pass
                 value=self.attribute(_t)
                 _t = self._retTree
@@ -232,6 +232,8 @@ class Walker(antlr.TreeParser):
         i = None
         s = None
         obj = None
+        propName = None
+        e = None
         try:      ## for error handling
             if not _t:
                 _t = antlr.ASTNULL
@@ -244,25 +246,42 @@ class Walker(antlr.TreeParser):
                 tmp4_AST_in = _t
                 self.match(_t,DOT)
                 _t = _t.getFirstChild()
-                obj=self.attribute(_t)
+                obj=self.expr(_t)
                 _t = self._retTree
-                prop = _t
-                self.match(_t,ID)
-                _t = _t.getNextSibling()
+                if not _t:
+                    _t = antlr.ASTNULL
+                la1 = _t.getType()
+                if False:
+                    pass
+                elif la1 and la1 in [ID]:
+                    pass
+                    prop = _t
+                    self.match(_t,ID)
+                    _t = _t.getNextSibling()
+                    propName = prop.getText()
+                elif la1 and la1 in [VALUE]:
+                    pass
+                    _t23 = _t
+                    tmp5_AST_in = _t
+                    self.match(_t,VALUE)
+                    _t = _t.getFirstChild()
+                    e=self.expr(_t)
+                    _t = self._retTree
+                    _t = _t23
+                    _t = _t.getNextSibling()
+                    if e: propName = str(e)
+                else:
+                        raise antlr.NoViableAltException(_t)
+                    
                 _t = _t21
                 _t = _t.getNextSibling()
-                value = self.chunk.getObjectProperty(self.this,obj,prop.getText())
+                value = self.chunk.getObjectProperty(self.this,obj,propName)
             elif la1 and la1 in [ID]:
                 pass
                 i3 = _t
                 self.match(_t,ID)
                 _t = _t.getNextSibling()
-                try:
-                   value=self.this.getAttribute(i3.getText())
-                except KeyError, nse:
-                   # rethrow with more precise error message
-                   raise KeyError(str(nse) + " in template " +
-                                  self.this.getName())
+                value=self.this.getAttribute(i3.getText())
             elif la1 and la1 in [INT]:
                 pass
                 i = _t
@@ -302,7 +321,7 @@ class Walker(antlr.TreeParser):
         try:      ## for error handling
             pass
             _t6 = _t
-            tmp5_AST_in = _t
+            tmp6_AST_in = _t
             self.match(_t,INCLUDE)
             _t = _t.getFirstChild()
             if not _t:
@@ -323,7 +342,7 @@ class Walker(antlr.TreeParser):
             elif la1 and la1 in [VALUE]:
                 pass
                 _t8 = _t
-                tmp6_AST_in = _t
+                tmp7_AST_in = _t
                 self.match(_t,VALUE)
                 _t = _t.getFirstChild()
                 n=self.expr(_t)
@@ -366,7 +385,7 @@ class Walker(antlr.TreeParser):
         try:      ## for error handling
             pass
             _t14 = _t
-            tmp7_AST_in = _t
+            tmp8_AST_in = _t
             self.match(_t,TEMPLATE)
             _t = _t.getFirstChild()
             if not _t:
@@ -399,7 +418,7 @@ class Walker(antlr.TreeParser):
             elif la1 and la1 in [VALUE]:
                 pass
                 _t16 = _t
-                tmp8_AST_in = _t
+                tmp9_AST_in = _t
                 self.match(_t,VALUE)
                 _t = _t.getFirstChild()
                 n=self.expr(_t)
@@ -441,8 +460,8 @@ class Walker(antlr.TreeParser):
            argumentContext = {}
         try:      ## for error handling
             pass
-            _t23 = _t
-            tmp9_AST_in = _t
+            _t25 = _t
+            tmp10_AST_in = _t
             self.match(_t,ARGS)
             _t = _t.getFirstChild()
             while True:
@@ -455,7 +474,7 @@ class Walker(antlr.TreeParser):
                 else:
                     break
                 
-            _t = _t23
+            _t = _t25
             _t = _t.getNextSibling()
         
         except antlr.RecognitionException, ex:
@@ -479,7 +498,7 @@ class Walker(antlr.TreeParser):
             la1 = _t.getType()
             if False:
                 pass
-            elif la1 and la1 in [APPLY,INCLUDE,VALUE,PLUS,ID,DOT,STRING,INT]:
+            elif la1 and la1 in [APPLY,INCLUDE,VALUE,PLUS,DOT,ID,STRING,INT]:
                 pass
                 a=self.ifAtom(_t)
                 _t = self._retTree
@@ -487,7 +506,7 @@ class Walker(antlr.TreeParser):
             elif la1 and la1 in [NOT]:
                 pass
                 _t18 = _t
-                tmp10_AST_in = _t
+                tmp11_AST_in = _t
                 self.match(_t,NOT)
                 _t = _t.getFirstChild()
                 a=self.ifAtom(_t)
@@ -537,8 +556,8 @@ class Walker(antlr.TreeParser):
         e = None
         try:      ## for error handling
             pass
-            _t27 = _t
-            tmp11_AST_in = _t
+            _t29 = _t
+            tmp12_AST_in = _t
             self.match(_t,ASSIGN)
             _t = _t.getFirstChild()
             arg = _t
@@ -548,7 +567,7 @@ class Walker(antlr.TreeParser):
             _t = self._retTree
             if e:
                self.this.rawSetAttribute(argumentContext,arg.getText(), e)
-            _t = _t27
+            _t = _t29
             _t = _t.getNextSibling()
         
         except antlr.RecognitionException, ex:
@@ -575,13 +594,13 @@ _tokenNames = [
     "RPAREN", 
     "\"separator\"", 
     "ASSIGN", 
-    "NOT", 
-    "PLUS", 
     "COLON", 
     "COMMA", 
+    "NOT", 
+    "PLUS", 
+    "DOT", 
     "ID", 
     "\"super\"", 
-    "DOT", 
     "ANONYMOUS_TEMPLATE", 
     "STRING", 
     "INT", 

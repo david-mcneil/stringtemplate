@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050401): "action.g" -> "ActionParser.py"$
+### $ANTLR 2.7.5 (20050419): "action.g" -> "ActionParser.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -35,13 +35,13 @@ LPAREN = 11
 RPAREN = 12
 LITERAL_separator = 13
 ASSIGN = 14
-NOT = 15
-PLUS = 16
-COLON = 17
-COMMA = 18
-ID = 19
-LITERAL_super = 20
-DOT = 21
+COLON = 15
+COMMA = 16
+NOT = 17
+PLUS = 18
+DOT = 19
+ID = 20
+LITERAL_super = 21
 ANONYMOUS_TEMPLATE = 22
 STRING = 23
 INT = 24
@@ -243,7 +243,7 @@ class Parser(antlr.LLkParser):
         expr_AST = None
         try:      ## for error handling
             pass
-            self.atom()
+            self.primaryExpr()
             self.addASTChild(currentAST, self.returnAST)
             while True:
                 if (self.LA(1)==PLUS):
@@ -252,7 +252,7 @@ class Parser(antlr.LLkParser):
                     tmp9_AST = self.astFactory.create(self.LT(1))
                     self.makeASTRoot(currentAST, tmp9_AST)
                     self.match(PLUS)
-                    self.atom()
+                    self.primaryExpr()
                     self.addASTChild(currentAST, self.returnAST)
                 else:
                     break
@@ -268,194 +268,6 @@ class Parser(antlr.LLkParser):
                 raise ex
         
         self.returnAST = expr_AST
-    
-    def ifAtom(self):    
-        
-        self.returnAST = None
-        currentAST = antlr.ASTPair()
-        ifAtom_AST = None
-        try:      ## for error handling
-            pass
-            self.expr()
-            self.addASTChild(currentAST, self.returnAST)
-            ifAtom_AST = currentAST.root
-        
-        except antlr.RecognitionException, ex:
-            if not self.inputState.guessing:
-                self.reportError(ex)
-                self.consume()
-                self.consumeUntil(_tokenSet_2)
-            else:
-                raise ex
-        
-        self.returnAST = ifAtom_AST
-    
-    def atom(self):    
-        
-        self.returnAST = None
-        currentAST = antlr.ASTPair()
-        atom_AST = None
-        eval = None
-        eval_AST = None
-        try:      ## for error handling
-            if (self.LA(1)==ID or self.LA(1)==STRING or self.LA(1)==INT) and (_tokenSet_4.member(self.LA(2))):
-                pass
-                self.attribute()
-                self.addASTChild(currentAST, self.returnAST)
-                atom_AST = currentAST.root
-            else:
-                synPredMatched11 = False
-                if (self.LA(1)==LPAREN or self.LA(1)==ID or self.LA(1)==LITERAL_super) and (_tokenSet_5.member(self.LA(2))):
-                    _m11 = self.mark()
-                    synPredMatched11 = True
-                    self.inputState.guessing += 1
-                    try:
-                        pass
-                        self.templateInclude()
-                    except antlr.RecognitionException, pe:
-                        synPredMatched11 = False
-                    self.rewind(_m11)
-                    self.inputState.guessing -= 1
-                if synPredMatched11:
-                    pass
-                    self.templateInclude()
-                    self.addASTChild(currentAST, self.returnAST)
-                    atom_AST = currentAST.root
-                elif (self.LA(1)==LPAREN) and (_tokenSet_6.member(self.LA(2))):
-                    pass
-                    eval = self.LT(1)
-                    eval_AST = self.astFactory.create(eval)
-                    self.makeASTRoot(currentAST, eval_AST)
-                    self.match(LPAREN)
-                    self.templatesExpr()
-                    self.addASTChild(currentAST, self.returnAST)
-                    self.match(RPAREN)
-                    if not self.inputState.guessing:
-                        eval_AST.setType(VALUE)
-                    atom_AST = currentAST.root
-                else:
-                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
-                
-        
-        except antlr.RecognitionException, ex:
-            if not self.inputState.guessing:
-                self.reportError(ex)
-                self.consume()
-                self.consumeUntil(_tokenSet_7)
-            else:
-                raise ex
-        
-        self.returnAST = atom_AST
-    
-    def attribute(self):    
-        
-        self.returnAST = None
-        currentAST = antlr.ASTPair()
-        attribute_AST = None
-        try:      ## for error handling
-            la1 = self.LA(1)
-            if False:
-                pass
-            elif la1 and la1 in [STRING]:
-                pass
-                tmp11_AST = None
-                tmp11_AST = self.astFactory.create(self.LT(1))
-                self.addASTChild(currentAST, tmp11_AST)
-                self.match(STRING)
-                attribute_AST = currentAST.root
-            elif la1 and la1 in [INT]:
-                pass
-                tmp12_AST = None
-                tmp12_AST = self.astFactory.create(self.LT(1))
-                self.addASTChild(currentAST, tmp12_AST)
-                self.match(INT)
-                attribute_AST = currentAST.root
-            else:
-                if (self.LA(1)==ID) and (_tokenSet_7.member(self.LA(2))):
-                    pass
-                    tmp13_AST = None
-                    tmp13_AST = self.astFactory.create(self.LT(1))
-                    self.addASTChild(currentAST, tmp13_AST)
-                    self.match(ID)
-                    attribute_AST = currentAST.root
-                elif (self.LA(1)==ID) and (self.LA(2)==DOT):
-                    pass
-                    self.objPropertyRef()
-                    self.addASTChild(currentAST, self.returnAST)
-                    attribute_AST = currentAST.root
-                else:
-                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
-                
-        
-        except antlr.RecognitionException, ex:
-            if not self.inputState.guessing:
-                self.reportError(ex)
-                self.consume()
-                self.consumeUntil(_tokenSet_7)
-            else:
-                raise ex
-        
-        self.returnAST = attribute_AST
-    
-    def templateInclude(self):    
-        
-        self.returnAST = None
-        currentAST = antlr.ASTPair()
-        templateInclude_AST = None
-        qid = None
-        qid_AST = None
-        try:      ## for error handling
-            pass
-            la1 = self.LA(1)
-            if False:
-                pass
-            elif la1 and la1 in [ID]:
-                pass
-                tmp14_AST = None
-                tmp14_AST = self.astFactory.create(self.LT(1))
-                self.addASTChild(currentAST, tmp14_AST)
-                self.match(ID)
-                self.argList()
-                self.addASTChild(currentAST, self.returnAST)
-            elif la1 and la1 in [LITERAL_super]:
-                pass
-                self.match(LITERAL_super)
-                self.match(DOT)
-                qid = self.LT(1)
-                qid_AST = self.astFactory.create(qid)
-                self.addASTChild(currentAST, qid_AST)
-                self.match(ID)
-                if not self.inputState.guessing:
-                    qid_AST.setText("super."+qid_AST.getText())
-                self.argList()
-                self.addASTChild(currentAST, self.returnAST)
-            elif la1 and la1 in [LPAREN]:
-                pass
-                self.indirectTemplate()
-                self.addASTChild(currentAST, self.returnAST)
-            else:
-                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
-                
-            if not self.inputState.guessing:
-                templateInclude_AST = currentAST.root
-                templateInclude_AST = antlr.make(self.astFactory.create(INCLUDE,"include"), templateInclude_AST)
-                currentAST.root = templateInclude_AST
-                if (templateInclude_AST != None) and (templateInclude_AST.getFirstChild() != None):
-                    currentAST.child = templateInclude_AST.getFirstChild()
-                else:
-                    currentAST.child = templateInclude_AST
-                currentAST.advanceChildToEnd()
-            templateInclude_AST = currentAST.root
-        
-        except antlr.RecognitionException, ex:
-            if not self.inputState.guessing:
-                self.reportError(ex)
-                self.consume()
-                self.consumeUntil(_tokenSet_7)
-            else:
-                raise ex
-        
-        self.returnAST = templateInclude_AST
     
     def template(self):    
         
@@ -498,6 +310,236 @@ class Parser(antlr.LLkParser):
                 raise ex
         
         self.returnAST = template_AST
+    
+    def ifAtom(self):    
+        
+        self.returnAST = None
+        currentAST = antlr.ASTPair()
+        ifAtom_AST = None
+        try:      ## for error handling
+            pass
+            self.expr()
+            self.addASTChild(currentAST, self.returnAST)
+            ifAtom_AST = currentAST.root
+        
+        except antlr.RecognitionException, ex:
+            if not self.inputState.guessing:
+                self.reportError(ex)
+                self.consume()
+                self.consumeUntil(_tokenSet_2)
+            else:
+                raise ex
+        
+        self.returnAST = ifAtom_AST
+    
+    def primaryExpr(self):    
+        
+        self.returnAST = None
+        currentAST = antlr.ASTPair()
+        primaryExpr_AST = None
+        try:      ## for error handling
+            if (self.LA(1)==ID or self.LA(1)==STRING or self.LA(1)==INT) and (_tokenSet_4.member(self.LA(2))):
+                pass
+                self.atom()
+                self.addASTChild(currentAST, self.returnAST)
+                while True:
+                    if (self.LA(1)==DOT):
+                        pass
+                        tmp10_AST = None
+                        tmp10_AST = self.astFactory.create(self.LT(1))
+                        self.makeASTRoot(currentAST, tmp10_AST)
+                        self.match(DOT)
+                        la1 = self.LA(1)
+                        if False:
+                            pass
+                        elif la1 and la1 in [ID]:
+                            pass
+                            tmp11_AST = None
+                            tmp11_AST = self.astFactory.create(self.LT(1))
+                            self.addASTChild(currentAST, tmp11_AST)
+                            self.match(ID)
+                        elif la1 and la1 in [LPAREN]:
+                            pass
+                            self.valueExpr()
+                            self.addASTChild(currentAST, self.returnAST)
+                        else:
+                                raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                            
+                    else:
+                        break
+                    
+                primaryExpr_AST = currentAST.root
+            else:
+                synPredMatched19 = False
+                if (self.LA(1)==LPAREN or self.LA(1)==ID or self.LA(1)==LITERAL_super) and (_tokenSet_5.member(self.LA(2))):
+                    _m19 = self.mark()
+                    synPredMatched19 = True
+                    self.inputState.guessing += 1
+                    try:
+                        pass
+                        self.templateInclude()
+                    except antlr.RecognitionException, pe:
+                        synPredMatched19 = False
+                    self.rewind(_m19)
+                    self.inputState.guessing -= 1
+                if synPredMatched19:
+                    pass
+                    self.templateInclude()
+                    self.addASTChild(currentAST, self.returnAST)
+                    primaryExpr_AST = currentAST.root
+                elif (self.LA(1)==LPAREN) and (_tokenSet_6.member(self.LA(2))):
+                    pass
+                    self.valueExpr()
+                    self.addASTChild(currentAST, self.returnAST)
+                    primaryExpr_AST = currentAST.root
+                else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
+        
+        except antlr.RecognitionException, ex:
+            if not self.inputState.guessing:
+                self.reportError(ex)
+                self.consume()
+                self.consumeUntil(_tokenSet_7)
+            else:
+                raise ex
+        
+        self.returnAST = primaryExpr_AST
+    
+    def atom(self):    
+        
+        self.returnAST = None
+        currentAST = antlr.ASTPair()
+        atom_AST = None
+        try:      ## for error handling
+            la1 = self.LA(1)
+            if False:
+                pass
+            elif la1 and la1 in [ID]:
+                pass
+                tmp12_AST = None
+                tmp12_AST = self.astFactory.create(self.LT(1))
+                self.addASTChild(currentAST, tmp12_AST)
+                self.match(ID)
+                atom_AST = currentAST.root
+            elif la1 and la1 in [STRING]:
+                pass
+                tmp13_AST = None
+                tmp13_AST = self.astFactory.create(self.LT(1))
+                self.addASTChild(currentAST, tmp13_AST)
+                self.match(STRING)
+                atom_AST = currentAST.root
+            elif la1 and la1 in [INT]:
+                pass
+                tmp14_AST = None
+                tmp14_AST = self.astFactory.create(self.LT(1))
+                self.addASTChild(currentAST, tmp14_AST)
+                self.match(INT)
+                atom_AST = currentAST.root
+            else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
+        
+        except antlr.RecognitionException, ex:
+            if not self.inputState.guessing:
+                self.reportError(ex)
+                self.consume()
+                self.consumeUntil(_tokenSet_4)
+            else:
+                raise ex
+        
+        self.returnAST = atom_AST
+    
+    def valueExpr(self):    
+        
+        self.returnAST = None
+        currentAST = antlr.ASTPair()
+        valueExpr_AST = None
+        eval = None
+        eval_AST = None
+        try:      ## for error handling
+            pass
+            eval = self.LT(1)
+            eval_AST = self.astFactory.create(eval)
+            self.makeASTRoot(currentAST, eval_AST)
+            self.match(LPAREN)
+            self.templatesExpr()
+            self.addASTChild(currentAST, self.returnAST)
+            self.match(RPAREN)
+            if not self.inputState.guessing:
+                eval_AST.setType(VALUE)
+                eval_AST.setText("value")
+            valueExpr_AST = currentAST.root
+        
+        except antlr.RecognitionException, ex:
+            if not self.inputState.guessing:
+                self.reportError(ex)
+                self.consume()
+                self.consumeUntil(_tokenSet_4)
+            else:
+                raise ex
+        
+        self.returnAST = valueExpr_AST
+    
+    def templateInclude(self):    
+        
+        self.returnAST = None
+        currentAST = antlr.ASTPair()
+        templateInclude_AST = None
+        qid = None
+        qid_AST = None
+        try:      ## for error handling
+            pass
+            la1 = self.LA(1)
+            if False:
+                pass
+            elif la1 and la1 in [ID]:
+                pass
+                tmp16_AST = None
+                tmp16_AST = self.astFactory.create(self.LT(1))
+                self.addASTChild(currentAST, tmp16_AST)
+                self.match(ID)
+                self.argList()
+                self.addASTChild(currentAST, self.returnAST)
+            elif la1 and la1 in [LITERAL_super]:
+                pass
+                self.match(LITERAL_super)
+                self.match(DOT)
+                qid = self.LT(1)
+                qid_AST = self.astFactory.create(qid)
+                self.addASTChild(currentAST, qid_AST)
+                self.match(ID)
+                if not self.inputState.guessing:
+                    qid_AST.setText("super."+qid_AST.getText())
+                self.argList()
+                self.addASTChild(currentAST, self.returnAST)
+            elif la1 and la1 in [LPAREN]:
+                pass
+                self.indirectTemplate()
+                self.addASTChild(currentAST, self.returnAST)
+            else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
+            if not self.inputState.guessing:
+                templateInclude_AST = currentAST.root
+                templateInclude_AST = antlr.make(self.astFactory.create(INCLUDE,"include"), templateInclude_AST)
+                currentAST.root = templateInclude_AST
+                if (templateInclude_AST != None) and (templateInclude_AST.getFirstChild() != None):
+                    currentAST.child = templateInclude_AST.getFirstChild()
+                else:
+                    currentAST.child = templateInclude_AST
+                currentAST.advanceChildToEnd()
+            templateInclude_AST = currentAST.root
+        
+        except antlr.RecognitionException, ex:
+            if not self.inputState.guessing:
+                self.reportError(ex)
+                self.consume()
+                self.consumeUntil(_tokenSet_7)
+            else:
+                raise ex
+        
+        self.returnAST = templateInclude_AST
     
     def nonAlternatingTemplateExpr(self):    
         
@@ -549,9 +591,9 @@ class Parser(antlr.LLkParser):
                 pass
             elif la1 and la1 in [ID]:
                 pass
-                tmp17_AST = None
-                tmp17_AST = self.astFactory.create(self.LT(1))
-                self.addASTChild(currentAST, tmp17_AST)
+                tmp19_AST = None
+                tmp19_AST = self.astFactory.create(self.LT(1))
+                self.addASTChild(currentAST, tmp19_AST)
                 self.match(ID)
                 self.argList()
                 self.addASTChild(currentAST, self.returnAST)
@@ -690,13 +732,13 @@ class Parser(antlr.LLkParser):
         args_AST = None
         try:      ## for error handling
             pass
-            tmp25_AST = None
-            tmp25_AST = self.astFactory.create(self.LT(1))
+            tmp27_AST = None
+            tmp27_AST = self.astFactory.create(self.LT(1))
             self.match(LPAREN)
             self.expr()
             e_AST = self.returnAST
-            tmp26_AST = None
-            tmp26_AST = self.astFactory.create(self.LT(1))
+            tmp28_AST = None
+            tmp28_AST = self.astFactory.create(self.LT(1))
             self.match(RPAREN)
             self.argList()
             args_AST = self.returnAST
@@ -720,47 +762,6 @@ class Parser(antlr.LLkParser):
         
         self.returnAST = indirectTemplate_AST
     
-    def objPropertyRef(self):    
-        
-        self.returnAST = None
-        currentAST = antlr.ASTPair()
-        objPropertyRef_AST = None
-        try:      ## for error handling
-            pass
-            tmp27_AST = None
-            tmp27_AST = self.astFactory.create(self.LT(1))
-            self.addASTChild(currentAST, tmp27_AST)
-            self.match(ID)
-            _cnt30= 0
-            while True:
-                if (self.LA(1)==DOT):
-                    pass
-                    tmp28_AST = None
-                    tmp28_AST = self.astFactory.create(self.LT(1))
-                    self.makeASTRoot(currentAST, tmp28_AST)
-                    self.match(DOT)
-                    tmp29_AST = None
-                    tmp29_AST = self.astFactory.create(self.LT(1))
-                    self.addASTChild(currentAST, tmp29_AST)
-                    self.match(ID)
-                else:
-                    break
-                
-                _cnt30 += 1
-            if _cnt30 < 1:
-                raise antlr.NoViableAltException(self.LT(1), self.getFilename())
-            objPropertyRef_AST = currentAST.root
-        
-        except antlr.RecognitionException, ex:
-            if not self.inputState.guessing:
-                self.reportError(ex)
-                self.consume()
-                self.consumeUntil(_tokenSet_7)
-            else:
-                raise ex
-        
-        self.returnAST = objPropertyRef_AST
-    
     def argumentAssignment(self):    
         
         self.returnAST = None
@@ -768,13 +769,13 @@ class Parser(antlr.LLkParser):
         argumentAssignment_AST = None
         try:      ## for error handling
             pass
+            tmp29_AST = None
+            tmp29_AST = self.astFactory.create(self.LT(1))
+            self.addASTChild(currentAST, tmp29_AST)
+            self.match(ID)
             tmp30_AST = None
             tmp30_AST = self.astFactory.create(self.LT(1))
-            self.addASTChild(currentAST, tmp30_AST)
-            self.match(ID)
-            tmp31_AST = None
-            tmp31_AST = self.astFactory.create(self.LT(1))
-            self.makeASTRoot(currentAST, tmp31_AST)
+            self.makeASTRoot(currentAST, tmp30_AST)
             self.match(ASSIGN)
             self.nonAlternatingTemplateExpr()
             self.addASTChild(currentAST, self.returnAST)
@@ -810,13 +811,13 @@ _tokenNames = [
     "RPAREN", 
     "\"separator\"", 
     "ASSIGN", 
-    "NOT", 
-    "PLUS", 
     "COLON", 
     "COMMA", 
+    "NOT", 
+    "PLUS", 
+    "DOT", 
     "ID", 
     "\"super\"", 
-    "DOT", 
     "ANONYMOUS_TEMPLATE", 
     "STRING", 
     "INT", 
@@ -850,14 +851,14 @@ _tokenSet_2 = antlr.BitSet(mk_tokenSet_2())
 ### generate bit set
 def mk_tokenSet_3(): 
     ### var1
-    data = [ 398338L, 0L]
+    data = [ 103426L, 0L]
     return data
 _tokenSet_3 = antlr.BitSet(mk_tokenSet_3())
 
 ### generate bit set
 def mk_tokenSet_4(): 
     ### var1
-    data = [ 2561026L, 0L]
+    data = [ 889858L, 0L]
     return data
 _tokenSet_4 = antlr.BitSet(mk_tokenSet_4())
 
@@ -871,21 +872,21 @@ _tokenSet_5 = antlr.BitSet(mk_tokenSet_5())
 ### generate bit set
 def mk_tokenSet_6(): 
     ### var1
-    data = [ 26740736L, 0L]
+    data = [ 28313600L, 0L]
     return data
 _tokenSet_6 = antlr.BitSet(mk_tokenSet_6())
 
 ### generate bit set
 def mk_tokenSet_7(): 
     ### var1
-    data = [ 463874L, 0L]
+    data = [ 365570L, 0L]
     return data
 _tokenSet_7 = antlr.BitSet(mk_tokenSet_7())
 
 ### generate bit set
 def mk_tokenSet_8(): 
     ### var1
-    data = [ 266240L, 0L]
+    data = [ 69632L, 0L]
     return data
 _tokenSet_8 = antlr.BitSet(mk_tokenSet_8())
     

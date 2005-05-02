@@ -624,8 +624,9 @@ class StringTemplate(object):
                        ', ' + str(value) + ')')
         if self.formalArguments != FormalArgument.UNKNOWN and \
            not self.hasFormalArgument(name):
-            raise KeyError('no such attribute: ' + name + ' in template ' +
-                           self.getName() + ' or in enclosing template')
+            raise KeyError('no such attribute: ' + name +
+                           ' in template context ' +
+                           self.getEnclosingInstanceStackString())
 #        if not value:
 #            return
         attributes[name] = value
@@ -980,7 +981,9 @@ class StringTemplate(object):
         else:
             formalArg = self.lookupFormalArgument(attribute)
             if not formalArg:
-                raise KeyError('no such attribute: ' + str(attribute))
+                raise KeyError('no such attribute: ' + str(attribute) + \
+                               ' in template context ' + \
+                               self.getEnclosingInstanceStackString())
 
     ## Executed after evaluating a template.  For now, checks for setting
     #  of attributes not reference.
@@ -997,6 +1000,19 @@ class StringTemplate(object):
                 self.warning(self.getName() + ': set but not used: ' + name)
 
         # can do the reverse, but will have lots of False warnings :(
+
+    ## If an instanceof x is enclosed in a y which is in a z, return
+    #  a String of these instance names in order from topmost to lowest;
+    #  here that would be "[z y x]".
+    #
+    def getEnclosingInstanceStackString(self):
+        names = []
+        p = self
+        while p:
+            names.append(p.getName())
+            p = p.enclosingInstance
+        names.reverse()
+        return "[" + " ".join(names) + "]"
 
     def toDebugString(self):
         buf = StringIO()
@@ -1064,15 +1080,16 @@ class StringTemplate(object):
         return retval
 
 # Set class data attribute values.
-StringTemplate.VERSION = "2.1"
+StringTemplate.VERSION = "2.1.1"
 StringTemplate.debugMode = False
 StringTemplate.lintMode = False
 StringTemplate.templateCounter=0
 StringTemplate.hideProperties = \
-['argumentContext', 'argumentsAST', 'attributes', 'chunks', 'enclosingInstance', 
-'enclosingInstanceStackTrace', 'errorListener', 'formArguments', 'group', 
-'instanceOf', 'name', 'nextTemplateCounter', 'outermostName', 'template', 
-'templateDeclaratorString', 'templateID']
+['argumentContext', 'argumentsAST', 'attributes', 'chunks',
+ 'enclosingInstance', 'enclosingInstanceStackTrace', 'errorListener',
+ 'formArguments', 'enclosingInstanceStackString', 'group',
+ 'instanceOf', 'name', 'nextTemplateCounter', 'outermostName', 'template', 
+ 'templateDeclaratorString', 'templateID']
 
 class StringTemplateGroupErrorListener(StringTemplateErrorListener):
 

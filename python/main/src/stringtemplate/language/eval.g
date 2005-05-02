@@ -160,18 +160,20 @@ ifAtom returns [value = None]
 attribute returns [value = None]
 {
     obj = None
+    propName = None
+    e = None
 }
-    :   #( DOT obj=attribute prop:ID )
-        { value = self.chunk.getObjectProperty(self.this,obj,prop.getText()) }
+    :   #( DOT obj=expr
+           ( prop:ID { propName = prop.getText() }
+           | #( VALUE e=expr )
+             { if e: propName = str(e) }
+           )
+         )
+        { value = self.chunk.getObjectProperty(self.this,obj,propName) }
 
     |   i3:ID
         {
-            try:
-                value=self.this.getAttribute(i3.getText())
-            except KeyError, nse:
-                // rethrow with more precise error message
-                raise KeyError(str(nse) + " in template " +
-                               self.this.getName())
+            value=self.this.getAttribute(i3.getText())
         }
 
     |   i:INT { value = int(i.getText()) }

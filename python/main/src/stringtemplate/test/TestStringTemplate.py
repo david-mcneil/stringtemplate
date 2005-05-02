@@ -92,7 +92,7 @@ class TestTemplateParameterDecls(unittest.TestCase):
             a["foo"] = "x" # want KeyError
         except KeyError, e:
             error = str(e)
-        expecting = "'no such attribute: foo in template t or in enclosing template'"
+        expecting = "'no such attribute: foo in template context [t]'"
         self.assertEqual(error, expecting)
 
     # check setting known arg
@@ -188,11 +188,13 @@ class TestUndefinedArgumentAssignment(unittest.TestCase):
     def runTest(self):
         t = self.group.getInstanceOf("page")
         t["x"] = "Times"
+        error = ""
 	try:
 	    str(t)
-	except KeyError:
-	    return
-	self.fail()
+	except KeyError, ke:
+	    error = str(ke)
+        expecting = "'no such attribute: font in template context [page body]'"
+	self.assertEqual(error, expecting)
 
 
 class TestFormalArgumentAssignmentInApply(unittest.TestCase):
@@ -224,11 +226,13 @@ class TestUndefinedArgumentAssignmentInApply(unittest.TestCase):
         t = self.group.getInstanceOf("page")
         t["x"] = "Times"
         t["name"] = "Ter"
-	try:
+        error = ""
+        try:
 	    str(t)
-	except KeyError:
-	    return
-        self.fail()
+	except KeyError, ke:
+	    error = str(ke)
+        expecting = "'no such attribute: font in template context [page bold]'"
+        self.assertEqual(error, expecting)
 
 
 class TestUndefinedAttributeReference(unittest.TestCase):
@@ -242,11 +246,13 @@ class TestUndefinedAttributeReference(unittest.TestCase):
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
+        error = ""
 	try:
 	    str(t)
-	except KeyError:
-	    return
-        self.fail()
+	except KeyError, ke:
+	    error = str(ke)
+        expecting = "'no such attribute: name in template context [page bold]'"
+        self.assertEqual(error, expecting)
 
 
 class TestUndefinedDefaultAttributeReference(unittest.TestCase):
@@ -260,11 +266,13 @@ class TestUndefinedDefaultAttributeReference(unittest.TestCase):
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
+        error = ""
 	try:
 	    str(t)
-	except KeyError:
-	    return
-        self.fail()
+	except KeyError, ke:
+	    error = str(ke)
+        expecting = "'no such attribute: it in template context [page bold]'"
+        self.assertEqual(error, expecting)
 
 
 class TestAngleBracketsWithGroupFile(unittest.TestCase):
@@ -1786,6 +1794,28 @@ class TestIndirectTemplateApplication(unittest.TestCase):
 	self.assertEqual(str(f), expecting)
 
 
+class TestIndirectTemplateWithArgsApplication(unittest.TestCase):
+
+    def setUp(self):
+        self.templates = \
+            "group dork;"+os.linesep + \
+            ""+os.linesep + \
+            "test(name) ::= <<" + \
+            "<(name)(a=\"foo\")>"+os.linesep + \
+            ">>"+os.linesep + \
+            "first(a) ::= \"the first: <a>\""+os.linesep + \
+            "second(a) ::= \"the second <a>\""+os.linesep
+        self.group = stringtemplate.StringTemplateGroup( \
+            StringIO(self.templates), \
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+
+    def runTest(self):
+        f = self.group.getInstanceOf("test")
+        f["name"] = "first"
+	expecting = "the first: foo"
+	self.assertEqual(str(f), expecting)
+
+
 class TestNullIndirectTemplateApplication(unittest.TestCase):
 
     def setUp(self):
@@ -2030,6 +2060,21 @@ class TestDictPropertyFetch(unittest.TestCase):
 	# sys.stderr.write(results + '\n')
 	expecting = "Terence"
 	self.assertEqual(results, expecting)
+
+
+class TestHashMapPropertyFetchEmbeddedStringTemplate(unittest.TestCase):
+
+    def runTest(self):
+        a = stringtemplate.StringTemplate("$stuff.prop$")
+        map_ = {}
+        a["stuff"] = map_
+        a["title"] = "ST rocks"
+	map_["prop"] = \
+            stringtemplate.StringTemplate("embedded refers to $title$")
+        results = str(a)
+        # sys.stderr.write(results + '\n')
+        expecting = "embedded refers to ST rocks"
+        self.assertEqual(results, expecting)
 
 
 class TestEmbeddedComments(unittest.TestCase):
@@ -2310,6 +2355,23 @@ class TestSimpleAutoIndent(unittest.TestCase):
 	    "}"
 	self.assertEqual(results, expecting)
 
+class TestComputedPropertyName(unittest.TestCase):
+
+    def setUp(self):
+        self.group = stringtemplate.StringTemplateGroup("test")
+        self.errors = ErrorBuffer()
+        self.group.setErrorListener(self.errors)
+
+    def runTest(self):
+        t = stringtemplate.StringTemplate(self.group, \
+                "variable property $propName$=$v.(propName)$")
+        t["v"] = Decl("i","int")
+        t["propName"] = "type"
+        expecting = "variable property type=int"
+        result = str(t)
+        self.assertEqual(str(self.errors), "")
+        self.assertEqual(result, expecting)
+
 
 if __name__ == '__main__':
 
@@ -2406,6 +2468,7 @@ if __name__ == '__main__':
     suite.addTest(TestTemplateGetPropertyGetsAttribute())
     suite.addTest(TestComplicatedIndirectTemplateApplication())
     suite.addTest(TestIndirectTemplateApplication())
+    suite.addTest(TestIndirectTemplateWithArgsApplication())
     suite.addTest(TestNullIndirectTemplateApplication())
     suite.addTest(TestNullIndirectTemplate())
     suite.addTest(TestReflection())
@@ -2413,6 +2476,7 @@ if __name__ == '__main__':
     suite.addTest(TestReflectionTypeLoop())
     suite.addTest(TestReflectionWithDict())
     suite.addTest(TestDictPropertyFetch())
+    suite.addTest(TestHashMapPropertyFetchEmbeddedStringTemplate())
     suite.addTest(TestEmbeddedComments())
     suite.addTest(TestEmbeddedCommentsAngleBracketed())
     suite.addTest(TestCharLiterals())
@@ -2424,6 +2488,7 @@ if __name__ == '__main__':
     suite.addTest(TestSizeZeroOnLineByItselfGetsNoOutput())
     suite.addTest(TestSizeZeroOnLineWithIndentGetsNoOutput())
     suite.addTest(TestSimpleAutoIndent())
+    suite.addTest(TestComputedPropertyName())
 
     doGUI = options.guiRunner
     if doGUI:
