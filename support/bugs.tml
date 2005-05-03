@@ -14,6 +14,11 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+05-02-2005
+
+o When a property is not found, you get a better error.  I show the
+template context (nested tree of templates).
+
 05-01-2005
 
 o Collections, Maps, and Iterators that are non-null but have no elements
