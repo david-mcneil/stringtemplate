@@ -1,0 +1,1 @@
+"C:\Program Files\Microsoft Visual Studio .NET 2003\JavaLanguageConversionAssistant\JConvert" %1 /Out . /ProcessGetSetOff /ProjectName stringtemplate /ProjectType Library /JDK J2EE
