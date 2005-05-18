@@ -246,7 +246,7 @@ o attr is not re-evaluated in template application to a vector--args
 #### Wanted features
 
 o Aton Keks writes: "To my mind, it would be nice to be able to register renderers to ST itself, e.g. call template.registerRenderer(Date.class, dateRenderer);,
-or something like that. This approach works nice for log4j..."  So, this solves the problem of $user.date$ where date needs to be rendered differently.
+or something like that. This approach works nice for log4j..."  So, this solves the problem of $user.date$ where date needs to be rendered differently.  He sent me a patch he made.  I'll look and probably do something similar myself.
 
 o make iteration of a HashMap create key/value aggregate so people can do this:
 <<
