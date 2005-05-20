@@ -361,6 +361,12 @@ scope lookup?  Heh, that might work.
 
 #### BUGS
 
+05-20-2005
+
+Line numbers are messed up in error messages when parsing StringTemplateGroup files--most of the syntax errors I get are reported as being on line 1 no matter where they occur in the file.
+
+Template inclusion expressions won't accept a nested template as an argument.  I'd like to be able to write <foo(bar={...})>, which would mean the same thing as <foo(bar="":{...})>.
+
 12-19-2004
 
 With an IF, is the auto-indent working properly?  Does it get the indent of the IF clause *plus* the ELSE clause for the else?
