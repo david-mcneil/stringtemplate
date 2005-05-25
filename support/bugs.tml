@@ -361,6 +361,62 @@ scope lookup?  Heh, that might work.
 
 #### BUGS
 
+05-25-2005 [2 from Andrew Wulf]
+
+If I set
+
+    StringTemplateGroup base = new StringTemplateGroup( new FileReader( "templates/util.stg" ) );
+    base.setRefreshInterval( 0 );
+    pages = new StringTemplateGroup( "pages", "templates" );
+    pages.setRefreshInterval( 0 );
+    pages.setSuperGroup( base );
+
+I correctly see that the caching is being cleared in checkRefreshInterval()
+
+However when I change a template while the app is running and then call
+
+    StringTemplate t = pages.getInstanceOf( "shell" );
+
+I see that the 
+
+    protected List chunks;
+
+still reflects the old content. Looks like the caching is not completely cleared.
+
+--------------
+
+if I have something like:
+
+<div class="portlet">
+<h2>$it.title$</h2>
+$(it.template)()$
+</div>
+
+if the template referred to by it.template exists but is empty, you throw an exception:
+
+java.lang.IllegalArgumentException: Can't load template news.st
+    at org.antlr.stringtemplate.StringTemplateGroup.lookupTemplate(StringTemplateGroup.java:284)
+    at org.antlr.stringtemplate.StringTemplateGroup.getInstanceOf(StringTemplateGroup.java:227)
+    at org.antlr.stringtemplate.StringTemplateGroup.lookupTemplate(StringTemplateGroup.java:270)
+    at org.antlr.stringtemplate.StringTemplateGroup.getInstanceOf(StringTemplateGroup.java:227)
+    at org.antlr.stringtemplate.StringTemplateGroup.getEmbeddedInstanceOf(StringTemplateGroup.java:235)
+    at org.antlr.stringtemplate.language.ASTExpr.getTemplateInclude(ASTExpr.java:300)
+    at org.antlr.stringtemplate.language.ActionEvaluator.templateInclude(ActionEvaluator.java:369)
+    at org.antlr.stringtemplate.language.ActionEvaluator.expr(ActionEvaluator.java:140)
+    at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:84)
+    at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:92)
+    at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:643)
+    at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:355)
+    at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:371)
+    at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:326)
+    at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+    at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:92)
+    at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:643)
+   ...
+
+I think this should simply do nothing, as an empty template is sometimes meaningful, especially in code generation.
+
+
 05-20-2005
 
 Line numbers are messed up in error messages when parsing StringTemplateGroup files--most of the syntax errors I get are reported as being on line 1 no matter where they occur in the file.
