@@ -416,6 +416,10 @@ java.lang.IllegalArgumentException: Can't load template news.st
 
 I think this should simply do nothing, as an empty template is sometimes meaningful, especially in code generation.
 
+----------
+From John Williams
+
+I've found one more minor issue--to define an empty template, you have to write <<>>; "" doesn't work.
 
 05-20-2005
 
