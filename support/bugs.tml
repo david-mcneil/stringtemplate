@@ -361,29 +361,7 @@ scope lookup?  Heh, that might work.
 
 #### BUGS
 
-05-25-2005 [2 from Andrew Wulf]
-
-If I set
-
-    StringTemplateGroup base = new StringTemplateGroup( new FileReader( "templates/util.stg" ) );
-    base.setRefreshInterval( 0 );
-    pages = new StringTemplateGroup( "pages", "templates" );
-    pages.setRefreshInterval( 0 );
-    pages.setSuperGroup( base );
-
-I correctly see that the caching is being cleared in checkRefreshInterval()
-
-However when I change a template while the app is running and then call
-
-    StringTemplate t = pages.getInstanceOf( "shell" );
-
-I see that the 
-
-    protected List chunks;
-
-still reflects the old content. Looks like the caching is not completely cleared.
-
---------------
+05-25-2005 [from Andrew Wulf]
 
 if I have something like:
 
