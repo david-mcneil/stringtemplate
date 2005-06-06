@@ -363,6 +363,13 @@ scope lookup?  Heh, that might work.
 
 #### BUGS
 
+06-06-2005 John Williams
+
+1. Line numbers are messed up in error messages when parsing  StringTemplateGroup files--most of the syntax errors I get are  reported as being on line 1 no matter where they occur in the file.
+Crap...i'll look into that.
+
+I was able to reproduce the line number problem--it seems to show up any time you use syntax like <variable:ruleName>, i.e. a rule application with missing parentheses.
+
 05-25-2005 [from Andrew Wulf]
 
 if I have something like:
