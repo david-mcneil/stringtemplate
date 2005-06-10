@@ -245,6 +245,8 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o A nested IF is an AND condition...no two ways about it.  I find that I'm doing really complicated things to get OR and AND operations; since I clearly need those operations and am using them anyway, I'm thinking of adding them to the expression evaluation.   As long as I'm not testing values, just combining logic, it *should* be ok vis-a-vis my model-view separation principles.
+
 o truncate operators for strings (useful for html)
 
 o Aton Keks writes: "To my mind, it would be nice to be able to register renderers to ST itself, e.g. call template.registerRenderer(Date.class, dateRenderer);,
