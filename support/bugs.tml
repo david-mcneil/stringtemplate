@@ -245,6 +245,8 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o get first or last element (don't allow arbitrary index)
+
 o when calling another template, y, from within a template, x, none of the
   x parameters are visible to y because the formal parameters force you to
   define values.  This prevents surprises and makes it easy to ensure a
