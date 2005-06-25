@@ -2,7 +2,7 @@ StringTemplate Bugs, Requests, Changes
 
 #### Releases
 
-2.2: ???
+2.2: July ??, 2005
 
 2.1: January 22, 2005
 
@@ -13,6 +13,18 @@ StringTemplate Bugs, Requests, Changes
 1.0.2: Oct 14, 2003
 
 #### Fixed bugs and changes
+
+06-25-2005
+
+o When you invoke foo(x=y), x must be an attribute of foo (well if you
+have formal args defined that is) and y is evaluated within the
+context of the surrounding template; more precisely, it's evaluated in
+the context of the actual template invocation (which can have
+predefined attributes like attr, it, and i).  It's weird, but foo(x=x)
+also makes sense.  See new unit test testArgEvaluationContext().  This
+was not working before, though I thought it was!
+
+o error messages are better for setting an undefined argument.
 
 05-02-2005
 
