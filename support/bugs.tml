@@ -14,6 +14,21 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+06-26-2005
+
+o when calling another template, y, from within a template, x, none of the
+  x parameters are visible to y because the formal parameters force you to
+  define values.  This prevents surprises and makes it easy to ensure a
+  a value is empty unless you specifically set it for that template.  The
+  problem is that I need to factor templates sometimes and I want to refine
+  behavior with a subclass or just invoke another shared template but
+  <y()> erases all of x's parameters.  Perhaps <y(*)> or <y(...)> as a
+  syntax to indicate y should inherit all values.  <y(name="foo", ...)>
+  would mean that I set one, but the others are inherited whereas 
+  <y(name="foo")> only has name set; others are empty.  Ok, I made it
+  work today.  Was a 10 minute tweak.  Easy.  You can set manually with
+  StringTemplate.setPassThroughAttributes().  This is awesome.
+
 06-25-2005
 
 o When you invoke foo(x=y), x must be an attribute of foo (well if you
@@ -258,17 +273,6 @@ o attr is not re-evaluated in template application to a vector--args
 #### Wanted features
 
 o get first or last element (don't allow arbitrary index)
-
-o when calling another template, y, from within a template, x, none of the
-  x parameters are visible to y because the formal parameters force you to
-  define values.  This prevents surprises and makes it easy to ensure a
-  a value is empty unless you specifically set it for that template.  The
-  problem is that I need to factor templates sometimes and I want to refine
-  behavior with a subclass or just invoke another shared template but
-  <y()> erases all of x's parameters.  Perhaps <y(*)> or <y(...)> as a
-  syntax to indicate y should inherit all values.  <y(name="foo", ...)>
-  would mean that I set one, but the others are inherited whereas 
-  <y(name="foo")> only has name set; others are empty.
 
 o A nested IF is an AND condition...no two ways about it.  I find that I'm doing really complicated things to get OR and AND operations; since I clearly need those operations and am using them anyway, I'm thinking of adding them to the expression evaluation.   As long as I'm not testing values, just combining logic, it *should* be ok vis-a-vis my model-view separation principles.
 
