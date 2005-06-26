@@ -16,6 +16,13 @@ StringTemplate Bugs, Requests, Changes
 
 06-26-2005
 
+o literal arguments are now templates not just strings. :)
+  You can even use <<...>> literals as argument now.
+
+o added default argument templates like bold(x="empty") ::= ...
+  Note: because of lazy evaluation semantics, default value templates may refer
+  to argument values.  Everything is evaluated after arg values are set.
+
 o when calling another template, y, from within a template, x, none of the
   x parameters are visible to y because the formal parameters force you to
   define values.  This prevents surprises and makes it easy to ensure a
