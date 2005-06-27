@@ -22,6 +22,9 @@ o literal arguments are now templates not just strings. :)
 o added default argument templates like bold(x="empty") ::= ...
   Note: because of lazy evaluation semantics, default value templates may refer
   to argument values.  Everything is evaluated after arg values are set.
+  This works for invoked templates and templates you create with code.
+
+o all strings are now templates; does that mean "\n" is not newline anymore?  Did I break compatibility?
 
 o when calling another template, y, from within a template, x, none of the
   x parameters are visible to y because the formal parameters force you to
