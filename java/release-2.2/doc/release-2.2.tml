@@ -13,8 +13,8 @@ _Copyright 2003-2005_ \
 Version 2.2, July ??, 2005
 
 2.2 fixes a few bugs, but mainly 2.2 adds lots of great new features.
-2.The features were added in response to my needs building ANTLR v3's
-2.code generator and from feedback by StringTemplate users.
+The features were added in response to my needs building ANTLR v3's
+code generator and from feedback by StringTemplate users.
 
 2.2 should be a drop-in replacement for those using {StringTemplate}
 for websites and code generation with a few minor potential
