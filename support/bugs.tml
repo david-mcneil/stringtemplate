@@ -132,7 +132,7 @@ o when calling another template, y, from within a template, x, none of the
   a value is empty unless you specifically set it for that template.  The
   problem is that I need to factor templates sometimes and I want to refine
   behavior with a subclass or just invoke another shared template but
-  <y()> erases all of x's parameters.  Perhaps <y(*)> or <y(...)> as a
+  <y()> erases all of x's parameters.  Perhaps <y(\*)> or <y(...)> as a
   syntax to indicate y should inherit all values.  <y(name="foo", ...)>
   would mean that I set one, but the others are inherited whereas 
   <y(name="foo")> only has name set; others are empty.  Ok, I made it
