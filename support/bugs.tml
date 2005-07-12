@@ -440,6 +440,9 @@ o relative page access ./samedir
 
 #### BUGS
 
+o seems like {$"$name$ foo":bold()$} doesn't treat the first string as
+a template
+
 5) I tried to write a template like the following, but it failed with a
 "java.lang.NullPointerException at
 org.antlr.stringtemplate.language.TemplateParser.action(TemplateParser.java:
