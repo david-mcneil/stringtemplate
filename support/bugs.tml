@@ -14,6 +14,18 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+07-14-2005
+
+o decided that {+} should not be the list creation operator. {[a,b,c]}
+should be the thing as it mirrors the maps in group files.  I want {+}
+to mean add still.
+
+o also decided that default arg values are templates only if "\{...}"
+is used and strings in arg lists are just strings.  I added \{...}
+instead: $bold(it=\{$name$ Parr})$ instead.  Default values can be
+string and {...} as can args.  You can have {...} on left side of
+apply now: $\{foo}:\{($it$)}$
+
 07-12-2005
 
 o Decided that {+} should always return a multi-valued attribute;
