@@ -323,6 +323,7 @@ public class ASTExpr extends Expr {
 						Field f = c.getField(propertyName);
 						try {
 							value = f.get(o);
+							value = convertArrayToList(value);
 							return value;
 						}
 						catch (IllegalAccessException iae) {
@@ -387,8 +388,8 @@ public class ASTExpr extends Expr {
 		return true; // any other non-null object, return true--it's present
 	}
 
-    /** For strings or other objects, catenate and return.  If either is iterable,
-	 *  return new iterator that combines both.
+    /** For now, we can only add two objects as strings; convert objects to
+	 *  Strings then cat.
      */
     public Object add(Object a, Object b) {
         if ( a==null ) { // a null value means don't do cat, just return other value
@@ -397,14 +398,7 @@ public class ASTExpr extends Expr {
         else if ( b==null ) {
             return a;
         }
-		a = convertAnythingIteratableToIterator(a);
-		b = convertAnythingIteratableToIterator(b);
-		if ( a instanceof Iterator || b instanceof Iterator ) {
-			Iterator it1 = convertAnythingToIterator(a);
-			Iterator it2 = convertAnythingToIterator(b);
-			return new CatIterator(it1,it2);
-		}
-        return a.toString() + b.toString();
+		return a.toString() + b.toString();
     }
 
     /** Call a string template with args and return result.  Do not convert
@@ -683,7 +677,7 @@ public class ASTExpr extends Expr {
 		return iter;
 	}
 
-	private static Iterator convertAnythingToIterator(Object o) {
+	static Iterator convertAnythingToIterator(Object o) {
 		Iterator iter = null;
 		if ( o instanceof Collection ) {
 			iter = ((Collection)o).iterator();
