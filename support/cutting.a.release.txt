@@ -1,26 +1,31 @@
 # cut release; create branch and do it
-p4 integrate -b stringtemplate-2.0
+p4 integrate -b stringtemplate-2.2b5
 p4 submit
 
-cd ~/research/projects/StringTemplate/release-2.0
+cd ~/antlr/code/stringtemplate/java/release-2.2
 
 # build antlr generated files
+pushd src/org/antlr/stringtemplate/language
 java antlr.Tool group.g
 java antlr.Tool template.g 
 java antlr.Tool action.g 
 java antlr.Tool eval.g
 java antlr.Tool angle.bracket.template.g
+popd
 
 # compile
-javac -classpath /usr/local/lib/antlr-latest.jar:. org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
+pushd src
+javac -classpath .:/usr/local/lib/antlr-latest.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
-jar cvf stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
+jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
 
 # remove .class files
 find org -name '*.class' -exec rm {} \;
+popd
 
-# make tarball (next time name release stringtemplate-2.0 dir)
-cp -r release-2.0 /tmp/stringtemplate-2.0
+# make tarball (next time name release stringtemplate-2.2b5 dir)
+cd ~/antlr/code/stringtemplate/java
+cp -r release-2.2 /tmp/stringtemplate-2.2b5
 pushd /tmp
-tar cvfz stringtemplate-2.0.tar.gz stringtemplate-2.0
+tar cvfz stringtemplate-2.2b5.tar.gz stringtemplate-2.2b5
