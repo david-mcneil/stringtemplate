@@ -14,6 +14,13 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+07-31-2005
+
+Thanks to Joe Soroka, he showed me how to fix some weird thing in Java
+where public members of an anonymous class weren't visible to
+StringTemplate.  You have to setAccessible on the field or method
+object.  Bizarre.
+
 07-23-2005
 
 o removed debug code as it's useless/broken
