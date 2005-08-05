@@ -1,7 +1,7 @@
 StringTemplate 2.2 Release Notes
 
-Brought to you by that maniac that brings you
-@(http://www.antlr.org, ANTLR)!
+Brought to you by that maniac that brings you the
+@(http://www.antlr.org, ANTLR parser generator)!
 
 Terence Parr \
 University of San Francisco \
@@ -10,7 +10,7 @@ _Copyright 2003-2005_ \
 @(http://www.stringtemplate.org) \
 (StringTemplate released under BSD License)
 
-Version 2.2, July ??, 2005
+Version 2.2, August 5, 2005
 
 2.2 fixes a few bugs, but mainly 2.2 adds lots of great new features.
 The features were added in response to my needs building ANTLR v3's
@@ -31,7 +31,7 @@ $names:{n| <b>$n$</b><br>}; separator=","$
 o added parallel attribute iteration where you can apply a template to
 multiple lists of values; works for anonymous templates only:
 <<
-{$names,phones:{n,p | $n$: $p$}$}
+$names,phones:{n,p | $n$: $p$}$
 >>
 An error is generated if you have too many args for the number of
 parallel lists.  Iteration proceeds while at least one of the
@@ -64,7 +64,7 @@ if {users} is single-valued.  This introduces a function-like syntax,
 which necessitated the "_assign to sole formal arg_" functionality
 above that supports things like {bold(name)}.  You can combine
 operations to say things like {first(rest(names))} to get second
-element.  Can say {first([mine,yours])} to get the first of a combine
+element.  Can say {first([mine,yours])} to get the first of a combined
 list.  These operators work on any iterable object.  [_backward
 incompatible if you used first,last,tail as an attribute or template
 name_]
@@ -90,8 +90,8 @@ returns "{null}".
 
 o Added renderers per template and group.  Templates are inherited
 from super group.  New Interface {AttributeRenderer} defines how an
-object is rendered to String.  Here is a renderer that display {Date}
-objects that renders {Calendar} date objects tersely.
+object is rendered to String.  Here is a renderer that 
+renders {Calendar} date objects tersely.
 <<
 public class DateRenderer implements AttributeRenderer {
 	public String toString(Object o) {
@@ -156,6 +156,21 @@ it up in user object whereas {$user.foo$} looks for literally property
 {foo} in {user} object.
 
 #### Bug Fixes
+
+o Thanks to Joe Soroka, you can now access public members of anonymous
+inner classes; Java doesn't normally allow even with public keyword.
+Bizarre.  The following unit test works now:
+<< 
+StringTemplate st =
+		new StringTemplate("$x.foo$:$x.bar$");
+Object o = new Object() {
+	public int foo = 9;
+	public int getBar() { return 34; }
+};
+st.setAttribute("x", o);
+String expecting = "9:34";
+assertEqual(st.toString(), expecting);
+>>
 
 o fields that were arrays didn't get treated as iterable objects
 
