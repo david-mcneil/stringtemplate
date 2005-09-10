@@ -419,6 +419,11 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o We need to be able to walk maps as maps not lists.  Maps are ok as
+it's a data relationship not a type.  Have to use $m.key$ and $m.value$
+rather than $map:\{key,value|...}$ as it breaks idea of parallel list 
+walking that args must match number of lists to walk.
+
 o add note in doc about no dots in filenames.  and Thread safety:
 (nothing about this subject in the docs, what we think ...)
 StringTemplate is not thread safe, use StringTemplate.getInstanceOf()
