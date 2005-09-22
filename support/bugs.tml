@@ -482,6 +482,11 @@ o relative page access ./samedir
 
 #### BUGS
 
+o $i$ not available for multi-iteration 
+<<
+users,jobs:{ u,j | User $i$: $u.name$, $j.name$ }
+>>
+
 o seems like {$"$name$ foo":bold()$} doesn't treat the first string as
 a template
 
