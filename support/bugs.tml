@@ -14,6 +14,14 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+10-26-2005
+
+Added regions.
+
+10-23-2005
+
+Any Map instance is now allowed as a "map" attribute not just Hashtable, HashMap.
+
 10-14-2005
 
 NullPtrExc if you registered a renderer and sent an object as an attribute
@@ -431,7 +439,14 @@ o attr is not re-evaluated in template application to a vector--args
 o We need to be able to walk maps as maps not lists.  Maps are ok as
 it's a data relationship not a type.  Have to use $m.key$ and $m.value$
 rather than $map:\{key,value|...}$ as it breaks idea of parallel list 
-walking that args must match number of lists to walk.
+walking that args must match number of lists to walk.  Maybe this:
+<<
+$map:{m|$m.key$ $m.value$}$
+$map$ -> keys
+$map.keys$
+$map.values$
+$map.bob$
+>>
 
 o add note in doc about no dots in filenames.  and Thread safety:
 (nothing about this subject in the docs, what we think ...)
@@ -490,6 +505,20 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o I don't check for nested embedded regions nor regions defined within explicit region definitions
+
+o throw exception when dots in template names or attribute names
+
+o NO error generated for this template definition:
+<<
+foo ::= "kjfdkj"
+>>
+
+o I get this error when tokenRef is inherited from super group:
+<<
+internal error: cannot alias tokenRefBang to undefined template: tokenRef 
+>>
 
 o $i$ not available for multi-iteration 
 <<
