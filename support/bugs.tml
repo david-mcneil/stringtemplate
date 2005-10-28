@@ -14,6 +14,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+10-27-2005
+
+Template polymorphism bug: wouldn't work for references in IF clauses!
+
 10-26-2005
 
 Added regions.
