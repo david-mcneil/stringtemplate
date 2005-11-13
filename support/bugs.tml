@@ -14,6 +14,33 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+11-12-2005
+
+Bug in polymorphism when an overridden template called its super which called
+another template which was also overridden; didn't call the overridden method.
+Fixed getInstanceOf() so that it always sets the proper group so polymorphic
+template lookup also starts at the right group.
+
+Test testLazyEvalOfSuperInApplySuperTemplateRef was wrong...The "super." 
+prefix is (like in Java, ...) a scope override and is always evaluated relative
+to the template in which it was defined not the template in which it is
+evaluate!
+
+Ugh.  I *think* I have this polymorphism nailed down now.
+
+11-11-2005
+
+Improving error messages to be more specific when you get a parser error.
+I'm including more context info and hopefully the file within a group file
+the error occurs.
+
+The defaultGroup is now public so you can know StringTemplate's default group
+when you see it:
+<<
+	public static StringTemplateGroup defaultGroup =
+		new StringTemplateGroup("defaultGroup", ".");
+>>
+
 10-27-2005
 
 Template polymorphism bug: wouldn't work for references in IF clauses!
@@ -440,6 +467,14 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o should we allow overridden methods to add arguments to the "signature"?
+Seems like would want this as it avoids having to add debug, profile, autoAST,
+and other arguments to templates in the default Java.stg for example.  If
+only an overridden template needs a parameter, shouldn't only that template
+have the parameter?  Better separation of concerns.
+
+o should be able to alias regions so positiveClosure is same as Closure
+
 o We need to be able to walk maps as maps not lists.  Maps are ok as
 it's a data relationship not a type.  Have to use $m.key$ and $m.value$
 rather than $map:\{key,value|...}$ as it breaks idea of parallel list 
@@ -509,6 +544,24 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o No warning on this: (needs args)
+
+ruleRefBangAndListLabel ::= <<
+<ruleRefBang(...)>
+<listLabel(...)>
+>>
+
+
+o line numbers in gropu files still show parse errors within a template not overall file
+
+o when i put <\@foo> at end of template right before >> then it said problem at FFFF (-1) not missing <@end>
+
+o warn if people use dots in their filenames for attributes or templates!
+
+o Ack!  If you pass in a list and then another element, it adds it to the list you passed in.  Must make a copy of the list.
+
+o during ANTLR2005 workshop.  I passed an element then a list to an attr and I think it didn't flatten out properly!  Something like that.
 
 o I don't check for nested embedded regions nor regions defined within explicit region definitions
 
