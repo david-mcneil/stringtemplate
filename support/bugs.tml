@@ -545,6 +545,20 @@ o relative page access ./samedir
 
 #### BUGS
 
+o When calling super.t() within t, don't require dots: super.t(...)
+<<
+dfaDecision(decisionNumber,description) ::= <<
+try {
+    isCyclicDecision = true;
+    <super.dfaDecision(...)>
+}
+catch (NoViableAltException nvae) {
+    dbg.recognitionException(nvae);
+    throw nvae;
+}
+\>\>
+>>
+
 o No warning on this: (needs args)
 
 ruleRefBangAndListLabel ::= <<
