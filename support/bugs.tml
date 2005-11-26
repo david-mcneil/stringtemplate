@@ -14,6 +14,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+11-25-2005
+
+If you iterated multiple empty attributes, it iterated once with null values.  Bizarre. Fixed.
+
 11-12-2005
 
 Bug in polymorphism when an overridden template called its super which called
