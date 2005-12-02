@@ -471,11 +471,16 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o should we create a template group interface so that I can define the
+ set of all templates an ANTLR code generator can/must supply?  Can this help
+ the website related stuff to allow argument spec?
+
 o should we allow overridden methods to add arguments to the "signature"?
 Seems like would want this as it avoids having to add debug, profile, autoAST,
 and other arguments to templates in the default Java.stg for example.  If
 only an overridden template needs a parameter, shouldn't only that template
-have the parameter?  Better separation of concerns.
+have the parameter?  Better separation of concerns.  Perhaps it's ok to add,
+but not remove args just like instance vars?
 
 o should be able to alias regions so positiveClosure is same as Closure
 
@@ -548,6 +553,10 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o should super.it work?
+
+o don't set "it" if there is a parameter to the anonymous block
 
 o When calling super.t() within t, don't require dots: super.t(...)
 <<
