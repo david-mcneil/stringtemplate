@@ -471,6 +471,10 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o do we want a means of indicating which templates are internally used only?
+
+o should we allow length of an attribute?  Sure. <names.length> or something.
+
 o should we create a template group interface so that I can define the
  set of all templates an ANTLR code generator can/must supply?  Can this help
  the website related stuff to allow argument spec?
@@ -553,6 +557,16 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o  No indent for the <if>
+<<
+if ( !(<evalPredicate(...)>) ) {
+    <if(backtracking)>if (failed) return;<endif>
+    throw new FailedPredicateException(input, "<ruleName>", "<description>");
+}
+>>
+
+o lots of extra whitespace in antlr output
 
 o should super.it work?
 
