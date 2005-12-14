@@ -99,17 +99,7 @@
                 <Reference
                     Name = "antlr.runtime"
                     AssemblyName = "antlr.runtime"
-                    HintPath = "lib\antlr.runtime.dll"
-                />
-                <Reference
-                    Name = "nunit.framework"
-                    AssemblyName = "nunit.framework"
-                    HintPath = "lib\nunit.framework.dll"
-                />
-                <Reference
-                    Name = "nunit.core"
-                    AssemblyName = "nunit.core"
-                    HintPath = "lib\nunit.core.dll"
+                    HintPath = "..\antlr-2.7.5\lib\csharp\src\bin\antlr.runtime.dll"
                 />
             </References>
         </Build>
@@ -121,7 +111,17 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "AttributeRenderer.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "AutoIndentWriter.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "IAttributeStrategy.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -154,26 +154,6 @@
                     RelPath = "SupportClass.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
-                />
-                <File
-                    RelPath = "bin\test\body.st"
-                    BuildAction = "None"
-                />
-                <File
-                    RelPath = "bin\test\method.st"
-                    BuildAction = "None"
-                />
-                <File
-                    RelPath = "bin\test\page.st"
-                    BuildAction = "None"
-                />
-                <File
-                    RelPath = "bin\test\row.st"
-                    BuildAction = "None"
-                />
-                <File
-                    RelPath = "bin\test\users.list.st"
-                    BuildAction = "None"
                 />
                 <File
                     RelPath = "language\action.g"
@@ -225,6 +205,11 @@
                 />
                 <File
                     RelPath = "language\AttributeReflectionController.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "language\CatIterator.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -292,6 +277,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "language\StringTemplateToken.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "language\template.g"
                     BuildAction = "None"
                 />
@@ -302,16 +292,6 @@
                 />
                 <File
                     RelPath = "language\TemplateParserTokenTypes.cs"
-                    SubType = "Code"
-                    BuildAction = "Compile"
-                />
-                <File
-                    RelPath = "test\TestEvalSpeed.cs"
-                    SubType = "Code"
-                    BuildAction = "Compile"
-                />
-                <File
-                    RelPath = "test\TestStringTemplate.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

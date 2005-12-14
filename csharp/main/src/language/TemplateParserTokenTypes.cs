@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (20050108): "template.g" -> "TemplateParser.cs"$
+// $ANTLR 2.7.5 (20050128): "template.g" -> "TemplateParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -42,10 +42,13 @@ namespace antlr.stringtemplate.language
 		public const int ELSE = 8;
 		public const int ENDIF = 9;
 		public const int EXPR = 10;
-		public const int ESC = 11;
-		public const int SUBTEMPLATE = 12;
-		public const int INDENT = 13;
-		public const int COMMENT = 14;
+		public const int TEMPLATE = 11;
+		public const int IF_EXPR = 12;
+		public const int ESC = 13;
+		public const int SUBTEMPLATE = 14;
+		public const int NESTED_PARENS = 15;
+		public const int INDENT = 16;
+		public const int COMMENT = 17;
 		
 	}
 }

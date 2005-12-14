@@ -38,22 +38,21 @@ namespace antlr.stringtemplate.language
 		
 		protected internal String name;
 		//protected int cardinality = REQUIRED;
+
+		// If they specified name="value", store the template here 
+		public StringTemplate defaultValueST;
 		
 		public FormalArgument(String name)
 		{
 			this.name = name;
 		}
-		
-		public virtual String getName()
-		{
-			return name;
-		}
-		
-		public virtual void setName(String name)
+
+		public FormalArgument(String name, StringTemplate defaultValueST) 
 		{
 			this.name = name;
+			this.defaultValueST = defaultValueST;
 		}
-		
+				
 		public static String getCardinalityName(int cardinality)
 		{
 			switch (cardinality)
@@ -74,7 +73,11 @@ namespace antlr.stringtemplate.language
 		
 		public override String ToString()
 		{
-			return getName();
+			if ( defaultValueST!=null ) 
+			{
+				return name+"="+defaultValueST;
+			}
+			return name;
 		}
 	}
 }

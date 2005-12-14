@@ -82,6 +82,8 @@ expr returns [Object value=null]
     |   value=templateApplication
     |   value=attribute
     |   value=templateInclude
+    |	value=function
+    |	value=list    
     |   #(VALUE e=expr)
         // convert to string (force early eval)
         {
@@ -102,6 +104,25 @@ expr returns [Object value=null]
         value = buf.ToString();
         }
     ;
+    
+/** create a new list of expressions as a new multi-value attribute */
+list returns [Object value=null]
+{
+Object e = null;
+IList elements = new ArrayList();
+value = new CatIterator(elements);
+}
+	:	#(	LIST
+			(	e=expr
+			  	{
+			  	if ( e!=null ) {
+					e = ASTExpr.convertAnythingToIterator(e);
+			  		elements.Add(e);
+			  	}
+			  	}
+			)+
+		 )
+	;
 
 templateInclude returns [Object value=null]
 {
@@ -133,11 +154,40 @@ templateApplication returns [Object value=null]
 {
 Object a=null;
 ArrayList templatesToApply=new ArrayList();
+ArrayList attributes=new ArrayList();
 }
-    :   #(  APPLY a=expr (template[templatesToApply])+
-            {value = chunk.applyListOfAlternatingTemplates(self,a,templatesToApply);}
+    :   #(  APPLY a=expr
+    		(template[templatesToApply])+
+	        {value = chunk.applyListOfAlternatingTemplates(self,a,templatesToApply);}
          )
+    |	#(	MULTI_APPLY (a=expr {attributes.Add(a);} )+ COLON
+			anon:ANONYMOUS_TEMPLATE
+			{
+			StringTemplate anonymous = anon.getStringTemplate();
+			templatesToApply.Add(anonymous);
+			value = chunk.applyTemplateToListOfAttributes(self,
+														  attributes,
+														  anon.getStringTemplate());
+			}
+    	 )
     ;
+    
+function returns [Object value=null]
+{
+Object a;
+}
+    :	#(	FUNCTION
+    		(	"first" a=singleFunctionArg	{value=chunk.first(a);}
+    		|	"rest" 	a=singleFunctionArg	{value=chunk.rest(a);}
+    		|	"last"  a=singleFunctionArg	{value=chunk.last(a);}
+    		)
+
+    	 )
+	;
+
+singleFunctionArg returns [Object value=null]
+	:	#( SINGLEVALUEARG value=expr )
+	;    
 
 template[ArrayList templatesToApply]
 {
@@ -162,18 +212,22 @@ Object n = null;
                 templatesToApply.Add(anonymous);
                 }
 
-            |   #( VALUE n=expr argumentContext=argList[null] )
-                {
-                if ( n!=null ) {
-                	String templateName = n.ToString();
-					StringTemplateGroup group = self.getGroup();
-					StringTemplate embedded = group.getEmbeddedInstanceOf(self, templateName);
-					if ( embedded!=null ) {
-						embedded.setArgumentsAST(#args);
-						templatesToApply.Add(embedded);
-					}
-                }
-                }
+            |   #(	VALUE n=expr args2:. 
+					{
+						StringTemplate embedded = null;
+						if ( n!=null ) 
+						{
+                			String templateName = n.ToString();
+							StringTemplateGroup group = self.getGroup();
+							embedded = group.getEmbeddedInstanceOf(self, templateName);
+							if ( embedded!=null ) 
+							{
+								embedded.setArgumentsAST(#args2);
+								templatesToApply.Add(embedded);
+							}
+						}
+				   }
+                )
             )
          )
     ;
@@ -193,28 +247,47 @@ ifAtom returns [Object value=null]
 attribute returns [Object value=null]
 {
     Object obj = null;
+    String propName = null;
+    Object e = null;
 }
-    :   #( DOT obj=attribute prop:ID )
-        {value = chunk.getObjectProperty(self,obj,prop.getText());}
+    :   #( DOT obj=expr
+           ( prop:ID {propName = prop.getText();}
+           | #(VALUE e=expr)
+             {if (e!=null) {propName=e.ToString();}}
+           )
+         )
+        {value = chunk.getObjectProperty(self,obj,propName);}
 
     |   i3:ID
         {
-        try {
-            value=self.getAttribute(i3.getText());
-        }
-        catch (ArgumentOutOfRangeException nse) {
-            // rethrow with more precise error message
-			throw new ArgumentOutOfRangeException(nse.ParamName, String.Format(
-				"no such attribute: {0} in template {1}", i3.getText(), self.getName()));
-        }
+        value=self.getAttribute(i3.getText());
         }
 
     |   i:INT {value=Int32.Parse(i.getText());}
 
-    |   s:STRING {value=s.getText();}
-    ;
+    |   s:STRING
+    	{
+    	value=s.getText();
+    	}
 
-argList[IDictionary initialContext]
+    |   at:ANONYMOUS_TEMPLATE
+    	{
+    	value=at.getText();
+		if ( at.getText()!=null ) {
+			StringTemplate valueST =new StringTemplate(self.getGroup(), at.getText());
+			valueST.setEnclosingInstance(self);
+			valueST.setName("<anonymous template argument>");
+			value = valueST;
+    	}
+    	}
+    ;
+    
+/** self is assumed to be the enclosing context as foo(x=y) must find y in
+ *  the template that encloses the ref to foo(x=y).  We must pass in
+ *  the embedded template (the one invoked) so we can check formal args
+ *  in rawSetArgumentAttribute.
+ */
+argList[StringTemplate embedded, IDictionary initialContext]
     returns [IDictionary argumentContext=null]
 {
     argumentContext = initialContext;
@@ -222,18 +295,63 @@ argList[IDictionary initialContext]
         argumentContext=new Hashtable();
     }
 }
-    :   #( ARGS (argumentAssignment[argumentContext])* )
+    :   #( ARGS (argumentAssignment[embedded,argumentContext])* )
+    |	singleTemplateArg[embedded,argumentContext]
 	;
-
-argumentAssignment[IDictionary argumentContext]
+	
+singleTemplateArg[StringTemplate embedded, IDictionary argumentContext]
 {
     Object e = null;
 }
-	:	#( ASSIGN arg:ID e=expr
-	       {
-	       if ( e!=null )
-	           self.rawSetAttribute(argumentContext,arg.getText(),e);
-	       }
-	     )
+	:	#( SINGLEVALUEARG e=expr )
+	    {
+	    if ( e!=null ) {
+	    	String soleArgName = null;
+	    	// find the sole defined formal argument for embedded
+	    	bool error = false;
+			IDictionary formalArgs = embedded.getFormalArguments();
+			if ( formalArgs!=null ) 
+			{
+				ICollection argNames = formalArgs.Keys;
+				if ( argNames.Count==1 ) 
+				{
+					string[] argNamesArray = new string[argNames.Count];
+					argNames.CopyTo(argNamesArray,0);
+					soleArgName = argNamesArray[0];
+					//System.out.println("sole formal arg of "+embedded.getName()+" is "+soleArgName);
+				}
+				else 
+				{
+					error=true;
+				}
+			}
+			else 
+			{
+				error=true;
+			}
+			if ( error ) 
+			{
+				self.error("template "+embedded.getName()+
+				           " must have exactly one formal arg in template context "+
+						   self.getEnclosingInstanceStackString());
+		   	}
+		   	else 
+		   	{
+		   		self.rawSetArgumentAttribute(embedded,argumentContext,soleArgName,e);
+		   	}
+	    }
+	    }
 	;
-
+	
+argumentAssignment[StringTemplate embedded, IDictionary argumentContext]
+{
+    Object e = null;
+}
+	:	#( ASSIGN arg:ID e=expr )
+	    {
+	    if ( e!=null ) {
+			self.rawSetArgumentAttribute(embedded,argumentContext,arg.getText(),e);
+		}
+	    }
+	|	DOTDOTDOT {embedded.setPassThroughAttributes(true);}
+	;

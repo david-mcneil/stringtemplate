@@ -72,6 +72,12 @@ namespace antlr.stringtemplate
 		
 		/// <summary>Maps template name to StringTemplate object </summary>
 		protected internal IDictionary templates = new Hashtable();
+
+		/// <summary>
+		/// Maps map names to HashMap objects.  This is the list of maps
+		/// defined by the user like typeInitMap ::= ["int":"0"]
+		/// </summary>
+		protected internal IDictionary maps = new Hashtable();
 		
 		/// <summary>How to pull apart a template into chunks? </summary>
 		protected internal System.Type templateLexerClass = typeof(DefaultTemplateLexer);
@@ -106,7 +112,22 @@ namespace antlr.stringtemplate
 		/// specify a new one.
 		/// </summary>
 		protected internal System.Type userSpecifiedWriter;
-		
+
+		/// <summary>
+		/// A Map that allows people to register a renderer for
+		/// a particular kind of object to be displayed for any template in this
+		/// group.  For example, a date should be formatted differently depending
+		/// on the locale.  You can set Date.class to an object whose
+		/// toString(Object) method properly formats a Date attribute
+		/// according to locale.  Or you can have a different renderer object
+		/// for each locale.
+		///
+		/// These render objects are used way down in the evaluation chain
+		/// right before an attribute's toString() method would normally be
+		/// called in ASTExpr.write().
+		/// </summary>
+		protected internal IDictionary attributeRenderers;
+
 		/// <summary>Where to report errors.  All string templates in this group
 		/// use this error handler by default.
 		/// </summary>
@@ -127,6 +148,9 @@ namespace antlr.stringtemplate
 		/// UTF8 for example on a ascii machine.
 		/// </summary>
 		internal String fileCharEncoding = Encoding.Default.BodyName;
+
+		// IAttributeStrategy
+		protected IAttributeStrategy atttributeStrategy;
 		
 		/// <summary>Create a group manager for some templates, all of which are
 		/// at or below the indicated directory.
@@ -256,8 +280,6 @@ namespace antlr.stringtemplate
 		/// </summary>
 		public virtual StringTemplate lookupTemplate(String name)
 		{
-			if (StringTemplate.debugMode)
-				listener.debug("lookupTemplate(" + name + ")");
 			if (name.StartsWith("super."))
 			{
 				if (superGroup != null)
@@ -273,8 +295,6 @@ namespace antlr.stringtemplate
 			if (st == null)
 			{
 				// not there?  Attempt to load
-				if (StringTemplate.debugMode)
-					listener.debug("Attempting load of: " + getFileNameFromTemplateName(name));
 				if (!templatesDefinedInGroupFile)
 				{
 					// only check the disk for individual template
@@ -306,7 +326,7 @@ namespace antlr.stringtemplate
 			}
 			else if (st == NOT_FOUND_ST)
 			{
-				return null;
+				throw new System.ArgumentException("Can't load template " + getFileNameFromTemplateName(name));
 			}
 			
 			return st;
@@ -452,8 +472,6 @@ namespace antlr.stringtemplate
 		/// </summary>
 		public virtual StringTemplate defineTemplate(String name, String template)
 		{
-			if (StringTemplate.debugMode)
-				listener.debug(getName() + ".defineTemplate(" + name + ")");
 			StringTemplate st = createStringTemplate();
 			st.setName(name);
 			st.setGroup(this);
@@ -581,6 +599,81 @@ namespace antlr.stringtemplate
 			}
 			return stw;
 		}
+
+		/// <summary>
+		/// Specify a complete map of what object classes should map to which
+		/// renderer objects for every template in this group (that doesn't
+		/// override it per template).
+		/// </summary>
+		public void setAttributeRenderers(IDictionary renderers) 
+		{
+			this.attributeRenderers = renderers;
+		}
+
+		/// <summary>
+		/// Register a renderer for all objects of a particular type for all
+		/// templates in this group.
+		/// </summary>
+		public void registerRenderer(Type attributeClassType, Object renderer) 
+		{
+			if ( attributeRenderers==null ) 
+			{
+				attributeRenderers = new Hashtable();
+			}
+			attributeRenderers[attributeClassType] = renderer;
+		}
+
+		/// <summary>
+		/// What renderer is registered for this attributeClassType for
+		/// this group?  If not found, as superGroup if it has one.
+		/// </summary>
+		public AttributeRenderer getAttributeRenderer(Type attributeClassType) 
+		{
+			if ( attributeRenderers==null ) 
+			{
+				if ( superGroup==null ) 
+				{
+					return null; // no renderers and no parent?  Stop.
+				}
+				// no renderers; consult super group
+				return superGroup.getAttributeRenderer(attributeClassType);
+			}
+
+			AttributeRenderer renderer = (AttributeRenderer)attributeRenderers[attributeClassType];
+			if ( renderer==null ) 
+			{
+				if ( superGroup==null ) 
+				{
+					return null; // no renderers and no parent?  Stop.
+				}
+				// no renderer registered for this class, check super group
+				renderer = superGroup.getAttributeRenderer(attributeClassType);
+			}
+			return renderer;
+		}
+
+		public IDictionary getMap(String name) 
+		{
+			if ( maps==null ) 
+			{
+				if ( superGroup==null ) 
+				{
+					return null;
+				}
+				return superGroup.getMap(name);
+			}
+			IDictionary m = (IDictionary)maps[name];
+			if ( m==null && superGroup!=null ) 
+			{
+				m = superGroup.getMap(name);
+			}
+			return m;
+		}
+
+		public void defineMap(String name, IDictionary mapping) 
+		{
+			maps[name] = mapping;
+		}
 		
 		public virtual void error(String msg)
 		{
@@ -613,7 +706,7 @@ namespace antlr.stringtemplate
 				if (st != NOT_FOUND_ST)
 				{
 					formalArgs = formalArgs.getInstanceOf();
-					formalArgs.setAttribute("args", st.getFormArguments());
+					formalArgs.setAttribute("args", st.getFormalArguments());
 					buf.Append(tname + "(" + formalArgs + ") ::= ");
 					buf.Append("<<");
 					buf.Append(st.getTemplate());
@@ -625,6 +718,19 @@ namespace antlr.stringtemplate
 		static StringTemplateGroup()
 		{
 			DEFAULT_ERROR_LISTENER = new AnonymousClassStringTemplateErrorListener();
+		}
+
+		public IAttributeStrategy AttributeStrategy
+		{
+			get
+			{
+				return atttributeStrategy;
+			}
+
+			set
+			{
+				atttributeStrategy = value;
+			}
 		}
 	}
 }

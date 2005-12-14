@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (20050108): "group.g" -> "GroupParser.cs"$
+// $ANTLR 2.7.5 (20050128): "group.g" -> "GroupParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -41,14 +41,21 @@ namespace antlr.stringtemplate.language
 		public const int LPAREN = 7;
 		public const int RPAREN = 8;
 		public const int DEFINED_TO_BE = 9;
-		public const int TEMPLATE = 10;
-		public const int COMMA = 11;
-		public const int STAR = 12;
-		public const int PLUS = 13;
-		public const int OPTIONAL = 14;
-		public const int SL_COMMENT = 15;
-		public const int ML_COMMENT = 16;
-		public const int WS = 17;
+		public const int STRING = 10;
+		public const int BIGSTRING = 11;
+		public const int COMMA = 12;
+		public const int ASSIGN = 13;
+		public const int ANONYMOUS_TEMPLATE = 14;
+		public const int LBRACK = 15;
+		public const int RBRACK = 16;
+		public const int COLON = 17;
+		public const int LITERAL_default = 18;
+		public const int STAR = 19;
+		public const int PLUS = 20;
+		public const int OPTIONAL = 21;
+		public const int SL_COMMENT = 22;
+		public const int ML_COMMENT = 23;
+		public const int WS = 24;
 		
 	}
 }

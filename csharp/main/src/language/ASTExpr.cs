@@ -41,6 +41,7 @@ namespace antlr.stringtemplate.language
 		public const String DEFAULT_ATTRIBUTE_NAME = "it";
 		public const String DEFAULT_ATTRIBUTE_NAME_DEPRECATED = "attr";
 		public const String DEFAULT_INDEX_VARIABLE_NAME = "i";
+		public const String DEFAULT_MAP_VALUE_NAME = "_default_";
 		
 		/// <summary>How to refer to the surrounding template object;
 		/// this is attribute name to use.
@@ -97,6 +98,89 @@ namespace antlr.stringtemplate.language
 		}
 		
 		// HELP ROUTINES CALLED BY EVALUATOR TREE WALKER
+
+		/// <summary>
+		/// For names,phones:{n,p | ...} treat the names, phones as lists
+		/// to be walked in lock step as n=names[i], p=phones[i].
+		/// </summary>
+		public virtual Object applyTemplateToListOfAttributes(StringTemplate self, IList attributes, StringTemplate templateToApply)
+		{
+			if ( attributes==null || templateToApply==null || attributes.Count==0 ) 
+			{
+				return null; // do not apply if missing templates or empty values
+			}
+			IDictionary argumentContext = null;
+			IList results = new ArrayList();
+
+			// convert all attributes to iterators even if just one value
+			for (int a = 0; a < attributes.Count; a++) 
+			{
+				Object o = attributes[a];
+				o = convertAnythingToIterator(o);
+				attributes[a] = o;
+			}
+
+			int numAttributes = attributes.Count;
+
+			// ensure arguments line up
+			IDictionary formalArguments = templateToApply.getFormalArguments();
+			if ( formalArguments==null || formalArguments.Count==0 ) 
+			{
+				self.error("missing arguments in anonymous"+
+					" template in context "+self.getEnclosingInstanceStackString());
+				return null;
+			}
+			ICollection keys = formalArguments.Keys;
+			Object[] formalArgumentNames = new object[keys.Count];
+			keys.CopyTo(formalArgumentNames,0);
+			if ( formalArgumentNames.Length!=numAttributes ) 
+			{
+				self.error("number of arguments "+SupportClass.CollectionToString(formalArguments.Keys)+
+					" mismatch between attribute list and anonymous"+
+					" template in context "+self.getEnclosingInstanceStackString());
+				// truncate arg list to match smaller size
+				int shorterSize = Math.Min(formalArgumentNames.Length, numAttributes);
+				numAttributes = shorterSize;
+				Object[] newFormalArgumentNames = new Object[shorterSize];
+				System.Array.Copy(formalArgumentNames, 0,
+					newFormalArgumentNames, 0,
+					shorterSize);
+				formalArgumentNames = newFormalArgumentNames;
+			}
+
+			// keep walking while at least one attribute has values
+			while ( true ) 
+			{
+				argumentContext = new Hashtable();
+				// get a value for each attribute in list; put into arg context
+				// to simulate template invocation of anonymous template
+				int numEmpty = 0;
+				for (int a = 0; a < numAttributes; a++) 
+				{
+					IEnumerator it = (IEnumerator)attributes[a];
+					if ( it.MoveNext() ) 
+					{
+						String argName = (String)formalArgumentNames[a];
+						Object iteratedValue = it.Current;
+						argumentContext[argName] = iteratedValue;
+					}
+					else 
+					{
+						numEmpty++;
+					}
+				}
+				if ( numEmpty==numAttributes ) 
+				{
+					break;
+				}
+				StringTemplate embedded = templateToApply.getInstanceOf();
+				embedded.setEnclosingInstance(self);
+				embedded.setArgumentContext(argumentContext);
+				results.Add(embedded);
+			}
+
+			return results;
+		}
 		
 		public virtual Object applyListOfAlternatingTemplates(StringTemplate self, Object attributeValue, IList templatesToApply)
 		{
@@ -138,6 +222,7 @@ namespace antlr.stringtemplate.language
 					embedded.setArgumentsAST(args);
 
 					argumentContext = new Hashtable();
+					setSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue);
 					argumentContext[DEFAULT_ATTRIBUTE_NAME] = ithValue;
 					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue;
 					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = i + 1;
@@ -166,6 +251,7 @@ namespace antlr.stringtemplate.language
 				embedded = (StringTemplate) templatesToApply[0];
 
 				argumentContext = new Hashtable();
+				setSoleFormalArgumentToIthValue(embedded, argumentContext, attributeValue);
 				argumentContext[DEFAULT_ATTRIBUTE_NAME] = attributeValue;
 				argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue;
 				argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = 1;
@@ -173,6 +259,31 @@ namespace antlr.stringtemplate.language
 				evaluateArguments(embedded);
 
 				return embedded;
+			}
+		}
+
+		protected void setSoleFormalArgumentToIthValue(StringTemplate embedded, IDictionary argumentContext, Object ithValue) 
+		{
+			IDictionary formalArgs = embedded.getFormalArguments();
+			if ( formalArgs!=null ) 
+			{
+				String soleArgName = null;
+				bool isAnonymous = embedded.getName().Equals(StringTemplate.ANONYMOUS_ST_NAME);
+				if ( formalArgs.Count==1 || (isAnonymous&&formalArgs.Count>0) ) 
+				{
+					if ( isAnonymous && formalArgs.Count>1 ) 
+					{
+						embedded.error("too many arguments on {...} template: "+formalArgs);
+					}
+					// if exactly 1 arg or anonymous, give that the value of
+					// "it" as a convenience like they said
+					// $list:template(arg=it)$
+					ICollection argNames = formalArgs.Keys;
+					string[] argNamesArray = new string[argNames.Count];
+					argNames.CopyTo(argNamesArray,0);
+					soleArgName = argNamesArray[0];
+					argumentContext[soleArgName] = ithValue;
+				}
 			}
 		}
 		
@@ -217,6 +328,12 @@ namespace antlr.stringtemplate.language
 			else if ( isValidMapInstance(c) ) {
 				IDictionary map = (IDictionary)o;
 				value = map[propertyName];
+				if ( value==null ) 
+				{
+					// no property defined; if a map in this group
+					// then there may be a default value
+					value = map[DEFAULT_MAP_VALUE_NAME];
+				}
 			}
 	
 			else {
@@ -224,9 +341,10 @@ namespace antlr.stringtemplate.language
 				string lookupName = Char.ToUpper(propertyName[0])+
 					propertyName.Substring(1);
 
+				// LL Add NonPublic
 				//see if it's a property
 				PropertyInfo pi = c.GetProperty(lookupName, 
-					BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase, 
+					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
 					null, null, new Type[0], null);
 
 				if (pi != null) {
@@ -236,22 +354,39 @@ namespace antlr.stringtemplate.language
 					//see if it's a method
 					String methodName = "Get" + lookupName;
 					MethodInfo mi = c.GetMethod(methodName, 
-						BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase, 
+						BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
 						null, new Type[0], null);
 
 					if (mi == null) {
 						mi = c.GetMethod("Is" + lookupName, 
-							BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase, 
+							BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
 							null, new Type[0], null);
 					}
 
-					if (mi == null) {
-						self.error("Can't get property " +propertyName+ " as C# property '" +lookupName+ 
-							"' or as C# methods 'Get" +lookupName+ "' or 'Is" +lookupName+
-							"' from " +c.FullName+ " instance");
-					}
-					else {
+					// LL Changed
+					if (mi != null)
+					{
 						value = mi.Invoke(o, null);
+					}
+					else 
+					{
+						// Check for string indexer
+						Type[] paramarray = new Type[1];
+						paramarray[0] = typeof(string);
+						PropertyInfo ipi = c.GetProperty("Item", paramarray);
+
+						if (ipi != null) 
+						{
+							object[] invparam = new object[1];
+							invparam[0] = propertyName;
+							value = ipi.GetValue(o, invparam);
+						}
+						else
+						{
+							self.error("Can't get property " +propertyName+ " as C# property '" +lookupName+ 
+								"' or as C# methods 'Get" +lookupName+ "' or 'Is" +lookupName+
+								"' from " +c.FullName+ " instance");
+						}
 					}
 				}
 			}
@@ -272,17 +407,35 @@ namespace antlr.stringtemplate.language
 		/// an operator.  Regardless, for practical reasons, I'm going to technically
 		/// violate my rules as I currently have them defined.  Perhaps for a future
 		/// version of the paper I will refine the rules.
+		/// 
+		/// Post 2.1, I added a check for non-null Iterators, Collections, ...
+		/// with size==0 to return false. TJP 5/1/2005
+		///
 		/// </summary>
 		public virtual bool testAttributeTrue(Object a)
 		{
-			if (a != null && a is System.Boolean)
+			IAttributeStrategy attribstrat = enclosingTemplate.getGroup().AttributeStrategy;
+			if (attribstrat != null)
 			{
-				return ((System.Boolean) a);
+				return attribstrat.testAttributeTrue(a);
 			}
-			return a != null;
+			else
+			{
+				if (a==null) 
+					return false;
+				if (a is Boolean)
+					return (bool)a;
+				if (a is ICollection)
+					return ((ICollection)a).Count>0;
+				if (a is IDictionary)
+					return ((IDictionary)a).Count>0;
+				if (a is IEnumerator) 
+					return ((IEnumerator)a).MoveNext();
+				return true;
+			}
 		}
 		
-		/// <summary>For strings or other objects, catenate and return.</summary>
+		/// <summary>For now, we can only add two objects as strings; convert objects to Strings then cat.</summary>
 		public virtual Object add(Object a, Object b)
 		{
 			if (a == null)
@@ -347,6 +500,12 @@ namespace antlr.stringtemplate.language
 				if (o is StringTemplate)
 				{
 					StringTemplate stToWrite = (StringTemplate) o;
+					// failsafe: perhaps enclosing instance not set
+					// Or, it could be set to another context!  This occurs
+					// when you store a template instance as an attribute of more
+					// than one template (like both a header file and C file when
+					// generating C code).  It must execute within the context of
+					// the enclosing template.
 					stToWrite.setEnclosingInstance(self);
 					// if self is found up the enclosing instance chain, then
 					// infinite recursion
@@ -404,7 +563,15 @@ namespace antlr.stringtemplate.language
 				}
 				else
 				{
-					n = outWriter.write(o.ToString());
+					AttributeRenderer renderer = self.getAttributeRenderer(o.GetType());
+					if ( renderer!=null ) 
+					{
+						n = outWriter.write(renderer.ToString(o));
+					}
+					else 
+					{
+                		n = outWriter.write(o.ToString());
+					}			
 					return n;
 				}
 			}
@@ -466,6 +633,12 @@ namespace antlr.stringtemplate.language
 			}
 		}
 		
+		/// <summary>
+		/// Evaluate an argument list within the context of the enclosing
+		/// template but store the values in the context of self, the
+		/// new embedded template.  For example, bold(item=item) means
+		/// that bold.item should get the value of enclosing.item.
+		///	</summary>
 		protected internal virtual void evaluateArguments(StringTemplate self)
 		{
 			StringTemplateAST argumentsAST = self.getArgumentsAST();
@@ -474,7 +647,18 @@ namespace antlr.stringtemplate.language
 				// return immediately if missing tree or no actual args
 				return ;
 			}
-			ActionEvaluator eval = new ActionEvaluator(self, this, null);
+			// Evaluate args in the context of the enclosing template, but we
+			// need the predefined args like 'it', 'attr', and 'i' to be
+			// available as well so we put a dummy ST between the enclosing
+			// context and the embedded context.  The dummy has the predefined
+			// context as does the embedded.
+			StringTemplate enclosing = self.getEnclosingInstance();
+			StringTemplate argContextST = new StringTemplate(self.getGroup(), "");
+			argContextST.setName("<invoke "+self.getName()+" arg context>");
+			argContextST.setEnclosingInstance(enclosing);
+			argContextST.setArgumentContext(self.getArgumentContext());
+
+			ActionEvaluator eval = new ActionEvaluator(argContextST, this, null);
 			try
 			{
 				// using any initial argument context (such as when obj is set),
@@ -482,7 +666,7 @@ namespace antlr.stringtemplate.language
 				// in any existing arg context, that context gets filled with
 				// new values.  With bold(item=obj), context becomes:
 				// {[obj=...],[item=...]}.
-				IDictionary ac = eval.argList(argumentsAST, self.getArgumentContext());
+				IDictionary ac = eval.argList(argumentsAST, self, self.getArgumentContext());
 				self.setArgumentContext(ac);
 			}
 			catch (RecognitionException re)
@@ -510,6 +694,112 @@ namespace antlr.stringtemplate.language
 			}
 
 			return iter;
+		}
+
+		public static IEnumerator convertAnythingToIterator(Object o) 
+		{
+			IEnumerator iter = null;
+			if (o is ICollection)
+			{
+				iter = ((ICollection)o).GetEnumerator();
+			}
+			else if (o is IDictionary)
+			{
+				iter = ((IDictionary)o).Values.GetEnumerator();
+			}
+			else if (o is IEnumerator)
+			{
+				iter = (IEnumerator)o;
+			}
+
+			if ( iter==null ) 
+			{
+				IList singleton = new ArrayList(1);
+				singleton.Add(o);
+				iter=singleton.GetEnumerator();
+			}
+			return iter;
+		}
+
+		/// <summary>
+		/// Return the first attribute if multiple valued or the attribute
+		/// itself if single-valued.  Used in names:first()
+		/// </summary>
+		public Object first(Object attribute) 
+		{
+			if ( attribute==null ) 
+			{
+				return null;
+			}
+			Object f = attribute;
+			attribute = convertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator) 
+			{
+				IEnumerator it = (IEnumerator)attribute;
+				if (it.MoveNext()) 
+				{
+					f = it.Current;
+				}
+			}
+			return f;
+		}
+
+		/// <summary>
+		/// Return the everything but the first attribute if multiple valued
+		/// or null if single-valued.  Used in names:rest().
+		/// </summary>
+		public Object rest(Object attribute) 
+		{
+			if ( attribute==null ) 
+			{
+				return null;
+			}
+			Object theRest = attribute;
+			attribute = convertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator) 
+			{
+				IEnumerator it = (IEnumerator)attribute;
+				if (!it.MoveNext()) 
+				{
+					return null; // if not even one value return null
+				}
+				it.MoveNext(); // ignore first value
+				if (!it.MoveNext()) 
+				{
+					return null; // if not more than one value, return null
+				}
+				theRest = it;    // return suitably altered iterator
+			}
+			else 
+			{
+				theRest = null;  // rest of single-valued attribute is null
+			}
+			return theRest;
+		}
+
+		/// <summary>
+		/// Return the last attribute if multiple valued or the attribute
+		/// itself if single-valued.  Used in names:last().  This is pretty
+		/// slow as it iterates until the last element.  Ultimately, I could
+		/// make a special case for a List or Vector.
+		/// </summary>
+		public Object last(Object attribute) 
+		{
+			if ( attribute==null ) 
+			{
+				return null;
+			}
+			Object last = attribute;
+			attribute = convertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator) 
+			{
+				IEnumerator it = (IEnumerator)attribute;
+				while (it.MoveNext()) 
+				{
+					last = it.Current;
+				}
+			}
+			return last;
 		}
 
 		public static bool isValidMapInstance(System.Type type)

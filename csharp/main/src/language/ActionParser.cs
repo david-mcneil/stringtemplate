@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (20050108): "action.g" -> "ActionParser.cs"$
+// $ANTLR 2.7.5 (20050128): "action.g" -> "ActionParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -59,29 +59,41 @@ namespace antlr.stringtemplate.language
 		public const int EOF = 1;
 		public const int NULL_TREE_LOOKAHEAD = 3;
 		public const int APPLY = 4;
-		public const int ARGS = 5;
-		public const int INCLUDE = 6;
-		public const int CONDITIONAL = 7;
-		public const int VALUE = 8;
-		public const int TEMPLATE = 9;
-		public const int SEMI = 10;
-		public const int LPAREN = 11;
-		public const int RPAREN = 12;
-		public const int LITERAL_separator = 13;
-		public const int ASSIGN = 14;
-		public const int NOT = 15;
-		public const int PLUS = 16;
-		public const int COLON = 17;
-		public const int COMMA = 18;
-		public const int ID = 19;
-		public const int LITERAL_super = 20;
-		public const int DOT = 21;
-		public const int ANONYMOUS_TEMPLATE = 22;
-		public const int STRING = 23;
-		public const int INT = 24;
-		public const int NESTED_ANONYMOUS_TEMPLATE = 25;
-		public const int ESC_CHAR = 26;
-		public const int WS = 27;
+		public const int MULTI_APPLY = 5;
+		public const int ARGS = 6;
+		public const int INCLUDE = 7;
+		public const int CONDITIONAL = 8;
+		public const int VALUE = 9;
+		public const int TEMPLATE = 10;
+		public const int FUNCTION = 11;
+		public const int SINGLEVALUEARG = 12;
+		public const int LIST = 13;
+		public const int SEMI = 14;
+		public const int LPAREN = 15;
+		public const int RPAREN = 16;
+		public const int LITERAL_separator = 17;
+		public const int ASSIGN = 18;
+		public const int COLON = 19;
+		public const int COMMA = 20;
+		public const int NOT = 21;
+		public const int PLUS = 22;
+		public const int DOT = 23;
+		public const int ID = 24;
+		public const int LITERAL_first = 25;
+		public const int LITERAL_rest = 26;
+		public const int LITERAL_last = 27;
+		public const int LITERAL_super = 28;
+		public const int ANONYMOUS_TEMPLATE = 29;
+		public const int STRING = 30;
+		public const int INT = 31;
+		public const int LBRACK = 32;
+		public const int RBRACK = 33;
+		public const int DOTDOTDOT = 34;
+		public const int TEMPLATE_ARGS = 35;
+		public const int NESTED_ANONYMOUS_TEMPLATE = 36;
+		public const int ESC_CHAR = 37;
+		public const int WS = 38;
+		public const int WS_CHAR = 39;
 		
 		
     protected StringTemplate self = null;
@@ -137,9 +149,14 @@ namespace antlr.stringtemplate.language
 			{
 			case LPAREN:
 			case ID:
+			case LITERAL_first:
+			case LITERAL_rest:
+			case LITERAL_last:
 			case LITERAL_super:
+			case ANONYMOUS_TEMPLATE:
 			case STRING:
 			case INT:
+			case LBRACK:
 			{
 				templatesExpr();
 				if (0 == inputState.guessing)
@@ -221,66 +238,100 @@ namespace antlr.stringtemplate.language
 		antlr.stringtemplate.language.StringTemplateAST c_AST = null;
 		
 		try {      // for error handling
-			expr();
-			if (0 == inputState.guessing)
+			bool synPredMatched6 = false;
+			if (((tokenSet_1_.member(LA(1))) && (tokenSet_2_.member(LA(2)))))
 			{
-				astFactory.addASTChild(currentAST, (AST)returnAST);
-			}
-			{    // ( ... )*
-				for (;;)
-				{
-					if ((LA(1)==COLON))
+				int _m6 = mark();
+				synPredMatched6 = true;
+				inputState.guessing++;
+				try {
 					{
-						c = LT(1);
-						c_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(c);
-						astFactory.makeASTRoot(currentAST, (AST)c_AST);
-						match(COLON);
-						if (0==inputState.guessing)
-						{
-							c_AST.setType(APPLY);
-						}
-						template();
-						if (0 == inputState.guessing)
-						{
-							astFactory.addASTChild(currentAST, (AST)returnAST);
-						}
-						{    // ( ... )*
-							for (;;)
-							{
-								if ((LA(1)==COMMA))
-								{
-									match(COMMA);
-									template();
-									if (0 == inputState.guessing)
-									{
-										astFactory.addASTChild(currentAST, (AST)returnAST);
-									}
-								}
-								else
-								{
-									goto _loop15_breakloop;
-								}
-								
-							}
-_loop15_breakloop:							;
-						}    // ( ... )*
+						parallelArrayTemplateApplication();
 					}
-					else
-					{
-						goto _loop16_breakloop;
-					}
-					
 				}
-_loop16_breakloop:				;
-			}    // ( ... )*
-			templatesExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				catch (RecognitionException)
+				{
+					synPredMatched6 = false;
+				}
+				rewind(_m6);
+				inputState.guessing--;
+			}
+			if ( synPredMatched6 )
+			{
+				parallelArrayTemplateApplication();
+				if (0 == inputState.guessing)
+				{
+					astFactory.addASTChild(currentAST, (AST)returnAST);
+				}
+				templatesExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+			}
+			else if ((tokenSet_1_.member(LA(1))) && (tokenSet_3_.member(LA(2)))) {
+				expr();
+				if (0 == inputState.guessing)
+				{
+					astFactory.addASTChild(currentAST, (AST)returnAST);
+				}
+				{    // ( ... )*
+					for (;;)
+					{
+						if ((LA(1)==COLON))
+						{
+							c = LT(1);
+							c_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(c);
+							astFactory.makeASTRoot(currentAST, (AST)c_AST);
+							match(COLON);
+							if (0==inputState.guessing)
+							{
+								c_AST.setType(APPLY);
+							}
+							template();
+							if (0 == inputState.guessing)
+							{
+								astFactory.addASTChild(currentAST, (AST)returnAST);
+							}
+							{    // ( ... )*
+								for (;;)
+								{
+									if ((LA(1)==COMMA))
+									{
+										match(COMMA);
+										template();
+										if (0 == inputState.guessing)
+										{
+											astFactory.addASTChild(currentAST, (AST)returnAST);
+										}
+									}
+									else
+									{
+										goto _loop9_breakloop;
+									}
+									
+								}
+_loop9_breakloop:								;
+							}    // ( ... )*
+						}
+						else
+						{
+							goto _loop10_breakloop;
+						}
+						
+					}
+_loop10_breakloop:					;
+				}    // ( ... )*
+				templatesExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+			}
+			else
+			{
+				throw new NoViableAltException(LT(1), getFilename());
+			}
+			
 		}
 		catch (RecognitionException ex)
 		{
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_1_);
+				recover(ex,tokenSet_4_);
 			}
 			else
 			{
@@ -344,9 +395,14 @@ _loop16_breakloop:				;
 			{
 			case LPAREN:
 			case ID:
+			case LITERAL_first:
+			case LITERAL_rest:
+			case LITERAL_last:
 			case LITERAL_super:
+			case ANONYMOUS_TEMPLATE:
 			case STRING:
 			case INT:
+			case LBRACK:
 			{
 				ifAtom();
 				if (0 == inputState.guessing)
@@ -381,7 +437,7 @@ _loop16_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_2_);
+				recover(ex,tokenSet_5_);
 			}
 			else
 			{
@@ -400,7 +456,7 @@ _loop16_breakloop:				;
 		antlr.stringtemplate.language.StringTemplateAST expr_AST = null;
 		
 		try {      // for error handling
-			atom();
+			primaryExpr();
 			if (0 == inputState.guessing)
 			{
 				astFactory.addASTChild(currentAST, (AST)returnAST);
@@ -414,7 +470,7 @@ _loop16_breakloop:				;
 						tmp9_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
 						astFactory.makeASTRoot(currentAST, (AST)tmp9_AST);
 						match(PLUS);
-						atom();
+						primaryExpr();
 						if (0 == inputState.guessing)
 						{
 							astFactory.addASTChild(currentAST, (AST)returnAST);
@@ -422,11 +478,11 @@ _loop16_breakloop:				;
 					}
 					else
 					{
-						goto _loop8_breakloop;
+						goto _loop18_breakloop;
 					}
 					
 				}
-_loop8_breakloop:				;
+_loop18_breakloop:				;
 			}    // ( ... )*
 			expr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 		}
@@ -435,7 +491,7 @@ _loop8_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_3_);
+				recover(ex,tokenSet_6_);
 			}
 			else
 			{
@@ -443,6 +499,191 @@ _loop8_breakloop:				;
 			}
 		}
 		returnAST = expr_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void parallelArrayTemplateApplication() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST parallelArrayTemplateApplication_AST = null;
+		IToken  c = null;
+		antlr.stringtemplate.language.StringTemplateAST c_AST = null;
+		
+		try {      // for error handling
+			expr();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
+			{ // ( ... )+
+				int _cnt13=0;
+				for (;;)
+				{
+					if ((LA(1)==COMMA))
+					{
+						match(COMMA);
+						expr();
+						if (0 == inputState.guessing)
+						{
+							astFactory.addASTChild(currentAST, (AST)returnAST);
+						}
+					}
+					else
+					{
+						if (_cnt13 >= 1) { goto _loop13_breakloop; } else { throw new NoViableAltException(LT(1), getFilename());; }
+					}
+					
+					_cnt13++;
+				}
+_loop13_breakloop:				;
+			}    // ( ... )+
+			c = LT(1);
+			c_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(c);
+			astFactory.addASTChild(currentAST, (AST)c_AST);
+			match(COLON);
+			anonymousTemplate();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
+			if (0==inputState.guessing)
+			{
+				parallelArrayTemplateApplication_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				parallelArrayTemplateApplication_AST =
+					(antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(MULTI_APPLY,"MULTI_APPLY"), (AST)parallelArrayTemplateApplication_AST);
+				currentAST.root = parallelArrayTemplateApplication_AST;
+				if ( (null != parallelArrayTemplateApplication_AST) && (null != parallelArrayTemplateApplication_AST.getFirstChild()) )
+					currentAST.child = parallelArrayTemplateApplication_AST.getFirstChild();
+				else
+					currentAST.child = parallelArrayTemplateApplication_AST;
+				currentAST.advanceChildToEnd();
+			}
+			parallelArrayTemplateApplication_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_4_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = parallelArrayTemplateApplication_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void template() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST template_AST = null;
+		
+		try {      // for error handling
+			{
+				switch ( LA(1) )
+				{
+				case LPAREN:
+				case ID:
+				case LITERAL_super:
+				{
+					namedTemplate();
+					if (0 == inputState.guessing)
+					{
+						astFactory.addASTChild(currentAST, (AST)returnAST);
+					}
+					break;
+				}
+				case ANONYMOUS_TEMPLATE:
+				{
+					anonymousTemplate();
+					if (0 == inputState.guessing)
+					{
+						astFactory.addASTChild(currentAST, (AST)returnAST);
+					}
+					break;
+				}
+				default:
+				{
+					throw new NoViableAltException(LT(1), getFilename());
+				}
+				 }
+			}
+			if (0==inputState.guessing)
+			{
+				template_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				template_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(TEMPLATE), (AST)template_AST);
+				currentAST.root = template_AST;
+				if ( (null != template_AST) && (null != template_AST.getFirstChild()) )
+					currentAST.child = template_AST.getFirstChild();
+				else
+					currentAST.child = template_AST;
+				currentAST.advanceChildToEnd();
+			}
+			template_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_7_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = template_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void anonymousTemplate() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST anonymousTemplate_AST = null;
+		IToken  t = null;
+		antlr.stringtemplate.language.StringTemplateAST t_AST = null;
+		
+		try {      // for error handling
+			t = LT(1);
+			t_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(t);
+			astFactory.addASTChild(currentAST, (AST)t_AST);
+			match(ANONYMOUS_TEMPLATE);
+			if (0==inputState.guessing)
+			{
+				
+				StringTemplate anonymous = new StringTemplate();
+				anonymous.setGroup(self.getGroup());
+				anonymous.setEnclosingInstance(self);
+				anonymous.setTemplate(t.getText());
+				anonymous.defineFormalArguments(((StringTemplateToken)t).args);
+				t_AST.setStringTemplate(anonymous);
+				
+			}
+			anonymousTemplate_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_7_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = anonymousTemplate_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -466,7 +707,7 @@ _loop8_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_2_);
+				recover(ex,tokenSet_5_);
 			}
 			else
 			{
@@ -477,156 +718,257 @@ _loop8_breakloop:				;
 		ASTPair.PutInstance(currentAST);
 	}
 	
-	public void atom() //throws RecognitionException, TokenStreamException
+	public void primaryExpr() //throws RecognitionException, TokenStreamException
 {
 		
 		returnAST = null;
 		ASTPair currentAST = ASTPair.GetInstance();
-		antlr.stringtemplate.language.StringTemplateAST atom_AST = null;
-		IToken  eval = null;
-		antlr.stringtemplate.language.StringTemplateAST eval_AST = null;
+		antlr.stringtemplate.language.StringTemplateAST primaryExpr_AST = null;
 		
 		try {      // for error handling
-			if ((LA(1)==ID||LA(1)==STRING||LA(1)==INT) && (tokenSet_4_.member(LA(2))))
+			switch ( LA(1) )
 			{
-				attribute();
+			case LITERAL_first:
+			case LITERAL_rest:
+			case LITERAL_last:
+			{
+				function();
 				if (0 == inputState.guessing)
 				{
 					astFactory.addASTChild(currentAST, (AST)returnAST);
 				}
-				atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				primaryExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
 			}
-			else {
-				bool synPredMatched11 = false;
-				if (((LA(1)==LPAREN||LA(1)==ID||LA(1)==LITERAL_super) && (tokenSet_5_.member(LA(2)))))
+			case LBRACK:
+			{
+				list();
+				if (0 == inputState.guessing)
 				{
-					int _m11 = mark();
-					synPredMatched11 = true;
-					inputState.guessing++;
-					try {
+					astFactory.addASTChild(currentAST, (AST)returnAST);
+				}
+				primaryExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
+			}
+			default:
+				if ((tokenSet_8_.member(LA(1))) && (tokenSet_9_.member(LA(2))))
+				{
+					atom();
+					if (0 == inputState.guessing)
+					{
+						astFactory.addASTChild(currentAST, (AST)returnAST);
+					}
+					{    // ( ... )*
+						for (;;)
 						{
-							templateInclude();
+							if ((LA(1)==DOT))
+							{
+								antlr.stringtemplate.language.StringTemplateAST tmp11_AST = null;
+								tmp11_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+								astFactory.makeASTRoot(currentAST, (AST)tmp11_AST);
+								match(DOT);
+								{
+									switch ( LA(1) )
+									{
+									case ID:
+									{
+										antlr.stringtemplate.language.StringTemplateAST tmp12_AST = null;
+										tmp12_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+										astFactory.addASTChild(currentAST, (AST)tmp12_AST);
+										match(ID);
+										break;
+									}
+									case LPAREN:
+									{
+										valueExpr();
+										if (0 == inputState.guessing)
+										{
+											astFactory.addASTChild(currentAST, (AST)returnAST);
+										}
+										break;
+									}
+									default:
+									{
+										throw new NoViableAltException(LT(1), getFilename());
+									}
+									 }
+								}
+							}
+							else
+							{
+								goto _loop22_breakloop;
+							}
+							
 						}
-					}
-					catch (RecognitionException)
-					{
-						synPredMatched11 = false;
-					}
-					rewind(_m11);
-					inputState.guessing--;
+_loop22_breakloop:						;
+					}    // ( ... )*
+					primaryExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 				}
-				if ( synPredMatched11 )
-				{
-					templateInclude();
-					if (0 == inputState.guessing)
+				else {
+					bool synPredMatched24 = false;
+					if (((LA(1)==LPAREN||LA(1)==ID||LA(1)==LITERAL_super) && (tokenSet_10_.member(LA(2)))))
 					{
-						astFactory.addASTChild(currentAST, (AST)returnAST);
+						int _m24 = mark();
+						synPredMatched24 = true;
+						inputState.guessing++;
+						try {
+							{
+								templateInclude();
+							}
+						}
+						catch (RecognitionException)
+						{
+							synPredMatched24 = false;
+						}
+						rewind(_m24);
+						inputState.guessing--;
 					}
-					atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-				}
-				else if ((LA(1)==LPAREN) && (tokenSet_6_.member(LA(2)))) {
-					eval = LT(1);
-					eval_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(eval);
-					astFactory.makeASTRoot(currentAST, (AST)eval_AST);
-					match(LPAREN);
-					templatesExpr();
-					if (0 == inputState.guessing)
+					if ( synPredMatched24 )
 					{
-						astFactory.addASTChild(currentAST, (AST)returnAST);
+						templateInclude();
+						if (0 == inputState.guessing)
+						{
+							astFactory.addASTChild(currentAST, (AST)returnAST);
+						}
+						primaryExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 					}
-					match(RPAREN);
-					if (0==inputState.guessing)
-					{
-						eval_AST.setType(VALUE);
+					else if ((LA(1)==LPAREN) && (tokenSet_1_.member(LA(2)))) {
+						valueExpr();
+						if (0 == inputState.guessing)
+						{
+							astFactory.addASTChild(currentAST, (AST)returnAST);
+						}
+						primaryExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 					}
-					atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-				}
 				else
 				{
 					throw new NoViableAltException(LT(1), getFilename());
 				}
-				}
+				}break; }
 			}
 			catch (RecognitionException ex)
 			{
 				if (0 == inputState.guessing)
 				{
 					reportError(ex);
-					recover(ex,tokenSet_7_);
+					recover(ex,tokenSet_11_);
 				}
 				else
 				{
 					throw ex;
 				}
 			}
-			returnAST = atom_AST;
+			returnAST = primaryExpr_AST;
 			ASTPair.PutInstance(currentAST);
 		}
 		
-	public void attribute() //throws RecognitionException, TokenStreamException
+	public void atom() //throws RecognitionException, TokenStreamException
 {
 		
 		returnAST = null;
 		ASTPair currentAST = ASTPair.GetInstance();
-		antlr.stringtemplate.language.StringTemplateAST attribute_AST = null;
+		antlr.stringtemplate.language.StringTemplateAST atom_AST = null;
 		
 		try {      // for error handling
 			switch ( LA(1) )
 			{
+			case ID:
+			{
+				antlr.stringtemplate.language.StringTemplateAST tmp13_AST = null;
+				tmp13_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp13_AST);
+				match(ID);
+				atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
+			}
 			case STRING:
 			{
-				antlr.stringtemplate.language.StringTemplateAST tmp11_AST = null;
-				tmp11_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-				astFactory.addASTChild(currentAST, (AST)tmp11_AST);
+				antlr.stringtemplate.language.StringTemplateAST tmp14_AST = null;
+				tmp14_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp14_AST);
 				match(STRING);
-				attribute_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 				break;
 			}
 			case INT:
 			{
-				antlr.stringtemplate.language.StringTemplateAST tmp12_AST = null;
-				tmp12_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-				astFactory.addASTChild(currentAST, (AST)tmp12_AST);
+				antlr.stringtemplate.language.StringTemplateAST tmp15_AST = null;
+				tmp15_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp15_AST);
 				match(INT);
-				attribute_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
+			}
+			case ANONYMOUS_TEMPLATE:
+			{
+				antlr.stringtemplate.language.StringTemplateAST tmp16_AST = null;
+				tmp16_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp16_AST);
+				match(ANONYMOUS_TEMPLATE);
+				atom_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 				break;
 			}
 			default:
-				if ((LA(1)==ID) && (tokenSet_7_.member(LA(2))))
-				{
-					antlr.stringtemplate.language.StringTemplateAST tmp13_AST = null;
-					tmp13_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-					astFactory.addASTChild(currentAST, (AST)tmp13_AST);
-					match(ID);
-					attribute_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-				}
-				else if ((LA(1)==ID) && (LA(2)==DOT)) {
-					objPropertyRef();
-					if (0 == inputState.guessing)
-					{
-						astFactory.addASTChild(currentAST, (AST)returnAST);
-					}
-					attribute_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-				}
-			else
 			{
 				throw new NoViableAltException(LT(1), getFilename());
 			}
-			break; }
+			 }
 		}
 		catch (RecognitionException ex)
 		{
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_7_);
+				recover(ex,tokenSet_9_);
 			}
 			else
 			{
 				throw ex;
 			}
 		}
-		returnAST = attribute_AST;
+		returnAST = atom_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void valueExpr() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST valueExpr_AST = null;
+		IToken  eval = null;
+		antlr.stringtemplate.language.StringTemplateAST eval_AST = null;
+		
+		try {      // for error handling
+			eval = LT(1);
+			eval_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(eval);
+			astFactory.makeASTRoot(currentAST, (AST)eval_AST);
+			match(LPAREN);
+			templatesExpr();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
+			match(RPAREN);
+			if (0==inputState.guessing)
+			{
+				eval_AST.setType(VALUE); eval_AST.setText("value");
+			}
+			valueExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_9_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = valueExpr_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -645,9 +987,9 @@ _loop8_breakloop:				;
 				{
 				case ID:
 				{
-					antlr.stringtemplate.language.StringTemplateAST tmp14_AST = null;
-					tmp14_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-					astFactory.addASTChild(currentAST, (AST)tmp14_AST);
+					antlr.stringtemplate.language.StringTemplateAST tmp18_AST = null;
+					tmp18_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+					astFactory.addASTChild(currentAST, (AST)tmp18_AST);
 					match(ID);
 					argList();
 					if (0 == inputState.guessing)
@@ -708,7 +1050,7 @@ _loop8_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_7_);
+				recover(ex,tokenSet_11_);
 			}
 			else
 			{
@@ -719,35 +1061,39 @@ _loop8_breakloop:				;
 		ASTPair.PutInstance(currentAST);
 	}
 	
-	public void template() //throws RecognitionException, TokenStreamException
+	public void function() //throws RecognitionException, TokenStreamException
 {
 		
 		returnAST = null;
 		ASTPair currentAST = ASTPair.GetInstance();
-		antlr.stringtemplate.language.StringTemplateAST template_AST = null;
+		antlr.stringtemplate.language.StringTemplateAST function_AST = null;
 		
 		try {      // for error handling
 			{
 				switch ( LA(1) )
 				{
-				case LPAREN:
-				case ID:
-				case LITERAL_super:
+				case LITERAL_first:
 				{
-					namedTemplate();
-					if (0 == inputState.guessing)
-					{
-						astFactory.addASTChild(currentAST, (AST)returnAST);
-					}
+					antlr.stringtemplate.language.StringTemplateAST tmp21_AST = null;
+					tmp21_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+					astFactory.addASTChild(currentAST, (AST)tmp21_AST);
+					match(LITERAL_first);
 					break;
 				}
-				case ANONYMOUS_TEMPLATE:
+				case LITERAL_rest:
 				{
-					anonymousTemplate();
-					if (0 == inputState.guessing)
-					{
-						astFactory.addASTChild(currentAST, (AST)returnAST);
-					}
+					antlr.stringtemplate.language.StringTemplateAST tmp22_AST = null;
+					tmp22_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+					astFactory.addASTChild(currentAST, (AST)tmp22_AST);
+					match(LITERAL_rest);
+					break;
+				}
+				case LITERAL_last:
+				{
+					antlr.stringtemplate.language.StringTemplateAST tmp23_AST = null;
+					tmp23_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+					astFactory.addASTChild(currentAST, (AST)tmp23_AST);
+					match(LITERAL_last);
 					break;
 				}
 				default:
@@ -756,32 +1102,99 @@ _loop8_breakloop:				;
 				}
 				 }
 			}
+			singleArg();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
 			if (0==inputState.guessing)
 			{
-				template_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-				template_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(TEMPLATE), (AST)template_AST);
-				currentAST.root = template_AST;
-				if ( (null != template_AST) && (null != template_AST.getFirstChild()) )
-					currentAST.child = template_AST.getFirstChild();
+				function_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				function_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(FUNCTION), (AST)function_AST);
+				currentAST.root = function_AST;
+				if ( (null != function_AST) && (null != function_AST.getFirstChild()) )
+					currentAST.child = function_AST.getFirstChild();
 				else
-					currentAST.child = template_AST;
+					currentAST.child = function_AST;
 				currentAST.advanceChildToEnd();
 			}
-			template_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+			function_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 		}
 		catch (RecognitionException ex)
 		{
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_3_);
+				recover(ex,tokenSet_11_);
 			}
 			else
 			{
 				throw ex;
 			}
 		}
-		returnAST = template_AST;
+		returnAST = function_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void list() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST list_AST = null;
+		IToken  lb = null;
+		antlr.stringtemplate.language.StringTemplateAST lb_AST = null;
+		
+		try {      // for error handling
+			lb = LT(1);
+			lb_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(lb);
+			astFactory.makeASTRoot(currentAST, (AST)lb_AST);
+			match(LBRACK);
+			if (0==inputState.guessing)
+			{
+				lb_AST.setType(LIST); lb_AST.setText("value");
+			}
+			expr();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
+			{    // ( ... )*
+				for (;;)
+				{
+					if ((LA(1)==COMMA))
+					{
+						match(COMMA);
+						expr();
+						if (0 == inputState.guessing)
+						{
+							astFactory.addASTChild(currentAST, (AST)returnAST);
+						}
+					}
+					else
+					{
+						goto _loop38_breakloop;
+					}
+					
+				}
+_loop38_breakloop:				;
+			}    // ( ... )*
+			match(RBRACK);
+			list_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_11_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = list_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -821,11 +1234,11 @@ _loop8_breakloop:				;
 					}
 					else
 					{
-						goto _loop19_breakloop;
+						goto _loop28_breakloop;
 					}
 					
 				}
-_loop19_breakloop:				;
+_loop28_breakloop:				;
 			}    // ( ... )*
 			nonAlternatingTemplateExpr_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 		}
@@ -834,7 +1247,7 @@ _loop19_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_8_);
+				recover(ex,tokenSet_12_);
 			}
 			else
 			{
@@ -842,6 +1255,50 @@ _loop19_breakloop:				;
 			}
 		}
 		returnAST = nonAlternatingTemplateExpr_AST;
+		ASTPair.PutInstance(currentAST);
+	}
+	
+	public void singleArg() //throws RecognitionException, TokenStreamException
+{
+		
+		returnAST = null;
+		ASTPair currentAST = ASTPair.GetInstance();
+		antlr.stringtemplate.language.StringTemplateAST singleArg_AST = null;
+		
+		try {      // for error handling
+			match(LPAREN);
+			nonAlternatingTemplateExpr();
+			if (0 == inputState.guessing)
+			{
+				astFactory.addASTChild(currentAST, (AST)returnAST);
+			}
+			match(RPAREN);
+			if (0==inputState.guessing)
+			{
+				singleArg_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				singleArg_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(SINGLEVALUEARG,"SINGLEVALUEARG"), (AST)singleArg_AST);
+				currentAST.root = singleArg_AST;
+				if ( (null != singleArg_AST) && (null != singleArg_AST.getFirstChild()) )
+					currentAST.child = singleArg_AST.getFirstChild();
+				else
+					currentAST.child = singleArg_AST;
+				currentAST.advanceChildToEnd();
+			}
+			singleArg_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+		}
+		catch (RecognitionException ex)
+		{
+			if (0 == inputState.guessing)
+			{
+				reportError(ex);
+				recover(ex,tokenSet_11_);
+			}
+			else
+			{
+				throw ex;
+			}
+		}
+		returnAST = singleArg_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -859,9 +1316,9 @@ _loop19_breakloop:				;
 			{
 			case ID:
 			{
-				antlr.stringtemplate.language.StringTemplateAST tmp17_AST = null;
-				tmp17_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-				astFactory.addASTChild(currentAST, (AST)tmp17_AST);
+				antlr.stringtemplate.language.StringTemplateAST tmp28_AST = null;
+				tmp28_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp28_AST);
 				match(ID);
 				argList();
 				if (0 == inputState.guessing)
@@ -912,7 +1369,7 @@ _loop19_breakloop:				;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_3_);
+				recover(ex,tokenSet_7_);
 			}
 			else
 			{
@@ -920,48 +1377,6 @@ _loop19_breakloop:				;
 			}
 		}
 		returnAST = namedTemplate_AST;
-		ASTPair.PutInstance(currentAST);
-	}
-	
-	public void anonymousTemplate() //throws RecognitionException, TokenStreamException
-{
-		
-		returnAST = null;
-		ASTPair currentAST = ASTPair.GetInstance();
-		antlr.stringtemplate.language.StringTemplateAST anonymousTemplate_AST = null;
-		IToken  t = null;
-		antlr.stringtemplate.language.StringTemplateAST t_AST = null;
-		
-		try {      // for error handling
-			t = LT(1);
-			t_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(t);
-			astFactory.addASTChild(currentAST, (AST)t_AST);
-			match(ANONYMOUS_TEMPLATE);
-			if (0==inputState.guessing)
-			{
-				
-				StringTemplate anonymous = new StringTemplate();
-				anonymous.setGroup(self.getGroup());
-				anonymous.setEnclosingInstance(self);
-				anonymous.setTemplate(t.getText());
-				t_AST.setStringTemplate(anonymous);
-				
-			}
-			anonymousTemplate_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-		}
-		catch (RecognitionException ex)
-		{
-			if (0 == inputState.guessing)
-			{
-				reportError(ex);
-				recover(ex,tokenSet_3_);
-			}
-			else
-			{
-				throw ex;
-			}
-		}
-		returnAST = anonymousTemplate_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -989,72 +1404,98 @@ _loop19_breakloop:				;
 					currentAST.advanceChildToEnd();
 				}
 			}
-			else if ((LA(1)==LPAREN) && (LA(2)==ID)) {
-				match(LPAREN);
-				argumentAssignment();
+			else {
+				bool synPredMatched44 = false;
+				if (((LA(1)==LPAREN) && (tokenSet_1_.member(LA(2)))))
+				{
+					int _m44 = mark();
+					synPredMatched44 = true;
+					inputState.guessing++;
+					try {
+						{
+							singleArg();
+						}
+					}
+					catch (RecognitionException)
+					{
+						synPredMatched44 = false;
+					}
+					rewind(_m44);
+					inputState.guessing--;
+				}
+				if ( synPredMatched44 )
+				{
+					singleArg();
+					if (0 == inputState.guessing)
+					{
+						astFactory.addASTChild(currentAST, (AST)returnAST);
+					}
+					argList_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				}
+				else if ((LA(1)==LPAREN) && (LA(2)==ID||LA(2)==DOTDOTDOT)) {
+					match(LPAREN);
+					argumentAssignment();
+					if (0 == inputState.guessing)
+					{
+						astFactory.addASTChild(currentAST, (AST)returnAST);
+					}
+					{    // ( ... )*
+						for (;;)
+						{
+							if ((LA(1)==COMMA))
+							{
+								match(COMMA);
+								argumentAssignment();
+								if (0 == inputState.guessing)
+								{
+									astFactory.addASTChild(currentAST, (AST)returnAST);
+								}
+							}
+							else
+							{
+								goto _loop46_breakloop;
+							}
+							
+						}
+_loop46_breakloop:						;
+					}    // ( ... )*
+					match(RPAREN);
+					if (0==inputState.guessing)
+					{
+						argList_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+						argList_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(ARGS,"ARGS"), (AST)argList_AST);
+						currentAST.root = argList_AST;
+						if ( (null != argList_AST) && (null != argList_AST.getFirstChild()) )
+							currentAST.child = argList_AST.getFirstChild();
+						else
+							currentAST.child = argList_AST;
+						currentAST.advanceChildToEnd();
+					}
+					argList_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				}
+				else
+				{
+					throw new NoViableAltException(LT(1), getFilename());
+				}
+				}
+			}
+			catch (RecognitionException ex)
+			{
 				if (0 == inputState.guessing)
 				{
-					astFactory.addASTChild(currentAST, (AST)returnAST);
+					reportError(ex);
+					recover(ex,tokenSet_11_);
 				}
-				{    // ( ... )*
-					for (;;)
-					{
-						if ((LA(1)==COMMA))
-						{
-							match(COMMA);
-							argumentAssignment();
-							if (0 == inputState.guessing)
-							{
-								astFactory.addASTChild(currentAST, (AST)returnAST);
-							}
-						}
-						else
-						{
-							goto _loop33_breakloop;
-						}
-						
-					}
-_loop33_breakloop:					;
-				}    // ( ... )*
-				match(RPAREN);
-				if (0==inputState.guessing)
+				else
 				{
-					argList_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-					argList_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.make((AST)(antlr.stringtemplate.language.StringTemplateAST) astFactory.create(ARGS,"ARGS"), (AST)argList_AST);
-					currentAST.root = argList_AST;
-					if ( (null != argList_AST) && (null != argList_AST.getFirstChild()) )
-						currentAST.child = argList_AST.getFirstChild();
-					else
-						currentAST.child = argList_AST;
-					currentAST.advanceChildToEnd();
+					throw ex;
 				}
-				argList_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
 			}
-			else
-			{
-				throw new NoViableAltException(LT(1), getFilename());
-			}
-			
+			returnAST = argList_AST;
+			ASTPair.PutInstance(currentAST);
 		}
-		catch (RecognitionException ex)
-		{
-			if (0 == inputState.guessing)
-			{
-				reportError(ex);
-				recover(ex,tokenSet_7_);
-			}
-			else
-			{
-				throw ex;
-			}
-		}
-		returnAST = argList_AST;
-		ASTPair.PutInstance(currentAST);
-	}
-	
-/** Match (foo)() and (foo+".terse")()
-    breaks encapsulation
- */
+		
+/** Match (foo)() and (foo+".terse")() */
 	public void indirectTemplate() //throws RecognitionException, TokenStreamException
 {
 		
@@ -1065,16 +1506,16 @@ _loop33_breakloop:					;
 		antlr.stringtemplate.language.StringTemplateAST args_AST = null;
 		
 		try {      // for error handling
-			antlr.stringtemplate.language.StringTemplateAST tmp25_AST = null;
-			tmp25_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+			antlr.stringtemplate.language.StringTemplateAST tmp36_AST = null;
+			tmp36_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
 			match(LPAREN);
 			expr();
 			if (0 == inputState.guessing)
 			{
 				e_AST = (antlr.stringtemplate.language.StringTemplateAST)returnAST;
 			}
-			antlr.stringtemplate.language.StringTemplateAST tmp26_AST = null;
-			tmp26_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+			antlr.stringtemplate.language.StringTemplateAST tmp37_AST = null;
+			tmp37_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
 			match(RPAREN);
 			argList();
 			if (0 == inputState.guessing)
@@ -1098,7 +1539,7 @@ _loop33_breakloop:					;
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_7_);
+				recover(ex,tokenSet_11_);
 			}
 			else
 			{
@@ -1106,60 +1547,6 @@ _loop33_breakloop:					;
 			}
 		}
 		returnAST = indirectTemplate_AST;
-		ASTPair.PutInstance(currentAST);
-	}
-	
-	public void objPropertyRef() //throws RecognitionException, TokenStreamException
-{
-		
-		returnAST = null;
-		ASTPair currentAST = ASTPair.GetInstance();
-		antlr.stringtemplate.language.StringTemplateAST objPropertyRef_AST = null;
-		
-		try {      // for error handling
-			antlr.stringtemplate.language.StringTemplateAST tmp27_AST = null;
-			tmp27_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-			astFactory.addASTChild(currentAST, (AST)tmp27_AST);
-			match(ID);
-			{ // ( ... )+
-				int _cnt30=0;
-				for (;;)
-				{
-					if ((LA(1)==DOT))
-					{
-						antlr.stringtemplate.language.StringTemplateAST tmp28_AST = null;
-						tmp28_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-						astFactory.makeASTRoot(currentAST, (AST)tmp28_AST);
-						match(DOT);
-						antlr.stringtemplate.language.StringTemplateAST tmp29_AST = null;
-						tmp29_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-						astFactory.addASTChild(currentAST, (AST)tmp29_AST);
-						match(ID);
-					}
-					else
-					{
-						if (_cnt30 >= 1) { goto _loop30_breakloop; } else { throw new NoViableAltException(LT(1), getFilename());; }
-					}
-					
-					_cnt30++;
-				}
-_loop30_breakloop:				;
-			}    // ( ... )+
-			objPropertyRef_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
-		}
-		catch (RecognitionException ex)
-		{
-			if (0 == inputState.guessing)
-			{
-				reportError(ex);
-				recover(ex,tokenSet_7_);
-			}
-			else
-			{
-				throw ex;
-			}
-		}
-		returnAST = objPropertyRef_AST;
 		ASTPair.PutInstance(currentAST);
 	}
 	
@@ -1171,27 +1558,47 @@ _loop30_breakloop:				;
 		antlr.stringtemplate.language.StringTemplateAST argumentAssignment_AST = null;
 		
 		try {      // for error handling
-			antlr.stringtemplate.language.StringTemplateAST tmp30_AST = null;
-			tmp30_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-			astFactory.addASTChild(currentAST, (AST)tmp30_AST);
-			match(ID);
-			antlr.stringtemplate.language.StringTemplateAST tmp31_AST = null;
-			tmp31_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
-			astFactory.makeASTRoot(currentAST, (AST)tmp31_AST);
-			match(ASSIGN);
-			nonAlternatingTemplateExpr();
-			if (0 == inputState.guessing)
+			switch ( LA(1) )
 			{
-				astFactory.addASTChild(currentAST, (AST)returnAST);
+			case ID:
+			{
+				antlr.stringtemplate.language.StringTemplateAST tmp38_AST = null;
+				tmp38_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp38_AST);
+				match(ID);
+				antlr.stringtemplate.language.StringTemplateAST tmp39_AST = null;
+				tmp39_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.makeASTRoot(currentAST, (AST)tmp39_AST);
+				match(ASSIGN);
+				nonAlternatingTemplateExpr();
+				if (0 == inputState.guessing)
+				{
+					astFactory.addASTChild(currentAST, (AST)returnAST);
+				}
+				argumentAssignment_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
 			}
-			argumentAssignment_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+			case DOTDOTDOT:
+			{
+				antlr.stringtemplate.language.StringTemplateAST tmp40_AST = null;
+				tmp40_AST = (antlr.stringtemplate.language.StringTemplateAST) astFactory.create(LT(1));
+				astFactory.addASTChild(currentAST, (AST)tmp40_AST);
+				match(DOTDOTDOT);
+				argumentAssignment_AST = (antlr.stringtemplate.language.StringTemplateAST)currentAST.root;
+				break;
+			}
+			default:
+			{
+				throw new NoViableAltException(LT(1), getFilename());
+			}
+			 }
 		}
 		catch (RecognitionException ex)
 		{
 			if (0 == inputState.guessing)
 			{
 				reportError(ex);
-				recover(ex,tokenSet_8_);
+				recover(ex,tokenSet_12_);
 			}
 			else
 			{
@@ -1217,7 +1624,7 @@ _loop30_breakloop:				;
 	}
 	static public void initializeASTFactory( ASTFactory factory )
 	{
-		factory.setMaxNodeType(27);
+		factory.setMaxNodeType(39);
 	}
 	
 	public static readonly string[] tokenNames_ = new string[] {
@@ -1226,29 +1633,41 @@ _loop30_breakloop:				;
 		@"""<2>""",
 		@"""NULL_TREE_LOOKAHEAD""",
 		@"""APPLY""",
+		@"""MULTI_APPLY""",
 		@"""ARGS""",
 		@"""INCLUDE""",
 		@"""if""",
 		@"""VALUE""",
 		@"""TEMPLATE""",
+		@"""FUNCTION""",
+		@"""SINGLEVALUEARG""",
+		@"""LIST""",
 		@"""SEMI""",
 		@"""LPAREN""",
 		@"""RPAREN""",
 		@"""separator""",
 		@"""ASSIGN""",
-		@"""NOT""",
-		@"""PLUS""",
 		@"""COLON""",
 		@"""COMMA""",
-		@"""ID""",
-		@"""super""",
+		@"""NOT""",
+		@"""PLUS""",
 		@"""DOT""",
+		@"""ID""",
+		@"""first""",
+		@"""rest""",
+		@"""last""",
+		@"""super""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""STRING""",
 		@"""INT""",
+		@"""LBRACK""",
+		@"""RBRACK""",
+		@"""DOTDOTDOT""",
+		@"""TEMPLATE_ARGS""",
 		@"""NESTED_ANONYMOUS_TEMPLATE""",
 		@"""ESC_CHAR""",
-		@"""WS"""
+		@"""WS""",
+		@"""WS_CHAR"""
 	};
 	
 	private static long[] mk_tokenSet_0_()
@@ -1259,52 +1678,76 @@ _loop30_breakloop:				;
 	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());
 	private static long[] mk_tokenSet_1_()
 	{
-		long[] data = { 5122L, 0L};
+		long[] data = { 8573190144L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_1_ = new BitSet(mk_tokenSet_1_());
 	private static long[] mk_tokenSet_2_()
 	{
-		long[] data = { 4096L, 0L};
+		long[] data = { 8586821632L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_2_ = new BitSet(mk_tokenSet_2_());
 	private static long[] mk_tokenSet_3_()
 	{
-		long[] data = { 398338L, 0L};
+		long[] data = { 8586379266L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_3_ = new BitSet(mk_tokenSet_3_());
 	private static long[] mk_tokenSet_4_()
 	{
-		long[] data = { 2561026L, 0L};
+		long[] data = { 81922L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());
 	private static long[] mk_tokenSet_5_()
 	{
-		long[] data = { 28837888L, 0L};
+		long[] data = { 65536L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_5_ = new BitSet(mk_tokenSet_5_());
 	private static long[] mk_tokenSet_6_()
 	{
-		long[] data = { 26740736L, 0L};
+		long[] data = { 8591589378L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_6_ = new BitSet(mk_tokenSet_6_());
 	private static long[] mk_tokenSet_7_()
 	{
-		long[] data = { 463874L, 0L};
+		long[] data = { 1654786L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_7_ = new BitSet(mk_tokenSet_7_());
 	private static long[] mk_tokenSet_8_()
 	{
-		long[] data = { 266240L, 0L};
+		long[] data = { 3774873600L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_8_ = new BitSet(mk_tokenSet_8_());
+	private static long[] mk_tokenSet_9_()
+	{
+		long[] data = { 8604172290L, 0L};
+		return data;
+	}
+	public static readonly BitSet tokenSet_9_ = new BitSet(mk_tokenSet_9_());
+	private static long[] mk_tokenSet_10_()
+	{
+		long[] data = { 8581578752L, 0L};
+		return data;
+	}
+	public static readonly BitSet tokenSet_10_ = new BitSet(mk_tokenSet_10_());
+	private static long[] mk_tokenSet_11_()
+	{
+		long[] data = { 8595783682L, 0L};
+		return data;
+	}
+	public static readonly BitSet tokenSet_11_ = new BitSet(mk_tokenSet_11_());
+	private static long[] mk_tokenSet_12_()
+	{
+		long[] data = { 1114112L, 0L};
+		return data;
+	}
+	public static readonly BitSet tokenSet_12_ = new BitSet(mk_tokenSet_12_());
 	
 }
 }

@@ -136,19 +136,49 @@ options {
 protected
 EXPR:   ( ESC
         | ('\r')? '\n' {newline();}
-        | SUBTEMPLATE
+        | '=' TEMPLATE
+        | '=' SUBTEMPLATE
+        | '=' ~('"'|'<'|'{')
         | ~'>'
         )+
     ;
 
 protected
-ESC :   '\\' ('<'|'>'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
+TEMPLATE
+	:	'"' ( ESC | ~'"' )+ '"'
+	|	"<<"
+	 	(options {greedy=true;}:('\r'!)?'\n'! {newline();})? // consume 1st \n
+		(	options {greedy=false;}  // stop when you see the >>
+		:	{LA(3)=='>'&&LA(4)=='>'}? '\r'! '\n'! {newline();} // kill last \r\n
+		|	{LA(2)=='>'&&LA(3)=='>'}? '\n'! {newline();}       // kill last \n
+		|	('\r')? '\n' {newline();}                          // else keep
+		|	.
+		)*
+        ">>"
+	;
+
+protected
+IF_EXPR:( ESC
+        | ('\r')? '\n' {newline();}
+        | SUBTEMPLATE
+        | NESTED_PARENS
+        | ~')'
+        )+
+    ;
+
+protected
+ESC :   '\\' ('<'|'>'|'r'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
     ;
 
 protected
 SUBTEMPLATE
     :    '{' (SUBTEMPLATE|ESC|~'}')+ '}'
     ;
+    
+protected
+NESTED_PARENS
+    :    '(' (options {greedy=false;}:NESTED_PARENS|ESC|~')')+ ')'
+    ;  
 
 protected
 COMMENT

@@ -65,13 +65,16 @@ options {
 protected StringTemplateGroup _group;
 
 override public void reportError(RecognitionException e) {
-	_group.error("template parse error", e);
+	if (_group != null)
+		_group.error("template parse error", e);
+	else
+		Console.Error.WriteLine("template parse error: "+e);
 }
 }
 
 group[StringTemplateGroup g]
 	:	"group" name:ID {g.setName(name.getText());} SEMI
-	    (template[g])*
+	    ( template[g] | mapdef[g] )+
     ;
 
 template[StringTemplateGroup g]
@@ -93,16 +96,38 @@ template[StringTemplateGroup g]
 	    LPAREN
 	        (args[st]|{st.defineEmptyFormalArgumentList();})
 	    RPAREN
-	    DEFINED_TO_BE t:TEMPLATE {st.setTemplate(t.getText());}
-
+		DEFINED_TO_BE
+	    (	t:STRING     {st.setTemplate(t.getText());}
+	    |	bt:BIGSTRING {st.setTemplate(bt.getText());}
+	    )
 	|   alias:ID DEFINED_TO_BE target:ID
 	    {g.defineTemplateAlias(alias.getText(), target.getText());}
 	;
 
 args[StringTemplate st]
-    :	name:ID {st.defineFormalArgument(name.getText());}
-        (COMMA name2:ID {st.defineFormalArgument(name2.getText());})*
+    :	arg[st] ( COMMA arg[st] )*
 	;
+	
+arg[StringTemplate st]
+{
+	StringTemplate defaultValue = null;
+}
+	:	name:ID
+		(	ASSIGN s:STRING
+			{
+			defaultValue=new StringTemplate("$_val_$");
+			defaultValue.setAttribute("_val_", s.getText());
+			defaultValue.defineFormalArgument("_val_");
+			defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+			}
+		|	ASSIGN bs:ANONYMOUS_TEMPLATE
+			{
+			defaultValue=new StringTemplate(st.getGroup(), bs.getText());
+			defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+			}
+		)?
+        {st.defineFormalArgument(name.getText(), defaultValue);}
+    ;
 
 /*
 suffix returns [int cardinality=FormalArgument.REQUIRED]
@@ -112,6 +137,38 @@ suffix returns [int cardinality=FormalArgument.REQUIRED]
 	|
     ;
     */
+    
+mapdef[StringTemplateGroup g]
+{
+IDictionary m=null;
+}
+	:	name:ID
+	    DEFINED_TO_BE m=map
+	    {
+	    if ( g.getMap(name.getText())!=null ) {
+	        g.error("redefinition of map: "+name.getText());
+	    }
+	    else if ( g.isDefinedInThisGroup(name.getText()) ) {
+	        g.error("redefinition of template as map: "+name.getText());
+	    }
+	    else {
+	    	g.defineMap(name.getText(), m);
+	    }
+	    }
+	;
+
+map returns [IDictionary mapping=new Hashtable()]
+	:   LBRACK keyValuePair[mapping] (COMMA keyValuePair[mapping])* RBRACK
+	;
+
+keyValuePair[IDictionary mapping]
+	:	key1:STRING COLON s1:STRING 	{mapping[key1.getText()]=s1.getText();}
+	|	key2:STRING COLON s2:BIGSTRING  {mapping[key2.getText()]=s2.getText();}
+	|	"default" COLON s3:STRING
+	    {mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s3.getText();}
+	|	"default" COLON s4:BIGSTRING
+	    {mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s4.getText();}
+	;    
 
 class GroupLexer extends Lexer;
 
@@ -123,9 +180,12 @@ options {
 ID	:	('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-'|'_')*
 	;
 
-TEMPLATE
-	:	'"'! ( '\\'! '"' | '\\' ~'"' | ~'"' )+ '"'!
-	|	"<<"!
+STRING
+	:	'"'! ( '\\'! '"' | '\\' ~'"' | ~'"' )* '"'!
+	;
+
+BIGSTRING
+	:	"<<"!
 	 	(options {greedy=true;}:('\r'!)?'\n'! {newline();})? // consume 1st \n
 		(	options {greedy=false;}  // stop when you see the >>
 		:	{LA(3)=='>'&&LA(4)=='>'}? '\r'! '\n'! {newline();} // kill last \r\n
@@ -135,14 +195,31 @@ TEMPLATE
 		)*
         ">>"!
 	;
+	
+ANONYMOUS_TEMPLATE
+{
+IList args=null;
+StringTemplateToken t = null;
+}
+	:	'{'!
+		(	options {greedy=false;}  // stop when you see the >>
+		:	('\r')? '\n' {newline();}                          // else keep
+		|	.
+		)*
+	    '}'!
+	;	
 
 LPAREN: '(' ;
 RPAREN: ')' ;
+LBRACK: '[' ;
+RBRACK: ']' ;
 COMMA:  ',' ;
 DEFINED_TO_BE:  "::=" ;
 SEMI:   ';' ;
+COLON:  ':' ;
 STAR:   '*' ;
 PLUS:   '+' ;
+ASSIGN:   '=' ;
 OPTIONAL : '?' ;
 
 // Single-line comments

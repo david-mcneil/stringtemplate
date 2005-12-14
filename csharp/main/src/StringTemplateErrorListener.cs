@@ -35,7 +35,11 @@ namespace antlr.stringtemplate
 	{
 		void error(String msg, System.Exception e);
 		void warning(String msg);
-		/// <summary>Deluge of debugging output.  Totally useless at this point. </summary>
+		/** I've taken out debug mode, but am leaving this here so as
+			*  to avoid breaking user code.
+			*
+			*  @deprecated 2.2
+			*/
 		void debug(String msg);
 	}
 }

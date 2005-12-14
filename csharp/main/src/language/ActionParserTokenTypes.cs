@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (20050108): "action.g" -> "ActionParser.cs"$
+// $ANTLR 2.7.5 (20050128): "action.g" -> "ActionParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -36,29 +36,41 @@ namespace antlr.stringtemplate.language
 		public const int EOF = 1;
 		public const int NULL_TREE_LOOKAHEAD = 3;
 		public const int APPLY = 4;
-		public const int ARGS = 5;
-		public const int INCLUDE = 6;
-		public const int CONDITIONAL = 7;
-		public const int VALUE = 8;
-		public const int TEMPLATE = 9;
-		public const int SEMI = 10;
-		public const int LPAREN = 11;
-		public const int RPAREN = 12;
-		public const int LITERAL_separator = 13;
-		public const int ASSIGN = 14;
-		public const int NOT = 15;
-		public const int PLUS = 16;
-		public const int COLON = 17;
-		public const int COMMA = 18;
-		public const int ID = 19;
-		public const int LITERAL_super = 20;
-		public const int DOT = 21;
-		public const int ANONYMOUS_TEMPLATE = 22;
-		public const int STRING = 23;
-		public const int INT = 24;
-		public const int NESTED_ANONYMOUS_TEMPLATE = 25;
-		public const int ESC_CHAR = 26;
-		public const int WS = 27;
+		public const int MULTI_APPLY = 5;
+		public const int ARGS = 6;
+		public const int INCLUDE = 7;
+		public const int CONDITIONAL = 8;
+		public const int VALUE = 9;
+		public const int TEMPLATE = 10;
+		public const int FUNCTION = 11;
+		public const int SINGLEVALUEARG = 12;
+		public const int LIST = 13;
+		public const int SEMI = 14;
+		public const int LPAREN = 15;
+		public const int RPAREN = 16;
+		public const int LITERAL_separator = 17;
+		public const int ASSIGN = 18;
+		public const int COLON = 19;
+		public const int COMMA = 20;
+		public const int NOT = 21;
+		public const int PLUS = 22;
+		public const int DOT = 23;
+		public const int ID = 24;
+		public const int LITERAL_first = 25;
+		public const int LITERAL_rest = 26;
+		public const int LITERAL_last = 27;
+		public const int LITERAL_super = 28;
+		public const int ANONYMOUS_TEMPLATE = 29;
+		public const int STRING = 30;
+		public const int INT = 31;
+		public const int LBRACK = 32;
+		public const int RBRACK = 33;
+		public const int DOTDOTDOT = 34;
+		public const int TEMPLATE_ARGS = 35;
+		public const int NESTED_ANONYMOUS_TEMPLATE = 36;
+		public const int ESC_CHAR = 37;
+		public const int WS = 38;
+		public const int WS_CHAR = 39;
 		
 	}
 }
