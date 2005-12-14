@@ -26,7 +26,8 @@ header {
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-using antlr.stringtemplate;
+using Antlr.StringTemplate;
+using Antlr.StringTemplate.Collections;
 using System.Collections;
 using System.IO;
 using System.Reflection;
@@ -34,51 +35,50 @@ using System.Reflection;
 
 options {
 	language="CSharp";
-	namespace="antlr.stringtemplate.language";
+	namespace="Antlr.StringTemplate.Language";
 }
 
 class ActionEvaluator extends TreeParser;
 
 options {
     importVocab=ActionParser;
-    ASTLabelType = "antlr.stringtemplate.language.StringTemplateAST";
+    ASTLabelType = "Antlr.StringTemplate.Language.StringTemplateAST";
 }
 
 {
     public class NameValuePair {
         public String name;
-        public Object value;
+        public object value;
     };
 
     protected StringTemplate self = null;
-    protected StringTemplateWriter @out = null;
+    protected IStringTemplateWriter @out = null;
     protected ASTExpr chunk = null;
 
     /** Create an evaluator using attributes from self */
-    public ActionEvaluator(StringTemplate self, ASTExpr chunk, StringTemplateWriter @out) {
+    public ActionEvaluator(StringTemplate self, ASTExpr chunk, IStringTemplateWriter @out) {
         this.self = self;
         this.chunk = chunk;
         this.@out = @out;
     }
  
 	override public void reportError(RecognitionException e) {
-		self.error("template parse error", e);
+		self.Error("eval tree parse error", e);
 	}
 }
 
 action returns [int numCharsWritten=0]
 {
-    Object e=null;
+    object e=null;
 }
-    :   e=expr {numCharsWritten = chunk.writeAttribute(self,e,@out);}
+    :   e=expr {numCharsWritten = chunk.WriteAttribute(self,e,@out);}
     ;
 
-expr returns [Object value=null]
+expr returns [object value=null]
 {
-    Object a=null, b=null, e=null;
-    IDictionary argumentContext=null;
+    object a=null, b=null, e=null;
 }
-    :   #(PLUS a=expr b=expr {value = chunk.add(a,b);})
+    :   #(PLUS a=expr b=expr {value = chunk.Add(a,b);})
     |   value=templateApplication
     |   value=attribute
     |   value=templateInclude
@@ -89,26 +89,26 @@ expr returns [Object value=null]
         {
         StringWriter buf = new StringWriter();
         Type writerClass = @out.GetType();
-        StringTemplateWriter sw = null;
+        IStringTemplateWriter sw = null;
         try {
             ConstructorInfo ctor =
             	writerClass.GetConstructor(new Type[] {typeof(TextWriter)});
-            sw = (StringTemplateWriter)ctor.Invoke(new Object[] {buf});
+            sw = (IStringTemplateWriter)ctor.Invoke(new Object[] {buf});
         }
         catch (Exception exc) {
         	// default new AutoIndentWriter(buf)
-        	self.error("cannot make implementation of StringTemplateWriter",exc);
+        	self.Error("cannot make implementation of IStringTemplateWriter",exc);
         	sw = new AutoIndentWriter(buf);
       	}
-        chunk.writeAttribute(self,e,sw);
+        chunk.WriteAttribute(self,e,sw);
         value = buf.ToString();
         }
     ;
     
 /** create a new list of expressions as a new multi-value attribute */
-list returns [Object value=null]
+list returns [object value=null]
 {
-Object e = null;
+object e = null;
 IList elements = new ArrayList();
 value = new CatIterator(elements);
 }
@@ -116,7 +116,7 @@ value = new CatIterator(elements);
 			(	e=expr
 			  	{
 			  	if ( e!=null ) {
-					e = ASTExpr.convertAnythingToIterator(e);
+					e = ASTExpr.ConvertAnythingToIterator(e);
 			  		elements.Add(e);
 			  	}
 			  	}
@@ -124,14 +124,14 @@ value = new CatIterator(elements);
 		 )
 	;
 
-templateInclude returns [Object value=null]
+templateInclude returns [object value=null]
 {
     StringTemplateAST args = null;
-    String name = null;
-    Object n = null;
+    string name = null;
+    object n = null;
 }
     :   #( INCLUDE
-//        {value = chunk.getTemplateInclude(self, name.getText(), #args);}
+//        {value = chunk.GetTemplateInclude(self, name.getText(), #args);}
             (   id:ID a1:.
                 {name=id.getText(); args=#a1;}
 
@@ -142,7 +142,7 @@ templateInclude returns [Object value=null]
          )
         {
         if ( name!=null ) {
-        	value = chunk.getTemplateInclude(self, name, args);
+        	value = chunk.GetTemplateInclude(self, name, args);
         }
         }
     ;
@@ -150,79 +150,76 @@ templateInclude returns [Object value=null]
 /** Apply template(s) to an attribute; can be applied to another apply
  *  result.
  */
-templateApplication returns [Object value=null]
+templateApplication returns [object value=null]
 {
-Object a=null;
+object a=null;
 ArrayList templatesToApply=new ArrayList();
 ArrayList attributes=new ArrayList();
 }
     :   #(  APPLY a=expr
     		(template[templatesToApply])+
-	        {value = chunk.applyListOfAlternatingTemplates(self,a,templatesToApply);}
+	        {value = chunk.ApplyListOfAlternatingTemplates(self,a,templatesToApply);}
          )
     |	#(	MULTI_APPLY (a=expr {attributes.Add(a);} )+ COLON
 			anon:ANONYMOUS_TEMPLATE
 			{
-			StringTemplate anonymous = anon.getStringTemplate();
+			StringTemplate anonymous = anon.StringTemplate;
 			templatesToApply.Add(anonymous);
-			value = chunk.applyTemplateToListOfAttributes(self,
+			value = chunk.ApplyTemplateToListOfAttributes(self,
 														  attributes,
-														  anon.getStringTemplate());
+														  anon.StringTemplate);
 			}
     	 )
     ;
     
-function returns [Object value=null]
+function returns [object value=null]
 {
-Object a;
+object a;
 }
     :	#(	FUNCTION
-    		(	"first" a=singleFunctionArg	{value=chunk.first(a);}
-    		|	"rest" 	a=singleFunctionArg	{value=chunk.rest(a);}
-    		|	"last"  a=singleFunctionArg	{value=chunk.last(a);}
+    		(	"first" a=singleFunctionArg	{value=chunk.First(a);}
+    		|	"rest" 	a=singleFunctionArg	{value=chunk.Rest(a);}
+    		|	"last"  a=singleFunctionArg	{value=chunk.Last(a);}
     		)
 
     	 )
 	;
 
-singleFunctionArg returns [Object value=null]
+singleFunctionArg returns [object value=null]
 	:	#( SINGLEVALUEARG value=expr )
 	;    
 
 template[ArrayList templatesToApply]
 {
-IDictionary argumentContext = null;
-Object n = null;
+object n = null;
 }
     :   #(  TEMPLATE
             (   t:ID args:. // don't eval argList now; must re-eval each iteration
                 {
-                String templateName = t.getText();
-                StringTemplateGroup group = self.getGroup();
-                StringTemplate embedded = group.getEmbeddedInstanceOf(self, templateName);
+                string templateName = t.getText();
+                StringTemplateGroup group = self.Group;
+                StringTemplate embedded = group.GetEmbeddedInstanceOf(self, templateName);
                 if ( embedded!=null ) {
-                    embedded.setArgumentsAST(#args);
+                    embedded.ArgumentsAST = #args;
                     templatesToApply.Add(embedded);
                 }
                 }
 
             |	anon:ANONYMOUS_TEMPLATE
                 {
-                StringTemplate anonymous = anon.getStringTemplate();
+                StringTemplate anonymous = anon.StringTemplate;
                 templatesToApply.Add(anonymous);
                 }
 
             |   #(	VALUE n=expr args2:. 
 					{
 						StringTemplate embedded = null;
-						if ( n!=null ) 
-						{
+						if ( n!=null ) {
                 			String templateName = n.ToString();
-							StringTemplateGroup group = self.getGroup();
-							embedded = group.getEmbeddedInstanceOf(self, templateName);
-							if ( embedded!=null ) 
-							{
-								embedded.setArgumentsAST(#args2);
+							StringTemplateGroup group = self.Group;
+							embedded = group.GetEmbeddedInstanceOf(self, templateName);
+							if ( embedded!=null ) {
+								embedded.ArgumentsAST = #args2;
 								templatesToApply.Add(embedded);
 							}
 						}
@@ -234,21 +231,21 @@ Object n = null;
 
 ifCondition returns [bool value=false]
 {
-    Object a=null, b=null;
+    object a=null;
 }
-    :   a=ifAtom {value = chunk.testAttributeTrue(a);}
-    |   #(NOT a=ifAtom) {value = !chunk.testAttributeTrue(a);}
+    :   a=ifAtom {value = chunk.TestAttributeTrue(a);}
+    |   #(NOT a=ifAtom) {value = !chunk.TestAttributeTrue(a);}
 	;
 
-ifAtom returns [Object value=null]
+ifAtom returns [object value=null]
     :   value=expr
     ;
 
-attribute returns [Object value=null]
+attribute returns [object value=null]
 {
-    Object obj = null;
-    String propName = null;
-    Object e = null;
+    object obj = null;
+    string propName = null;
+    object e = null;
 }
     :   #( DOT obj=expr
            ( prop:ID {propName = prop.getText();}
@@ -256,11 +253,11 @@ attribute returns [Object value=null]
              {if (e!=null) {propName=e.ToString();}}
            )
          )
-        {value = chunk.getObjectProperty(self,obj,propName);}
+        {value = chunk.GetObjectProperty(self,obj,propName);}
 
     |   i3:ID
         {
-        value=self.getAttribute(i3.getText());
+        value=self.GetAttribute(i3.getText());
         }
 
     |   i:INT {value=Int32.Parse(i.getText());}
@@ -274,9 +271,9 @@ attribute returns [Object value=null]
     	{
     	value=at.getText();
 		if ( at.getText()!=null ) {
-			StringTemplate valueST =new StringTemplate(self.getGroup(), at.getText());
-			valueST.setEnclosingInstance(self);
-			valueST.setName("<anonymous template argument>");
+			StringTemplate valueST =new StringTemplate(self.Group, at.getText());
+			valueST.EnclosingInstance = self;
+			valueST.Name = "<anonymous template argument>";
 			value = valueST;
     	}
     	}
@@ -285,7 +282,7 @@ attribute returns [Object value=null]
 /** self is assumed to be the enclosing context as foo(x=y) must find y in
  *  the template that encloses the ref to foo(x=y).  We must pass in
  *  the embedded template (the one invoked) so we can check formal args
- *  in rawSetArgumentAttribute.
+ *  in RawSetArgumentAttribute.
  */
 argList[StringTemplate embedded, IDictionary initialContext]
     returns [IDictionary argumentContext=null]
@@ -301,43 +298,37 @@ argList[StringTemplate embedded, IDictionary initialContext]
 	
 singleTemplateArg[StringTemplate embedded, IDictionary argumentContext]
 {
-    Object e = null;
+    object e = null;
 }
 	:	#( SINGLEVALUEARG e=expr )
 	    {
 	    if ( e!=null ) {
-	    	String soleArgName = null;
+	    	string soleArgName = null;
 	    	// find the sole defined formal argument for embedded
 	    	bool error = false;
-			IDictionary formalArgs = embedded.getFormalArguments();
-			if ( formalArgs!=null ) 
-			{
+			HashList formalArgs = (HashList) embedded.FormalArguments;
+			if ( formalArgs!=null ) {
 				ICollection argNames = formalArgs.Keys;
-				if ( argNames.Count==1 ) 
-				{
-					string[] argNamesArray = new string[argNames.Count];
-					argNames.CopyTo(argNamesArray,0);
-					soleArgName = argNamesArray[0];
-					//System.out.println("sole formal arg of "+embedded.getName()+" is "+soleArgName);
+				if ( argNames.Count==1 ) {
+					IEnumerator iter = argNames.GetEnumerator();
+					iter.MoveNext();
+					soleArgName = (string) iter.Current;
+					//Console.WriteLine("sole formal arg of "+embedded.Name+" is "+soleArgName);
 				}
-				else 
-				{
+				else {
 					error=true;
 				}
 			}
-			else 
-			{
+			else {
 				error=true;
 			}
-			if ( error ) 
-			{
-				self.error("template "+embedded.getName()+
+			if ( error ) {
+				self.Error("template "+embedded.Name+
 				           " must have exactly one formal arg in template context "+
-						   self.getEnclosingInstanceStackString());
+						   self.GetEnclosingInstanceStackString());
 		   	}
-		   	else 
-		   	{
-		   		self.rawSetArgumentAttribute(embedded,argumentContext,soleArgName,e);
+		   	else {
+		   		self.RawSetArgumentAttribute(embedded,argumentContext,soleArgName,e);
 		   	}
 	    }
 	    }
@@ -345,13 +336,13 @@ singleTemplateArg[StringTemplate embedded, IDictionary argumentContext]
 	
 argumentAssignment[StringTemplate embedded, IDictionary argumentContext]
 {
-    Object e = null;
+    object e = null;
 }
 	:	#( ASSIGN arg:ID e=expr )
 	    {
 	    if ( e!=null ) {
-			self.rawSetArgumentAttribute(embedded,argumentContext,arg.getText(),e);
+			self.RawSetArgumentAttribute(embedded,argumentContext,arg.getText(),e);
 		}
 	    }
-	|	DOTDOTDOT {embedded.setPassThroughAttributes(true);}
+	|	DOTDOTDOT {embedded.PassThroughAttributes = true;}
 	;

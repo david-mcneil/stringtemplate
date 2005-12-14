@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,43 +24,72 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using CommonToken = antlr.CommonToken;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using IToken	= antlr.IToken;
+	using CommonToken	= antlr.CommonToken;
+	using TokenCreator	= antlr.TokenCreator;
 	
-	/// <summary>Tracks the various string and attribute chunks discovered
+	/// <summary>
+	/// Tracks the various string and attribute chunks discovered
 	/// by the lexer.  Subclassed CommonToken so that I could pass
 	/// the indentation to the parser, which will add it to the
 	/// ASTExpr created for the $...$ attribute reference.
 	/// </summary>
-	public class ChunkToken:CommonToken
+	public class ChunkToken : CommonToken
 	{
-		protected internal String indentation;
+		new public static readonly ChunkToken.ChunkTokenCreator Creator = new ChunkTokenCreator();
+
+		virtual public string Indentation
+		{
+			get { return _indentation; }
+			set { _indentation = value; }
+		}
+
+		private string _indentation;
 		
-		public ChunkToken():base()
+		public ChunkToken() : base()
 		{
 		}
 		
-		public ChunkToken(int type, String text, String indentation):base(type, text)
+		public ChunkToken(int type, string text, string indentation) : base(type, text)
 		{
-			setIndentation(indentation);
+			this._indentation = indentation;
 		}
 		
-		public virtual String getIndentation()
+		public override string ToString()
 		{
-			return indentation;
+			return base.ToString() + "<indent='" + _indentation + "'>";
 		}
-		
-		public virtual void setIndentation(String indentation)
+
+		public class ChunkTokenCreator : TokenCreator
 		{
-			this.indentation = indentation;
-		}
-		
-		public override String ToString()
-		{
-			return base.ToString() + "<indent='" + indentation + "'>";
+			public ChunkTokenCreator() {}
+
+			/// <summary>
+			/// Returns the fully qualified name of the Token type that this
+			/// class creates.
+			/// </summary>
+			public override string TokenTypeName
+			{
+				get 
+				{ 
+					return typeof(ChunkToken).FullName;; 
+				}
+			}
+
+			/// <summary>
+			/// Constructs a <see cref="Token"/> instance.
+			/// </summary>
+			public override IToken Create()
+			{
+				return new ChunkToken();
+			}
 		}
 	}
 }

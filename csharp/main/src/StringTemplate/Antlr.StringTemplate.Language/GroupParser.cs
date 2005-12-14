@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "group.g" -> "GroupParser.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "group.g" -> "GroupParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.Collections;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	// Generate the header common to all output files.
 	using System;
@@ -77,33 +77,37 @@ namespace antlr.stringtemplate.language
 		public const int LITERAL_group = 4;
 		public const int ID = 5;
 		public const int SEMI = 6;
-		public const int LPAREN = 7;
-		public const int RPAREN = 8;
-		public const int DEFINED_TO_BE = 9;
-		public const int STRING = 10;
-		public const int BIGSTRING = 11;
-		public const int COMMA = 12;
-		public const int ASSIGN = 13;
-		public const int ANONYMOUS_TEMPLATE = 14;
-		public const int LBRACK = 15;
-		public const int RBRACK = 16;
-		public const int COLON = 17;
-		public const int LITERAL_default = 18;
-		public const int STAR = 19;
-		public const int PLUS = 20;
-		public const int OPTIONAL = 21;
-		public const int SL_COMMENT = 22;
-		public const int ML_COMMENT = 23;
-		public const int WS = 24;
+		public const int AT = 7;
+		public const int DOT = 8;
+		public const int LPAREN = 9;
+		public const int RPAREN = 10;
+		public const int DEFINED_TO_BE = 11;
+		public const int STRING = 12;
+		public const int BIGSTRING = 13;
+		public const int COMMA = 14;
+		public const int ASSIGN = 15;
+		public const int ANONYMOUS_TEMPLATE = 16;
+		public const int LBRACK = 17;
+		public const int RBRACK = 18;
+		public const int COLON = 19;
+		public const int LITERAL_default = 20;
+		public const int STAR = 21;
+		public const int PLUS = 22;
+		public const int OPTIONAL = 23;
+		public const int SL_COMMENT = 24;
+		public const int ML_COMMENT = 25;
+		public const int WS = 26;
 		
 		
 protected StringTemplateGroup _group;
 
 override public void reportError(RecognitionException e) {
 	if (_group != null)
-		_group.error("template parse error", e);
-	else
-		Console.Error.WriteLine("template parse error: "+e);
+		_group.Error("template group parse error", e);
+	else {
+		Console.Error.WriteLine("template group parse error: "+e);
+	    Console.Error.WriteLine(e.StackTrace);
+	}
 }
 		
 		protected void initialize()
@@ -146,13 +150,13 @@ override public void reportError(RecognitionException e) {
 			match(LITERAL_group);
 			name = LT(1);
 			match(ID);
-			g.setName(name.getText());
+			g.Name = name.getText();
 			match(SEMI);
 			{ // ( ... )+
 				int _cnt3=0;
 				for (;;)
 				{
-					if ((LA(1)==ID) && (LA(2)==LPAREN||LA(2)==DEFINED_TO_BE) && (LA(3)==ID||LA(3)==RPAREN))
+					if ((LA(1)==ID||LA(1)==AT) && (LA(2)==ID||LA(2)==LPAREN||LA(2)==DEFINED_TO_BE) && (LA(3)==ID||LA(3)==DOT||LA(3)==RPAREN))
 					{
 						template(g);
 					}
@@ -181,31 +185,90 @@ _loop3_breakloop:				;
 	) //throws RecognitionException, TokenStreamException
 {
 		
+		IToken  scope = null;
+		IToken  region = null;
 		IToken  name = null;
 		IToken  t = null;
 		IToken  bt = null;
 		IToken  alias = null;
 		IToken  target = null;
 		
-		IDictionary formalArgs = null;
 		StringTemplate st = null;
-		bool ignore = false;
+		string templateName=null;
+		int line = LT(1).getLine();
 		
 		
 		try {      // for error handling
-			if ((LA(1)==ID) && (LA(2)==LPAREN))
+			if ((LA(1)==ID||LA(1)==AT) && (LA(2)==ID||LA(2)==LPAREN))
 			{
-				name = LT(1);
-				match(ID);
-				
-					    if ( g.isDefinedInThisGroup(name.getText()) ) {
-					        g.error("redefinition of template: "+name.getText());
-					        st = new StringTemplate(); // create bogus template to fill in
-					    }
-					    else {
-					        st = g.defineTemplate(name.getText(), null);
-					    }
-					
+				{
+					switch ( LA(1) )
+					{
+					case AT:
+					{
+						match(AT);
+						scope = LT(1);
+						match(ID);
+						match(DOT);
+						region = LT(1);
+						match(ID);
+						
+									templateName=g.GetMangledRegionName(scope.getText(),region.getText());
+							    	if ( g.IsDefinedInThisGroup(templateName) ) {
+							        	g.Error("group "+g.Name+" line "+line+": redefinition of template region: @"+
+							        		scope.getText()+"."+region.getText());
+										st = new StringTemplate(); // create bogus template to fill in
+									}
+									else {
+										bool err = false;
+										// @template.region() ::= "..."
+										StringTemplate scopeST = g.LookupTemplate(scope.getText());
+										if ( scopeST==null ) {
+											g.Error("group "+g.Name+" line "+line+": reference to region within undefined template: "+
+												scope.getText());
+											err=true;
+										}
+										if ( !scopeST.ContainsRegionName(region.getText()) ) {
+											g.Error("group "+g.Name+" line "+line+": template "+scope.getText()+" has no region called "+
+												region.getText());
+											err=true;
+										}
+										if ( err ) {
+											st = new StringTemplate();
+										}
+										else {
+											st = g.DefineRegionTemplate(scope.getText(),
+																		region.getText(),
+																		null,
+																		StringTemplate.REGION_EXPLICIT);
+										}
+									}
+									
+						break;
+					}
+					case ID:
+					{
+						name = LT(1);
+						match(ID);
+						templateName = name.getText();
+						
+							    if ( g.IsDefinedInThisGroup(templateName) ) {
+							        g.Error("redefinition of template: "+templateName);
+							        st = new StringTemplate(); // create bogus template to fill in
+							    }
+							    else {
+							        st = g.DefineTemplate(templateName, null);
+							    }
+							
+						break;
+					}
+					default:
+					{
+						throw new NoViableAltException(LT(1), getFilename());
+					}
+					 }
+				}
+				if ( st!=null ) {st.GroupFileLine = line;}
 				match(LPAREN);
 				{
 					switch ( LA(1) )
@@ -217,7 +280,7 @@ _loop3_breakloop:				;
 					}
 					case RPAREN:
 					{
-						st.defineEmptyFormalArgumentList();
+						st.DefineEmptyFormalArgumentList();
 						break;
 					}
 					default:
@@ -235,14 +298,14 @@ _loop3_breakloop:				;
 					{
 						t = LT(1);
 						match(STRING);
-						st.setTemplate(t.getText());
+						st.Template = t.getText();
 						break;
 					}
 					case BIGSTRING:
 					{
 						bt = LT(1);
 						match(BIGSTRING);
-						st.setTemplate(bt.getText());
+						st.Template = bt.getText();
 						break;
 					}
 					default:
@@ -258,7 +321,7 @@ _loop3_breakloop:				;
 				match(DEFINED_TO_BE);
 				target = LT(1);
 				match(ID);
-				g.defineTemplateAlias(alias.getText(), target.getText());
+				g.DefineTemplateAlias(alias.getText(), target.getText());
 			}
 			else
 			{
@@ -289,14 +352,14 @@ _loop3_breakloop:				;
 			match(DEFINED_TO_BE);
 			m=map();
 			
-				    if ( g.getMap(name.getText())!=null ) {
-				        g.error("redefinition of map: "+name.getText());
+				    if ( g.GetMap(name.getText())!=null ) {
+				        g.Error("redefinition of map: "+name.getText());
 				    }
-				    else if ( g.isDefinedInThisGroup(name.getText()) ) {
-				        g.error("redefinition of template as map: "+name.getText());
+				    else if ( g.IsDefinedInThisGroup(name.getText()) ) {
+				        g.Error("redefinition of template as map: "+name.getText());
 				    }
 				    else {
-				    	g.defineMap(name.getText(), m);
+				    	g.DefineMap(name.getText(), m);
 				    }
 				
 		}
@@ -325,11 +388,11 @@ _loop3_breakloop:				;
 					}
 					else
 					{
-						goto _loop9_breakloop;
+						goto _loop10_breakloop;
 					}
 					
 				}
-_loop9_breakloop:				;
+_loop10_breakloop:				;
 			}    // ( ... )*
 		}
 		catch (RecognitionException ex)
@@ -362,9 +425,9 @@ _loop9_breakloop:				;
 					match(STRING);
 					
 								defaultValue=new StringTemplate("$_val_$");
-								defaultValue.setAttribute("_val_", s.getText());
-								defaultValue.defineFormalArgument("_val_");
-								defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+								defaultValue.SetAttribute("_val_", s.getText());
+								defaultValue.DefineFormalArgument("_val_");
+								defaultValue.Name = "<"+st.Name+"'s arg "+name.getText()+" default value subtemplate>";
 								
 				}
 				else if ((LA(1)==ASSIGN) && (LA(2)==ANONYMOUS_TEMPLATE)) {
@@ -372,8 +435,8 @@ _loop9_breakloop:				;
 					bs = LT(1);
 					match(ANONYMOUS_TEMPLATE);
 					
-								defaultValue=new StringTemplate(st.getGroup(), bs.getText());
-								defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+								defaultValue=new StringTemplate(st.Group, bs.getText());
+								defaultValue.Name = "<"+st.Name+"'s arg "+name.getText()+" default value subtemplate>";
 								
 				}
 				else if ((LA(1)==RPAREN||LA(1)==COMMA)) {
@@ -384,7 +447,7 @@ _loop9_breakloop:				;
 				}
 				
 			}
-			st.defineFormalArgument(name.getText(), defaultValue);
+			st.DefineFormalArgument(name.getText(), defaultValue);
 		}
 		catch (RecognitionException ex)
 		{
@@ -411,11 +474,11 @@ _loop9_breakloop:				;
 					}
 					else
 					{
-						goto _loop15_breakloop;
+						goto _loop16_breakloop;
 					}
 					
 				}
-_loop15_breakloop:				;
+_loop16_breakloop:				;
 			}    // ( ... )*
 			match(RBRACK);
 		}
@@ -496,6 +559,8 @@ _loop15_breakloop:				;
 		@"""group""",
 		@"""ID""",
 		@"""SEMI""",
+		@"""AT""",
+		@"""DOT""",
 		@"""LPAREN""",
 		@"""RPAREN""",
 		@"""DEFINED_TO_BE""",
@@ -524,25 +589,25 @@ _loop15_breakloop:				;
 	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());
 	private static long[] mk_tokenSet_1_()
 	{
-		long[] data = { 34L, 0L};
+		long[] data = { 162L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_1_ = new BitSet(mk_tokenSet_1_());
 	private static long[] mk_tokenSet_2_()
 	{
-		long[] data = { 256L, 0L};
+		long[] data = { 1024L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_2_ = new BitSet(mk_tokenSet_2_());
 	private static long[] mk_tokenSet_3_()
 	{
-		long[] data = { 4352L, 0L};
+		long[] data = { 17408L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_3_ = new BitSet(mk_tokenSet_3_());
 	private static long[] mk_tokenSet_4_()
 	{
-		long[] data = { 69632L, 0L};
+		long[] data = { 278528L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());

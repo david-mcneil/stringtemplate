@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "eval.g" -> "ActionEvaluator.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "eval.g" -> "ActionEvaluator.cs"$
 
 /*
  [The "BSD licence"]
@@ -27,12 +27,13 @@
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-using antlr.stringtemplate;
+using Antlr.StringTemplate;
+using Antlr.StringTemplate.Collections;
 using System.Collections;
 using System.IO;
 using System.Reflection;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	// Generate header specific to the tree-parser CSharp file
 	using System;
@@ -96,22 +97,22 @@ namespace antlr.stringtemplate.language
 		
     public class NameValuePair {
         public String name;
-        public Object value;
+        public object value;
     };
 
     protected StringTemplate self = null;
-    protected StringTemplateWriter @out = null;
+    protected IStringTemplateWriter @out = null;
     protected ASTExpr chunk = null;
 
     /** Create an evaluator using attributes from self */
-    public ActionEvaluator(StringTemplate self, ASTExpr chunk, StringTemplateWriter @out) {
+    public ActionEvaluator(StringTemplate self, ASTExpr chunk, IStringTemplateWriter @out) {
         this.self = self;
         this.chunk = chunk;
         this.@out = @out;
     }
  
 	override public void reportError(RecognitionException e) {
-		self.error("template parse error", e);
+		self.Error("eval tree parse error", e);
 	}
 		public ActionEvaluator()
 		{
@@ -122,15 +123,15 @@ namespace antlr.stringtemplate.language
 {
 		int numCharsWritten=0;
 		
-		antlr.stringtemplate.language.StringTemplateAST action_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST action_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object e=null;
+		object e=null;
 		
 		
 		try {      // for error handling
 			e=expr(_t);
 			_t = retTree_;
-			numCharsWritten = chunk.writeAttribute(self,e,@out);
+			numCharsWritten = chunk.WriteAttribute(self,e,@out);
 		}
 		catch (RecognitionException ex)
 		{
@@ -144,14 +145,13 @@ namespace antlr.stringtemplate.language
 		return numCharsWritten;
 	}
 	
-	public Object  expr(AST _t) //throws RecognitionException
+	public object  expr(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST expr_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST expr_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object a=null, b=null, e=null;
-		IDictionary argumentContext=null;
+		object a=null, b=null, e=null;
 		
 		
 		try {      // for error handling
@@ -162,14 +162,14 @@ namespace antlr.stringtemplate.language
 			case PLUS:
 			{
 				AST __t3 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp1_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp1_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,PLUS);
 				_t = _t.getFirstChild();
 				a=expr(_t);
 				_t = retTree_;
 				b=expr(_t);
 				_t = retTree_;
-				value = chunk.add(a,b);
+				value = chunk.Add(a,b);
 				_t = __t3;
 				_t = _t.getNextSibling();
 				break;
@@ -212,7 +212,7 @@ namespace antlr.stringtemplate.language
 			case VALUE:
 			{
 				AST __t4 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp2_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp2_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,VALUE);
 				_t = _t.getFirstChild();
 				e=expr(_t);
@@ -222,18 +222,18 @@ namespace antlr.stringtemplate.language
 				
 				StringWriter buf = new StringWriter();
 				Type writerClass = @out.GetType();
-				StringTemplateWriter sw = null;
+				IStringTemplateWriter sw = null;
 				try {
 				ConstructorInfo ctor =
 					writerClass.GetConstructor(new Type[] {typeof(TextWriter)});
-				sw = (StringTemplateWriter)ctor.Invoke(new Object[] {buf});
+				sw = (IStringTemplateWriter)ctor.Invoke(new Object[] {buf});
 				}
 				catch (Exception exc) {
 					// default new AutoIndentWriter(buf)
-					self.error("cannot make implementation of StringTemplateWriter",exc);
+					self.Error("cannot make implementation of IStringTemplateWriter",exc);
 					sw = new AutoIndentWriter(buf);
 					}
-				chunk.writeAttribute(self,e,sw);
+				chunk.WriteAttribute(self,e,sw);
 				value = buf.ToString();
 				
 				break;
@@ -259,14 +259,14 @@ namespace antlr.stringtemplate.language
 /** Apply template(s) to an attribute; can be applied to another apply
  *  result.
  */
-	public Object  templateApplication(AST _t) //throws RecognitionException
+	public object  templateApplication(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST templateApplication_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
-		antlr.stringtemplate.language.StringTemplateAST anon = null;
+		Antlr.StringTemplate.Language.StringTemplateAST templateApplication_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST anon = null;
 		
-		Object a=null;
+		object a=null;
 		ArrayList templatesToApply=new ArrayList();
 		ArrayList attributes=new ArrayList();
 		
@@ -279,7 +279,7 @@ namespace antlr.stringtemplate.language
 			case APPLY:
 			{
 				AST __t14 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp3_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp3_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,APPLY);
 				_t = _t.getFirstChild();
 				a=expr(_t);
@@ -304,7 +304,7 @@ namespace antlr.stringtemplate.language
 					}
 _loop16_breakloop:					;
 				}    // ( ... )+
-				value = chunk.applyListOfAlternatingTemplates(self,a,templatesToApply);
+				value = chunk.ApplyListOfAlternatingTemplates(self,a,templatesToApply);
 				_t = __t14;
 				_t = _t.getNextSibling();
 				break;
@@ -312,7 +312,7 @@ _loop16_breakloop:					;
 			case MULTI_APPLY:
 			{
 				AST __t17 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp4_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp4_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,MULTI_APPLY);
 				_t = _t.getFirstChild();
 				{ // ( ... )+
@@ -336,18 +336,18 @@ _loop16_breakloop:					;
 					}
 _loop19_breakloop:					;
 				}    // ( ... )+
-				antlr.stringtemplate.language.StringTemplateAST tmp5_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp5_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,COLON);
 				_t = _t.getNextSibling();
-				anon = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				anon = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ANONYMOUS_TEMPLATE);
 				_t = _t.getNextSibling();
 				
-							StringTemplate anonymous = anon.getStringTemplate();
+							StringTemplate anonymous = anon.StringTemplate;
 							templatesToApply.Add(anonymous);
-							value = chunk.applyTemplateToListOfAttributes(self,
+							value = chunk.ApplyTemplateToListOfAttributes(self,
 																		  attributes,
-																		  anon.getStringTemplate());
+																		  anon.StringTemplate);
 							
 				_t = __t17;
 				_t = _t.getNextSibling();
@@ -371,20 +371,20 @@ _loop19_breakloop:					;
 		return value;
 	}
 	
-	public Object  attribute(AST _t) //throws RecognitionException
+	public object  attribute(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST attribute_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
-		antlr.stringtemplate.language.StringTemplateAST prop = null;
-		antlr.stringtemplate.language.StringTemplateAST i3 = null;
-		antlr.stringtemplate.language.StringTemplateAST i = null;
-		antlr.stringtemplate.language.StringTemplateAST s = null;
-		antlr.stringtemplate.language.StringTemplateAST at = null;
+		Antlr.StringTemplate.Language.StringTemplateAST attribute_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST prop = null;
+		Antlr.StringTemplate.Language.StringTemplateAST i3 = null;
+		Antlr.StringTemplate.Language.StringTemplateAST i = null;
+		Antlr.StringTemplate.Language.StringTemplateAST s = null;
+		Antlr.StringTemplate.Language.StringTemplateAST at = null;
 		
-		Object obj = null;
-		String propName = null;
-		Object e = null;
+		object obj = null;
+		string propName = null;
+		object e = null;
 		
 		
 		try {      // for error handling
@@ -395,7 +395,7 @@ _loop19_breakloop:					;
 			case DOT:
 			{
 				AST __t33 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp6_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp6_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,DOT);
 				_t = _t.getFirstChild();
 				obj=expr(_t);
@@ -407,7 +407,7 @@ _loop19_breakloop:					;
 					{
 					case ID:
 					{
-						prop = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+						prop = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 						match((AST)_t,ID);
 						_t = _t.getNextSibling();
 						propName = prop.getText();
@@ -416,7 +416,7 @@ _loop19_breakloop:					;
 					case VALUE:
 					{
 						AST __t35 = _t;
-						antlr.stringtemplate.language.StringTemplateAST tmp7_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+						Antlr.StringTemplate.Language.StringTemplateAST tmp7_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 						match((AST)_t,VALUE);
 						_t = _t.getFirstChild();
 						e=expr(_t);
@@ -434,22 +434,22 @@ _loop19_breakloop:					;
 				}
 				_t = __t33;
 				_t = _t.getNextSibling();
-				value = chunk.getObjectProperty(self,obj,propName);
+				value = chunk.GetObjectProperty(self,obj,propName);
 				break;
 			}
 			case ID:
 			{
-				i3 = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				i3 = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ID);
 				_t = _t.getNextSibling();
 				
-				value=self.getAttribute(i3.getText());
+				value=self.GetAttribute(i3.getText());
 				
 				break;
 			}
 			case INT:
 			{
-				i = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				i = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,INT);
 				_t = _t.getNextSibling();
 				value=Int32.Parse(i.getText());
@@ -457,7 +457,7 @@ _loop19_breakloop:					;
 			}
 			case STRING:
 			{
-				s = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				s = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,STRING);
 				_t = _t.getNextSibling();
 				
@@ -467,15 +467,15 @@ _loop19_breakloop:					;
 			}
 			case ANONYMOUS_TEMPLATE:
 			{
-				at = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				at = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ANONYMOUS_TEMPLATE);
 				_t = _t.getNextSibling();
 				
 					value=at.getText();
 						if ( at.getText()!=null ) {
-							StringTemplate valueST =new StringTemplate(self.getGroup(), at.getText());
-							valueST.setEnclosingInstance(self);
-							valueST.setName("<anonymous template argument>");
+							StringTemplate valueST =new StringTemplate(self.Group, at.getText());
+							valueST.EnclosingInstance = self;
+							valueST.Name = "<anonymous template argument>";
 							value = valueST;
 					}
 					
@@ -499,23 +499,23 @@ _loop19_breakloop:					;
 		return value;
 	}
 	
-	public Object  templateInclude(AST _t) //throws RecognitionException
+	public object  templateInclude(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST templateInclude_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
-		antlr.stringtemplate.language.StringTemplateAST id = null;
-		antlr.stringtemplate.language.StringTemplateAST a1 = null;
-		antlr.stringtemplate.language.StringTemplateAST a2 = null;
+		Antlr.StringTemplate.Language.StringTemplateAST templateInclude_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST id = null;
+		Antlr.StringTemplate.Language.StringTemplateAST a1 = null;
+		Antlr.StringTemplate.Language.StringTemplateAST a2 = null;
 		
 		StringTemplateAST args = null;
-		String name = null;
-		Object n = null;
+		string name = null;
+		object n = null;
 		
 		
 		try {      // for error handling
 			AST __t10 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp8_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp8_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,INCLUDE);
 			_t = _t.getFirstChild();
 			{
@@ -525,10 +525,10 @@ _loop19_breakloop:					;
 				{
 				case ID:
 				{
-					id = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					id = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,ID);
 					_t = _t.getNextSibling();
-					a1 = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					a1 = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					if (null == _t) throw new MismatchedTokenException();
 					_t = _t.getNextSibling();
 					name=id.getText(); args=a1;
@@ -537,12 +537,12 @@ _loop19_breakloop:					;
 				case VALUE:
 				{
 					AST __t12 = _t;
-					antlr.stringtemplate.language.StringTemplateAST tmp9_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp9_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,VALUE);
 					_t = _t.getFirstChild();
 					n=expr(_t);
 					_t = retTree_;
-					a2 = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					a2 = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					if (null == _t) throw new MismatchedTokenException();
 					_t = _t.getNextSibling();
 					_t = __t12;
@@ -560,7 +560,7 @@ _loop19_breakloop:					;
 			_t = _t.getNextSibling();
 			
 			if ( name!=null ) {
-				value = chunk.getTemplateInclude(self, name, args);
+				value = chunk.GetTemplateInclude(self, name, args);
 			}
 			
 		}
@@ -576,18 +576,18 @@ _loop19_breakloop:					;
 		return value;
 	}
 	
-	public Object  function(AST _t) //throws RecognitionException
+	public object  function(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST function_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST function_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object a;
+		object a;
 		
 		
 		try {      // for error handling
 			AST __t21 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp10_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp10_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,FUNCTION);
 			_t = _t.getFirstChild();
 			{
@@ -597,32 +597,32 @@ _loop19_breakloop:					;
 				{
 				case LITERAL_first:
 				{
-					antlr.stringtemplate.language.StringTemplateAST tmp11_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp11_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,LITERAL_first);
 					_t = _t.getNextSibling();
 					a=singleFunctionArg(_t);
 					_t = retTree_;
-					value=chunk.first(a);
+					value=chunk.First(a);
 					break;
 				}
 				case LITERAL_rest:
 				{
-					antlr.stringtemplate.language.StringTemplateAST tmp12_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp12_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,LITERAL_rest);
 					_t = _t.getNextSibling();
 					a=singleFunctionArg(_t);
 					_t = retTree_;
-					value=chunk.rest(a);
+					value=chunk.Rest(a);
 					break;
 				}
 				case LITERAL_last:
 				{
-					antlr.stringtemplate.language.StringTemplateAST tmp13_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp13_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,LITERAL_last);
 					_t = _t.getNextSibling();
 					a=singleFunctionArg(_t);
 					_t = retTree_;
-					value=chunk.last(a);
+					value=chunk.Last(a);
 					break;
 				}
 				default:
@@ -647,20 +647,20 @@ _loop19_breakloop:					;
 	}
 	
 /** create a new list of expressions as a new multi-value attribute */
-	public Object  list(AST _t) //throws RecognitionException
+	public object  list(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST list_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST list_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object e = null;
+		object e = null;
 		IList elements = new ArrayList();
 		value = new CatIterator(elements);
 		
 		
 		try {      // for error handling
 			AST __t6 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp14_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp14_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,LIST);
 			_t = _t.getFirstChild();
 			{ // ( ... )+
@@ -675,7 +675,7 @@ _loop19_breakloop:					;
 						_t = retTree_;
 						
 									  	if ( e!=null ) {
-											e = ASTExpr.convertAnythingToIterator(e);
+											e = ASTExpr.ConvertAnythingToIterator(e);
 									  		elements.Add(e);
 									  	}
 									  	
@@ -709,19 +709,18 @@ _loop8_breakloop:				;
 	) //throws RecognitionException
 {
 		
-		antlr.stringtemplate.language.StringTemplateAST template_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
-		antlr.stringtemplate.language.StringTemplateAST t = null;
-		antlr.stringtemplate.language.StringTemplateAST args = null;
-		antlr.stringtemplate.language.StringTemplateAST anon = null;
-		antlr.stringtemplate.language.StringTemplateAST args2 = null;
+		Antlr.StringTemplate.Language.StringTemplateAST template_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST t = null;
+		Antlr.StringTemplate.Language.StringTemplateAST args = null;
+		Antlr.StringTemplate.Language.StringTemplateAST anon = null;
+		Antlr.StringTemplate.Language.StringTemplateAST args2 = null;
 		
-		IDictionary argumentContext = null;
-		Object n = null;
+		object n = null;
 		
 		
 		try {      // for error handling
 			AST __t26 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp15_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp15_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,TEMPLATE);
 			_t = _t.getFirstChild();
 			{
@@ -731,18 +730,18 @@ _loop8_breakloop:				;
 				{
 				case ID:
 				{
-					t = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					t = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,ID);
 					_t = _t.getNextSibling();
-					args = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					args = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					if (null == _t) throw new MismatchedTokenException();
 					_t = _t.getNextSibling();
 					
-					String templateName = t.getText();
-					StringTemplateGroup group = self.getGroup();
-					StringTemplate embedded = group.getEmbeddedInstanceOf(self, templateName);
+					string templateName = t.getText();
+					StringTemplateGroup group = self.Group;
+					StringTemplate embedded = group.GetEmbeddedInstanceOf(self, templateName);
 					if ( embedded!=null ) {
-					embedded.setArgumentsAST(args);
+					embedded.ArgumentsAST = args;
 					templatesToApply.Add(embedded);
 					}
 					
@@ -750,11 +749,11 @@ _loop8_breakloop:				;
 				}
 				case ANONYMOUS_TEMPLATE:
 				{
-					anon = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					anon = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,ANONYMOUS_TEMPLATE);
 					_t = _t.getNextSibling();
 					
-					StringTemplate anonymous = anon.getStringTemplate();
+					StringTemplate anonymous = anon.StringTemplate;
 					templatesToApply.Add(anonymous);
 					
 					break;
@@ -762,24 +761,22 @@ _loop8_breakloop:				;
 				case VALUE:
 				{
 					AST __t28 = _t;
-					antlr.stringtemplate.language.StringTemplateAST tmp16_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp16_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,VALUE);
 					_t = _t.getFirstChild();
 					n=expr(_t);
 					_t = retTree_;
-					args2 = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+					args2 = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					if (null == _t) throw new MismatchedTokenException();
 					_t = _t.getNextSibling();
 					
 											StringTemplate embedded = null;
-											if ( n!=null ) 
-											{
+											if ( n!=null ) {
 								String templateName = n.ToString();
-												StringTemplateGroup group = self.getGroup();
-												embedded = group.getEmbeddedInstanceOf(self, templateName);
-												if ( embedded!=null ) 
-												{
-													embedded.setArgumentsAST(args2);
+												StringTemplateGroup group = self.Group;
+												embedded = group.GetEmbeddedInstanceOf(self, templateName);
+												if ( embedded!=null ) {
+													embedded.ArgumentsAST = args2;
 													templatesToApply.Add(embedded);
 												}
 											}
@@ -808,15 +805,15 @@ _loop8_breakloop:				;
 		retTree_ = _t;
 	}
 	
-	public Object  singleFunctionArg(AST _t) //throws RecognitionException
+	public object  singleFunctionArg(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST singleFunctionArg_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST singleFunctionArg_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
 		try {      // for error handling
 			AST __t24 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp17_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp17_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,SINGLEVALUEARG);
 			_t = _t.getFirstChild();
 			value=expr(_t);
@@ -840,9 +837,9 @@ _loop8_breakloop:				;
 {
 		bool value=false;
 		
-		antlr.stringtemplate.language.StringTemplateAST ifCondition_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST ifCondition_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object a=null, b=null;
+		object a=null;
 		
 		
 		try {      // for error handling
@@ -865,20 +862,20 @@ _loop8_breakloop:				;
 			{
 				a=ifAtom(_t);
 				_t = retTree_;
-				value = chunk.testAttributeTrue(a);
+				value = chunk.TestAttributeTrue(a);
 				break;
 			}
 			case NOT:
 			{
 				AST __t30 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp18_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp18_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,NOT);
 				_t = _t.getFirstChild();
 				a=ifAtom(_t);
 				_t = retTree_;
 				_t = __t30;
 				_t = _t.getNextSibling();
-				value = !chunk.testAttributeTrue(a);
+				value = !chunk.TestAttributeTrue(a);
 				break;
 			}
 			default:
@@ -899,11 +896,11 @@ _loop8_breakloop:				;
 		return value;
 	}
 	
-	public Object  ifAtom(AST _t) //throws RecognitionException
+	public object  ifAtom(AST _t) //throws RecognitionException
 {
-		Object value=null;
+		object value=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST ifAtom_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST ifAtom_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
 		try {      // for error handling
 			value=expr(_t);
@@ -924,7 +921,7 @@ _loop8_breakloop:				;
 /** self is assumed to be the enclosing context as foo(x=y) must find y in
  *  the template that encloses the ref to foo(x=y).  We must pass in
  *  the embedded template (the one invoked) so we can check formal args
- *  in rawSetArgumentAttribute.
+ *  in RawSetArgumentAttribute.
  */
 	public IDictionary  argList(AST _t,
 		StringTemplate embedded, IDictionary initialContext
@@ -932,7 +929,7 @@ _loop8_breakloop:				;
 {
 		IDictionary argumentContext=null;
 		
-		antlr.stringtemplate.language.StringTemplateAST argList_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST argList_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
 		argumentContext = initialContext;
 		if ( argumentContext==null ) {
@@ -948,7 +945,7 @@ _loop8_breakloop:				;
 			case ARGS:
 			{
 				AST __t37 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp19_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp19_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ARGS);
 				_t = _t.getFirstChild();
 				{    // ( ... )*
@@ -1002,10 +999,10 @@ _loop39_breakloop:					;
 	) //throws RecognitionException
 {
 		
-		antlr.stringtemplate.language.StringTemplateAST argumentAssignment_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
-		antlr.stringtemplate.language.StringTemplateAST arg = null;
+		Antlr.StringTemplate.Language.StringTemplateAST argumentAssignment_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST arg = null;
 		
-		Object e = null;
+		object e = null;
 		
 		
 		try {      // for error handling
@@ -1016,10 +1013,10 @@ _loop39_breakloop:					;
 			case ASSIGN:
 			{
 				AST __t43 = _t;
-				antlr.stringtemplate.language.StringTemplateAST tmp20_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp20_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ASSIGN);
 				_t = _t.getFirstChild();
-				arg = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				arg = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ID);
 				_t = _t.getNextSibling();
 				e=expr(_t);
@@ -1028,17 +1025,17 @@ _loop39_breakloop:					;
 				_t = _t.getNextSibling();
 				
 					    if ( e!=null ) {
-							self.rawSetArgumentAttribute(embedded,argumentContext,arg.getText(),e);
+							self.RawSetArgumentAttribute(embedded,argumentContext,arg.getText(),e);
 						}
 					
 				break;
 			}
 			case DOTDOTDOT:
 			{
-				antlr.stringtemplate.language.StringTemplateAST tmp21_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp21_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,DOTDOTDOT);
 				_t = _t.getNextSibling();
-				embedded.setPassThroughAttributes(true);
+				embedded.PassThroughAttributes = true;
 				break;
 			}
 			default:
@@ -1063,14 +1060,14 @@ _loop39_breakloop:					;
 	) //throws RecognitionException
 {
 		
-		antlr.stringtemplate.language.StringTemplateAST singleTemplateArg_AST_in = (antlr.stringtemplate.language.StringTemplateAST)_t;
+		Antlr.StringTemplate.Language.StringTemplateAST singleTemplateArg_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 		
-		Object e = null;
+		object e = null;
 		
 		
 		try {      // for error handling
 			AST __t41 = _t;
-			antlr.stringtemplate.language.StringTemplateAST tmp22_AST_in = (_t==ASTNULL) ? null : (antlr.stringtemplate.language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp22_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,SINGLEVALUEARG);
 			_t = _t.getFirstChild();
 			e=expr(_t);
@@ -1079,38 +1076,32 @@ _loop39_breakloop:					;
 			_t = _t.getNextSibling();
 			
 				    if ( e!=null ) {
-				    	String soleArgName = null;
+				    	string soleArgName = null;
 				    	// find the sole defined formal argument for embedded
 				    	bool error = false;
-						IDictionary formalArgs = embedded.getFormalArguments();
-						if ( formalArgs!=null ) 
-						{
+						HashList formalArgs = (HashList) embedded.FormalArguments;
+						if ( formalArgs!=null ) {
 							ICollection argNames = formalArgs.Keys;
-							if ( argNames.Count==1 ) 
-							{
-								string[] argNamesArray = new string[argNames.Count];
-								argNames.CopyTo(argNamesArray,0);
-								soleArgName = argNamesArray[0];
-								//System.out.println("sole formal arg of "+embedded.getName()+" is "+soleArgName);
+							if ( argNames.Count==1 ) {
+								IEnumerator iter = argNames.GetEnumerator();
+								iter.MoveNext();
+								soleArgName = (string) iter.Current;
+								//Console.WriteLine("sole formal arg of "+embedded.Name+" is "+soleArgName);
 							}
-							else 
-							{
+							else {
 								error=true;
 							}
 						}
-						else 
-						{
+						else {
 							error=true;
 						}
-						if ( error ) 
-						{
-							self.error("template "+embedded.getName()+
+						if ( error ) {
+							self.Error("template "+embedded.Name+
 							           " must have exactly one formal arg in template context "+
-									   self.getEnclosingInstanceStackString());
+									   self.GetEnclosingInstanceStackString());
 					   	}
-					   	else 
-					   	{
-					   		self.rawSetArgumentAttribute(embedded,argumentContext,soleArgName,e);
+					   	else {
+					   		self.RawSetArgumentAttribute(embedded,argumentContext,soleArgName,e);
 					   	}
 				    }
 				
@@ -1126,9 +1117,9 @@ _loop39_breakloop:					;
 		retTree_ = _t;
 	}
 	
-	public new antlr.stringtemplate.language.StringTemplateAST getAST()
+	public new Antlr.StringTemplate.Language.StringTemplateAST getAST()
 	{
-		return (antlr.stringtemplate.language.StringTemplateAST) returnAST;
+		return (Antlr.StringTemplate.Language.StringTemplateAST) returnAST;
 	}
 	
 	

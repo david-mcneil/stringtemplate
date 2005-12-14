@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "group.g" -> "GroupLexer.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "group.g" -> "GroupLexer.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.Collections;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	// Generate header specific to lexer CSharp file
 	using System;
@@ -66,24 +66,26 @@ namespace antlr.stringtemplate.language
 		public const int LITERAL_group = 4;
 		public const int ID = 5;
 		public const int SEMI = 6;
-		public const int LPAREN = 7;
-		public const int RPAREN = 8;
-		public const int DEFINED_TO_BE = 9;
-		public const int STRING = 10;
-		public const int BIGSTRING = 11;
-		public const int COMMA = 12;
-		public const int ASSIGN = 13;
-		public const int ANONYMOUS_TEMPLATE = 14;
-		public const int LBRACK = 15;
-		public const int RBRACK = 16;
-		public const int COLON = 17;
-		public const int LITERAL_default = 18;
-		public const int STAR = 19;
-		public const int PLUS = 20;
-		public const int OPTIONAL = 21;
-		public const int SL_COMMENT = 22;
-		public const int ML_COMMENT = 23;
-		public const int WS = 24;
+		public const int AT = 7;
+		public const int DOT = 8;
+		public const int LPAREN = 9;
+		public const int RPAREN = 10;
+		public const int DEFINED_TO_BE = 11;
+		public const int STRING = 12;
+		public const int BIGSTRING = 13;
+		public const int COMMA = 14;
+		public const int ASSIGN = 15;
+		public const int ANONYMOUS_TEMPLATE = 16;
+		public const int LBRACK = 17;
+		public const int RBRACK = 18;
+		public const int COLON = 19;
+		public const int LITERAL_default = 20;
+		public const int STAR = 21;
+		public const int PLUS = 22;
+		public const int OPTIONAL = 23;
+		public const int SL_COMMENT = 24;
+		public const int ML_COMMENT = 25;
+		public const int WS = 26;
 		
 		public GroupLexer(Stream ins) : this(new ByteBuffer(ins))
 		{
@@ -106,7 +108,7 @@ namespace antlr.stringtemplate.language
 			caseSensitiveLiterals = true;
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
-			literals.Add("default", 18);
+			literals.Add("default", 20);
 			literals.Add("group", 4);
 		}
 		
@@ -161,6 +163,12 @@ tryAgain:
 							theRetToken = returnToken_;
 							break;
 						}
+						case '@':
+						{
+							mAT(true);
+							theRetToken = returnToken_;
+							break;
+						}
 						case '(':
 						{
 							mLPAREN(true);
@@ -188,6 +196,12 @@ tryAgain:
 						case ',':
 						{
 							mCOMMA(true);
+							theRetToken = returnToken_;
+							break;
+						}
+						case '.':
+						{
+							mDOT(true);
 							theRetToken = returnToken_;
 							break;
 						}
@@ -355,11 +369,11 @@ tryAgain:
 				}
 				default:
 				{
-					goto _loop20_breakloop;
+					goto _loop21_breakloop;
 				}
 				 }
 			}
-_loop20_breakloop:			;
+_loop21_breakloop:			;
 		}    // ( ... )*
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -397,11 +411,11 @@ _loop20_breakloop:			;
 				}
 				else
 				{
-					goto _loop23_breakloop;
+					goto _loop24_breakloop;
 				}
 				
 			}
-_loop23_breakloop:			;
+_loop24_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match('"');
@@ -463,7 +477,7 @@ _loop23_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='>') && (cached_LA2=='>')) goto _loop29_breakloop;
+				if ((cached_LA1=='>') && (cached_LA2=='>')) goto _loop30_breakloop;
 				if (((cached_LA1=='\r') && (cached_LA2=='\n'))&&(LA(3)=='>'&&LA(4)=='>'))
 				{
 					_saveIndex = text.Length;
@@ -507,11 +521,11 @@ _loop23_breakloop:			;
 				}
 				else
 				{
-					goto _loop29_breakloop;
+					goto _loop30_breakloop;
 				}
 				
 			}
-_loop29_breakloop:			;
+_loop30_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match(">>");
@@ -529,10 +543,6 @@ _loop29_breakloop:			;
 		int _ttype; IToken _token=null; int _begin=text.Length;
 		_ttype = ANONYMOUS_TEMPLATE;
 		
-		IList args=null;
-		StringTemplateToken t = null;
-		
-		
 		int _saveIndex = 0;
 		_saveIndex = text.Length;
 		match('{');
@@ -541,7 +551,7 @@ _loop29_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='}') && (true)) goto _loop33_breakloop;
+				if ((cached_LA1=='}') && (true)) goto _loop34_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
 				{
 					{
@@ -570,15 +580,29 @@ _loop29_breakloop:			;
 				}
 				else
 				{
-					goto _loop33_breakloop;
+					goto _loop34_breakloop;
 				}
 				
 			}
-_loop33_breakloop:			;
+_loop34_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match('}');
 		text.Length = _saveIndex;
+		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
+		{
+			_token = makeToken(_ttype);
+			_token.setText(text.ToString(_begin, text.Length-_begin));
+		}
+		returnToken_ = _token;
+	}
+	
+	public void mAT(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
+{
+		int _ttype; IToken _token=null; int _begin=text.Length;
+		_ttype = AT;
+		
+		match('@');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
 			_token = makeToken(_ttype);
@@ -649,6 +673,20 @@ _loop33_breakloop:			;
 		_ttype = COMMA;
 		
 		match(',');
+		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
+		{
+			_token = makeToken(_ttype);
+			_token.setText(text.ToString(_begin, text.Length-_begin));
+		}
+		returnToken_ = _token;
+	}
+	
+	public void mDOT(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
+{
+		int _ttype; IToken _token=null; int _begin=text.Length;
+		_ttype = DOT;
+		
+		match('.');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
 			_token = makeToken(_ttype);
@@ -772,11 +810,11 @@ _loop33_breakloop:			;
 				}
 				else
 				{
-					goto _loop49_breakloop;
+					goto _loop52_breakloop;
 				}
 				
 			}
-_loop49_breakloop:			;
+_loop52_breakloop:			;
 		}    // ( ... )*
 		{
 			if ((cached_LA1=='\n'||cached_LA1=='\r'))
@@ -824,7 +862,7 @@ _loop49_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop55_breakloop;
+				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop58_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
 				{
 					{
@@ -853,11 +891,11 @@ _loop49_breakloop:			;
 				}
 				else
 				{
-					goto _loop55_breakloop;
+					goto _loop58_breakloop;
 				}
 				
 			}
-_loop55_breakloop:			;
+_loop58_breakloop:			;
 		}    // ( ... )*
 		match("*/");
 		_ttype = Token.SKIP;
@@ -875,7 +913,7 @@ _loop55_breakloop:			;
 		_ttype = WS;
 		
 		{ // ( ... )+
-			int _cnt59=0;
+			int _cnt62=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -921,12 +959,12 @@ _loop55_breakloop:			;
 				}
 				default:
 				{
-					if (_cnt59 >= 1) { goto _loop59_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt62 >= 1) { goto _loop62_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt59++;
+				_cnt62++;
 			}
-_loop59_breakloop:			;
+_loop62_breakloop:			;
 		}    // ( ... )+
 		_ttype = Token.SKIP;
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))

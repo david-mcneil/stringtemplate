@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,26 +24,53 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using StringTemplate = antlr.stringtemplate.StringTemplate;
-using CommonAST = antlr.CommonAST;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate	= Antlr.StringTemplate.StringTemplate;
+	using AST				= antlr.collections.AST;
+	using CommonAST			= antlr.CommonAST;
+	using ASTNodeCreator	= antlr.ASTNodeCreator;
 	
-	[Serializable]
-	public class StringTemplateAST:CommonAST
+	public class StringTemplateAST : CommonAST
 	{
-		protected internal StringTemplate st = null; // track template for ANONYMOUS blocks
-		
-		public virtual StringTemplate getStringTemplate()
+		new public static readonly StringTemplateAST.StringTemplateASTCreator Creator = new StringTemplateASTCreator();
+
+		virtual public StringTemplate StringTemplate
 		{
-			return st;
+			get { return st; }
+			set { this.st = value; }
 		}
-		
-		public virtual void setStringTemplate(StringTemplate st)
+
+		protected StringTemplate st = null; // track template for ANONYMOUS blocks
+
+		public class StringTemplateASTCreator : ASTNodeCreator
 		{
-			this.st = st;
+			public StringTemplateASTCreator() {}
+
+			/// <summary>
+			/// Returns the fully qualified name of the AST type that this
+			/// class creates.
+			/// </summary>
+			public override string ASTNodeTypeName
+			{
+				get 
+				{ 
+					return typeof(StringTemplateAST).FullName;; 
+				}
+			}
+
+			/// <summary>
+			/// Constructs a <see cref="AST"/> instance.
+			/// </summary>
+			public override AST Create()
+			{
+				return new StringTemplateAST();
+			}
 		}
 	}
 }

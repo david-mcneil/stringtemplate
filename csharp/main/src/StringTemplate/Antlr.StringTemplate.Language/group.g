@@ -31,7 +31,7 @@ using System.Collections;
 
 options {
 	language="CSharp";
-	namespace="antlr.stringtemplate.language";
+	namespace="Antlr.StringTemplate.Language";
 }
 
 /** Match a group of template definitions beginning
@@ -66,42 +66,79 @@ protected StringTemplateGroup _group;
 
 override public void reportError(RecognitionException e) {
 	if (_group != null)
-		_group.error("template parse error", e);
-	else
-		Console.Error.WriteLine("template parse error: "+e);
+		_group.Error("template group parse error", e);
+	else {
+		Console.Error.WriteLine("template group parse error: "+e);
+	    Console.Error.WriteLine(e.StackTrace);
+	}
 }
 }
 
 group[StringTemplateGroup g]
-	:	"group" name:ID {g.setName(name.getText());} SEMI
+	:	"group" name:ID {g.Name = name.getText();} SEMI
 	    ( template[g] | mapdef[g] )+
     ;
 
 template[StringTemplateGroup g]
 {
-    IDictionary formalArgs = null;
     StringTemplate st = null;
-    bool ignore = false;
+    string templateName=null;
+    int line = LT(1).getLine();
 }
-	:	name:ID
+	:	(	AT scope:ID DOT region:ID
+			{
+			templateName=g.GetMangledRegionName(scope.getText(),region.getText());
+	    	if ( g.IsDefinedInThisGroup(templateName) ) {
+	        	g.Error("group "+g.Name+" line "+line+": redefinition of template region: @"+
+	        		scope.getText()+"."+region.getText());
+				st = new StringTemplate(); // create bogus template to fill in
+			}
+			else {
+				bool err = false;
+				// @template.region() ::= "..."
+				StringTemplate scopeST = g.LookupTemplate(scope.getText());
+				if ( scopeST==null ) {
+					g.Error("group "+g.Name+" line "+line+": reference to region within undefined template: "+
+						scope.getText());
+					err=true;
+				}
+				if ( !scopeST.ContainsRegionName(region.getText()) ) {
+					g.Error("group "+g.Name+" line "+line+": template "+scope.getText()+" has no region called "+
+						region.getText());
+					err=true;
+				}
+				if ( err ) {
+					st = new StringTemplate();
+				}
+				else {
+					st = g.DefineRegionTemplate(scope.getText(),
+												region.getText(),
+												null,
+												StringTemplate.REGION_EXPLICIT);
+				}
+			}
+			}
+	|	name:ID {templateName = name.getText();}
 	    {
-	    if ( g.isDefinedInThisGroup(name.getText()) ) {
-	        g.error("redefinition of template: "+name.getText());
+	    if ( g.IsDefinedInThisGroup(templateName) ) {
+	        g.Error("redefinition of template: "+templateName);
 	        st = new StringTemplate(); // create bogus template to fill in
 	    }
 	    else {
-	        st = g.defineTemplate(name.getText(), null);
+	        st = g.DefineTemplate(templateName, null);
 	    }
 	    }
+		)
+        {if ( st!=null ) {st.GroupFileLine = line;}}
 	    LPAREN
-	        (args[st]|{st.defineEmptyFormalArgumentList();})
+	        (args[st]|{st.DefineEmptyFormalArgumentList();})
 	    RPAREN
 		DEFINED_TO_BE
-	    (	t:STRING     {st.setTemplate(t.getText());}
-	    |	bt:BIGSTRING {st.setTemplate(bt.getText());}
+	    (	t:STRING     {st.Template = t.getText();}
+	    |	bt:BIGSTRING {st.Template = bt.getText();}
 	    )
 	|   alias:ID DEFINED_TO_BE target:ID
-	    {g.defineTemplateAlias(alias.getText(), target.getText());}
+	    {g.DefineTemplateAlias(alias.getText(), target.getText());}
 	;
 
 args[StringTemplate st]
@@ -116,17 +153,17 @@ arg[StringTemplate st]
 		(	ASSIGN s:STRING
 			{
 			defaultValue=new StringTemplate("$_val_$");
-			defaultValue.setAttribute("_val_", s.getText());
-			defaultValue.defineFormalArgument("_val_");
-			defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+			defaultValue.SetAttribute("_val_", s.getText());
+			defaultValue.DefineFormalArgument("_val_");
+			defaultValue.Name = "<"+st.Name+"'s arg "+name.getText()+" default value subtemplate>";
 			}
 		|	ASSIGN bs:ANONYMOUS_TEMPLATE
 			{
-			defaultValue=new StringTemplate(st.getGroup(), bs.getText());
-			defaultValue.setName("<"+st.getName()+"'s arg "+name.getText()+" default value subtemplate>");
+			defaultValue=new StringTemplate(st.Group, bs.getText());
+			defaultValue.Name = "<"+st.Name+"'s arg "+name.getText()+" default value subtemplate>";
 			}
 		)?
-        {st.defineFormalArgument(name.getText(), defaultValue);}
+        {st.DefineFormalArgument(name.getText(), defaultValue);}
     ;
 
 /*
@@ -145,14 +182,14 @@ IDictionary m=null;
 	:	name:ID
 	    DEFINED_TO_BE m=map
 	    {
-	    if ( g.getMap(name.getText())!=null ) {
-	        g.error("redefinition of map: "+name.getText());
+	    if ( g.GetMap(name.getText())!=null ) {
+	        g.Error("redefinition of map: "+name.getText());
 	    }
-	    else if ( g.isDefinedInThisGroup(name.getText()) ) {
-	        g.error("redefinition of template as map: "+name.getText());
+	    else if ( g.IsDefinedInThisGroup(name.getText()) ) {
+	        g.Error("redefinition of template as map: "+name.getText());
 	    }
 	    else {
-	    	g.defineMap(name.getText(), m);
+	    	g.DefineMap(name.getText(), m);
 	    }
 	    }
 	;
@@ -197,23 +234,22 @@ BIGSTRING
 	;
 	
 ANONYMOUS_TEMPLATE
-{
-IList args=null;
-StringTemplateToken t = null;
-}
 	:	'{'!
-		(	options {greedy=false;}  // stop when you see the >>
+		(	options {greedy=false;}  // stop when you see the }
 		:	('\r')? '\n' {newline();}                          // else keep
 		|	.
 		)*
 	    '}'!
 	;	
 
+AT	:	'@' ;
+
 LPAREN: '(' ;
 RPAREN: ')' ;
 LBRACK: '[' ;
 RBRACK: ']' ;
 COMMA:  ',' ;
+DOT:  	'.' ;
 DEFINED_TO_BE:  "::=" ;
 SEMI:   ';' ;
 COLON:  ':' ;

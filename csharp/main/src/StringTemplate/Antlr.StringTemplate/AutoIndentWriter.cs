@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,13 +24,18 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using System.Collections;
-namespace antlr.stringtemplate
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate
 {
+	using System;
+	using StackList			= Antlr.StringTemplate.Collections.StackList;
+	using TextWriter		= System.IO.TextWriter;
 	
-	/// <summary>Essentially a char filter that knows how to auto-indent output
+	/// <summary>
+	/// Essentially a char filter that knows how to auto-indent output
 	/// by maintaining a stack of indent levels.  I set a flag upon newline
 	/// and then next nonwhitespace char resets flag and spits out indention.
 	/// The indent stack is a stack of strings so we can repeat original indent
@@ -40,33 +46,33 @@ namespace antlr.stringtemplate
 	/// 
 	/// It may be screwed up for '\r' '\n' on PC's.
 	/// </summary>
-	public class AutoIndentWriter : StringTemplateWriter
+	public class AutoIndentWriter : IStringTemplateWriter
 	{
 		public const int BUFFER_SIZE = 50;
-		protected internal ArrayList indents = new ArrayList();
-		protected internal System.IO.TextWriter outWriter = null;
-		protected internal bool atStartOfLine = true;
+		internal StackList indents = new StackList();
+		protected TextWriter output = null;
+		protected bool atStartOfLine = true;
 		
-		public AutoIndentWriter(System.IO.TextWriter outWriter)
+		public AutoIndentWriter(TextWriter output)
 		{
-			this.outWriter = outWriter;
-			indents.Add(null); // start with no indent
+			this.output = output;
+			indents.Push(null); // start with no indent
 		}
 		
 		/// <summary>Push even blank (null) indents as they are like scopes; must
 		/// be able to pop them back off stack.
 		/// </summary>
-		public virtual void pushIndentation(String indent)
+		public virtual void  PushIndentation(string indent)
 		{
-			indents.Add(indent);
+			indents.Push(indent);
 		}
 		
-		public virtual String popIndentation()
+		public virtual string PopIndentation()
 		{
-			return (String) SupportClass.StackSupport.Pop(indents);
+			return (string) indents.Pop();
 		}
 		
-		public virtual int write(String str)
+		public virtual int Write(string str)
 		{
 			//System.out.println("write("+str+"); indents="+indents);
 			int n = 0;
@@ -81,26 +87,26 @@ namespace antlr.stringtemplate
 				{
 					if (atStartOfLine)
 					{
-						n += indent();
+						n += Indent();
 						atStartOfLine = false;
 					}
 				}
 				n++;
-				outWriter.Write(c);
+				output.Write(c);
 			}
 			return n;
 		}
 		
-		public virtual int indent()
+		public virtual int Indent()
 		{
 			int n = 0;
 			for (int i = 0; i < indents.Count; i++)
 			{
-				String ind = (String) indents[i];
+				string ind = (string) indents[i];
 				if (ind != null)
 				{
 					n += ind.Length;
-					outWriter.Write(ind);
+					output.Write(ind);
 				}
 			}
 			return n;

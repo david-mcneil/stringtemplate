@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "template.g" -> "TemplateParser.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "template.g" -> "TemplateParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -27,9 +27,11 @@
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+
 using System.IO;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	public class TemplateParserTokenTypes
 	{
@@ -41,14 +43,16 @@ namespace antlr.stringtemplate.language
 		public const int IF = 7;
 		public const int ELSE = 8;
 		public const int ENDIF = 9;
-		public const int EXPR = 10;
-		public const int TEMPLATE = 11;
-		public const int IF_EXPR = 12;
-		public const int ESC = 13;
-		public const int SUBTEMPLATE = 14;
-		public const int NESTED_PARENS = 15;
-		public const int INDENT = 16;
-		public const int COMMENT = 17;
+		public const int REGION_REF = 10;
+		public const int REGION_DEF = 11;
+		public const int EXPR = 12;
+		public const int TEMPLATE = 13;
+		public const int IF_EXPR = 14;
+		public const int ESC = 15;
+		public const int SUBTEMPLATE = 16;
+		public const int NESTED_PARENS = 17;
+		public const int INDENT = 18;
+		public const int COMMENT = 19;
 		
 	}
 }

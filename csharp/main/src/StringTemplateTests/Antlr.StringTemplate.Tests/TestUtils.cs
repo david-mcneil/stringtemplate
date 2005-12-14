@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,23 +24,49 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-namespace antlr.stringtemplate
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Tests
 {
+	using System;
+	using NUnit.Framework;
 	
-	/// <summary>Lets you specify where errors, warnings go. Warning: debug is useful at
-	/// the moment.
-	/// </summary>
-	public interface StringTemplateErrorListener
+	public class TestUtils
 	{
-		void error(String msg, System.Exception e);
-		void warning(String msg);
-		/** I've taken out debug mode, but am leaving this here so as
-			*  to avoid breaking user code.
-			*
-			*  @deprecated 2.2
-			*/
-		void debug(String msg);
+		public delegate void TestMethod();
+
+		public static void DoTimedRun(TestMethod testMethod, int reps)
+		{
+			System.GC.Collect();
+
+			long rigging_time = 0;
+			long start;
+			long finish;
+
+//			start = System.DateTime.Now.Ticks;
+//			for (int i = 1; i <= reps; i++)
+//			{
+//				new TestMethod(DoNothingTestMethod)();
+//			}
+//			finish = System.DateTime.Now.Ticks;
+//			rigging_time = (finish - start);
+
+			Console.Out.Write("TIME: {0}", testMethod.Method.Name);
+			start = System.DateTime.Now.Ticks;
+			for (int i = 1; i <= reps; i++)
+			{
+				testMethod();
+			}
+			finish = System.DateTime.Now.Ticks;
+			long millis = ((finish - start) - rigging_time) / TimeSpan.TicksPerMillisecond;
+
+			Console.Out.WriteLine("; repeats = {0} {1}ms ({2} millisec/eval)", reps, millis, (millis/reps));
+		}
+
+		private static void DoNothingTestMethod()
+		{
+		}
 	}
 }

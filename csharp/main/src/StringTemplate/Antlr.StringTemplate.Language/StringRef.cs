@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,37 +24,42 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using antlr.stringtemplate;
-using StringTemplate = antlr.stringtemplate.StringTemplate;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate = Antlr.StringTemplate.StringTemplate;
 	
-	/// <summary>Represents a chunk of just simple text to spit out; nothing to "evaluate" </summary>
-	public class StringRef:Expr
+	/// <summary>
+	/// Represents a chunk of just simple text to spit out; nothing to "evaluate"
+	/// </summary>
+	public class StringRef : Expr
 	{
-		internal String str;
+		private string str;
 		
-		public StringRef(StringTemplate enclosingTemplate, String str):base(enclosingTemplate)
+		public StringRef(StringTemplate enclosingTemplate, string str) : base(enclosingTemplate)
 		{
 			this.str = str;
 		}
 		
-		/// <summary>Just print out the string; no reference to self because this
+		/// <summary>
+		/// Just print out the string; no reference to self because this
 		/// is a literal--not sensitive to attribute values.
 		/// </summary>
-		public override int write(StringTemplate self, StringTemplateWriter outWriter)
+		public override int Write(StringTemplate self, IStringTemplateWriter output)
 		{
 			if (str != null)
 			{
-				int n = outWriter.write(str);
+				int n = output.Write(str);
 				return n;
 			}
 			return 0;
 		}
 		
-		public override String ToString()
+		public override string ToString()
 		{
 			if (str != null)
 			{

@@ -1,11 +1,42 @@
-using System;
-using System.Collections;
+/*
+[The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
+Copyright (c) 2003-2005 Terence Parr
+All rights reserved.
 
-namespace antlr.stringtemplate.language
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products
+derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate	= Antlr.StringTemplate.StringTemplate;
+	using HashList			= Antlr.StringTemplate.Collections.HashList;
+	using IDictionary		= System.Collections.IDictionary;
 	
-	/// <summary>Represents the name of a formal argument
-	/// defined in a template:
+	/// <summary>
+	/// Represents the name of a formal argument defined in a template:
 	/// 
 	/// group test;
 	/// test(a,b) : "$a$ $b$"
@@ -27,55 +58,61 @@ namespace antlr.stringtemplate.language
 		public const int ZERO_OR_MORE = 4; // a*
 		public const int ONE_OR_MORE = 8; // a+
 		
-		public static readonly String[] suffixes = new String[]{null, "?", "", null, "*", null, null, null, "+"};
+		public static readonly string[] suffixes = new string[]{null, "?", "", null, "*", null, null, null, "+"};
 		
-		/// <summary>When template arguments are not available such as when the user
+		/// <summary>
+		/// When template arguments are not available such as when the user
 		/// uses "new StringTemplate(...)", then the list of formal arguments
 		/// must be distinguished from the case where a template can specify
 		/// args and there just aren't any such as the t() template above.
 		/// </summary>
-		public static IDictionary UNKNOWN = new Hashtable();
+		public static IDictionary UNKNOWN = new HashList();
 		
-		protected internal String name;
+		public string name;
 		//protected int cardinality = REQUIRED;
-
-		// If they specified name="value", store the template here 
+		
+		/// <summary>
+		/// If they specified name="value", store the template here 
+		/// </summary>
 		public StringTemplate defaultValueST;
 		
-		public FormalArgument(String name)
+		public FormalArgument(string name)
 		{
 			this.name = name;
 		}
-
-		public FormalArgument(String name, StringTemplate defaultValueST) 
+		
+		public FormalArgument(string name, StringTemplate defaultValueST)
 		{
 			this.name = name;
 			this.defaultValueST = defaultValueST;
 		}
-				
-		public static String getCardinalityName(int cardinality)
+		
+		public static string GetCardinalityName(int cardinality)
 		{
 			switch (cardinality)
 			{
+				case OPTIONAL:
+					return "optional";
 				
-				case OPTIONAL:  return "optional";
+				case REQUIRED:  
+					return "exactly one";
 				
-				case REQUIRED:  return "exactly one";
+				case ZERO_OR_MORE:  
+					return "zero-or-more";
 				
-				case ZERO_OR_MORE:  return "zero-or-more";
+				case ONE_OR_MORE:  
+					return "one-or-more";
 				
-				case ONE_OR_MORE:  return "one-or-more";
-				
-				default:  return "unknown";
-				
+				default:  
+					return "unknown";
 			}
 		}
 		
-		public override String ToString()
+		public override string ToString()
 		{
-			if ( defaultValueST!=null ) 
+			if (defaultValueST != null)
 			{
-				return name+"="+defaultValueST;
+				return name + "=" + defaultValueST;
 			}
 			return name;
 		}

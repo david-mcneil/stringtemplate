@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<project name="StringTemplate" default="build">
+    <tstamp/>
+    <property name="debug" value="true"/>
+    <property name="project.name" value="StringTemplate Library"/>
+    <property name="project.FormalName" value="StringTemplate"/>
+
+    <property name="src.dir" value="."/>
+    <property name="build.dir" value="bin"/>
+    <property name="antlr.dir" value="..\..\antlr-2.7.5"/>
+    <property name="grammar.dir" value="Antlr.StringTemplate.Language"/>
+    
+    <echo message="Building project: '${project.name}'"/>
+
+    <target name="clean" description="cleans up everything">
+        <echo message="Deleting directory '${build.dir}': You should rebuild VS.NET project in '${build.dir}\..'."/>
+        <delete file="${grammar.dir}\ActionEvaluator.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionEvaluatorTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionEvaluatorTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\ActionParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}\AngleBracketTemplateLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\AngleBracketTemplateLexerTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\AngleBracketTemplateLexerTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}\DefaultTemplateLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\TemplateParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\TemplateParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\TemplateParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}\GroupLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\GroupParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\GroupParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\GroupParserTokenTypes.txt" failonerror="false"/>
+        <delete dir="${build.dir}" failonerror="false"/>
+    </target>
+
+    <target name="generate" description="calls ANTLR to generate Lexers/Parsers">    	
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\template.g" failonerror="true"/>
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\action.g" failonerror="true"/>
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\group.g" failonerror="true"/>
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\angle.bracket.template.g" failonerror="true"/>
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\eval.g" failonerror="true"/>
+    </target>
+
+    <target name="release" depends="clean" description="build non-debug version">
+        <!-- build a clean release distribution for release -->
+        <property name="debug" value="false"/>
+        <echo message="Debug = ${debug}"/>
+        <call target="build"/>
+    </target>
+    
+    <target name="build" depends="generate" description="compiles the source code">
+        <mkdir dir="${build.dir}"/>
+        <!-- copy the assemblies required to build example to the build folder -->
+        <copy file="${antlr.dir}\lib\csharp\src\bin\antlr.runtime.dll" tofile="${build.dir}\antlr.runtime.dll" />
+
+        <!-- compile example's ${project.name}.exe -->
+        <csc target="exe" output="${build.dir}\${project.FormalName}.exe" debug="${debug}">
+            <sources basedir="${src.dir}">
+                <includes name="**/*.cs"/>
+            </sources>
+            <references>
+                <includes name="${build.dir}\antlr.runtime.dll"/>
+            </references>
+            <arg value="/nowarn:1591"/>
+        </csc>
+    </target>
+</project>

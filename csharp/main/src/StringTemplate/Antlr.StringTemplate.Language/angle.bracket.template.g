@@ -31,7 +31,7 @@ using System.IO;
 
 options {
 	language="CSharp";
-	namespace="antlr.stringtemplate.language";
+	namespace="Antlr.StringTemplate.Language";
 }
 
 /** Break up an input text stream into chunks of either plain text
@@ -55,7 +55,7 @@ public AngleBracketTemplateLexer(StringTemplate self, TextReader r) : this(r) {
 }
 
 override public void reportError(RecognitionException e) {
-	self.error("template parse error", e);
+	self.Error("<...> chunk lexer error", e);
 }
 
 protected bool upcomingELSE(int i) {
@@ -67,11 +67,17 @@ protected bool upcomingENDIF(int i) {
 	return LA(i)=='<'&&LA(i+1)=='e'&&LA(i+2)=='n'&&LA(i+3)=='d'&&LA(i+4)=='i'&&
 	       LA(i+5)=='f'&&LA(i+6)=='>';
 }
+protected bool upcomingAtEND(int i) {
+	return LA(i)=='<'&&LA(i+1)=='@'&&LA(i+2)=='e'&&LA(i+3)=='n'&&LA(i+4)=='d'&&LA(i+5)=='>';
+}
+protected bool upcomingNewline(int i) {
+	return (LA(i)=='\r'&&LA(i+1)=='\n')||LA(i)=='\n';
+}
 
 }
 
 LITERAL
-    :   {LA(1)!='\r'&&LA(1)!='\n'}?
+    :   {((cached_LA1 != '\r') && (cached_LA1 != '\n'))}?
         ( options { generateAmbigWarnings=false; }
           {
           int loopStartIndex=text.Length;
@@ -82,7 +88,7 @@ LITERAL
         | '\\' ~('<'|'>')   // otherwise ignore escape char
         | ind:INDENT
           {
-          if ( col==1 && LA(1)=='<' ) {
+          if ( (col == 1) && (cached_LA1 == '<') ) {
               // store indent in ASTExpr not in a literal
               currentIndent=ind.getText();
 			  text.Length = loopStartIndex; // reset length to wack text
@@ -119,23 +125,49 @@ options {
     	options {
     		generateAmbigWarnings=false; // $EXPR$ is ambig with $endif$ etc...
 		}
-	:	'<'! "if" (' '!)* "(" (~')')+ ")" '>'! {$setType(TemplateParser.IF);}
+	:	'<'! "if" (' '!)* "(" IF_EXPR ")" '>'! {$setType(TemplateParser.IF);}
         ( ('\r'!)? '\n'! {newline();})? // ignore any newline right after an IF
     |   '<'! "else" '>'!         {$setType(TemplateParser.ELSE);}
         ( ('\r'!)? '\n'! {newline();})? // ignore any newline right after an ELSE
     |   '<'! "endif" '>'!        {$setType(TemplateParser.ENDIF);}
         ( {startCol==1}? ('\r'!)? '\n'! {newline();})? // ignore after ENDIF if on line by itself
+    |   // match <@foo()> => foo
+    	// match <@foo>...<@end> => foo::=...
+        '<'! '@'! (~('>'|'('))+
+    	(	"()"! '>'! {$setType(TemplateParser.REGION_REF);}
+    	|   '>'!
+    		{
+    		$setType(TemplateParser.REGION_DEF);
+    		string t=$getText;
+    		$setText(t+"::=");
+    		}
+        	( options {greedy=true;} : ('\r'!)? '\n'! {newline();})?
+    		{bool atLeft = false;}
+        	(
+        		options {greedy=true;} // handle greedy=false with predicate
+        	:	{!(upcomingAtEND(1) || (upcomingNewline(1) && upcomingAtEND(2)))}?
+        		(	('\r')? '\n' {newline(); atLeft = true;}
+       			|	. {atLeft = false;}
+       			)
+       		)+
+        	( ('\r'!)? '\n'! {newline(); atLeft = true;} )?
+			( "<@end>"!
+			| . {self.Error("missing region "+t+" <@end> tag");}
+			)
+        	( {atLeft}? ('\r'!)? '\n'! {newline();})?
+        )
     |   '<'! EXPR '>'!
     	)
     	{
-        ChunkToken t = new ChunkToken(_ttype, $getText, currentIndent);
-        $setToken(t);
+        ChunkToken ctok = new ChunkToken(_ttype, $getText, currentIndent);
+        $setToken(ctok);
     	}
     ;
 
 protected
 EXPR:   ( ESC
         | ('\r')? '\n' {newline();}
+        | SUBTEMPLATE
         | '=' TEMPLATE
         | '=' SUBTEMPLATE
         | '=' ~('"'|'<'|'{')

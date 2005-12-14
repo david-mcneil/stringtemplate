@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,57 +24,55 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using StringTemplate = antlr.stringtemplate.StringTemplate;
-using StringTemplateWriter = antlr.stringtemplate.StringTemplateWriter;
-using AST = antlr.collections.AST;
-using RecognitionException = antlr.RecognitionException;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate = Antlr.StringTemplate.StringTemplate;
+	using IStringTemplateWriter = Antlr.StringTemplate.IStringTemplateWriter;
+	using AST = antlr.collections.AST;
+	using RecognitionException = antlr.RecognitionException;
 	
-	/// <summary>A conditional reference to an embedded subtemplate. </summary>
-	public class ConditionalExpr:ASTExpr
+	/// <summary>
+	/// A conditional reference to an embedded subtemplate. 
+	/// </summary>
+	public class ConditionalExpr : ASTExpr
 	{
+		virtual public StringTemplate Subtemplate
+		{
+			get { return subtemplate; }
+			set { this.subtemplate = value; }
+		}
+		virtual public StringTemplate ElseSubtemplate
+		{
+			get { return elseSubtemplate; }
+			set { this.elseSubtemplate = value; }
+		}
 		internal StringTemplate subtemplate = null;
 		internal StringTemplate elseSubtemplate = null;
 		
-		public ConditionalExpr(StringTemplate enclosingTemplate, AST tree):base(enclosingTemplate, tree, null)
+		public ConditionalExpr(StringTemplate enclosingTemplate, AST tree)
+			: base(enclosingTemplate, tree, null)
 		{
 		}
 		
-		public virtual void setSubtemplate(StringTemplate subtemplate)
-		{
-			this.subtemplate = subtemplate;
-		}
-		
-		public virtual StringTemplate getSubtemplate()
-		{
-			return subtemplate;
-		}
-		
-		public virtual StringTemplate getElseSubtemplate()
-		{
-			return elseSubtemplate;
-		}
-		
-		public virtual void setElseSubtemplate(StringTemplate elseSubtemplate)
-		{
-			this.elseSubtemplate = elseSubtemplate;
-		}
-		
-		/// <summary>To write out the value of a condition expr, invoke the evaluator in eval.g
-		/// to walk the condition tree computing the boolean value.  If result
-		/// is true, then write subtemplate.
+		/// <summary>
+		/// To write out the value of a condition expr, we invoke the evaluator 
+		/// in eval.g to walk the condition tree computing the boolean value.
+		/// If result is true, then we write subtemplate.
 		/// </summary>
-		public override int write(StringTemplate self, StringTemplateWriter outWriter)
+		public override int Write(StringTemplate self, IStringTemplateWriter output)
 		{
-			if (exprTree == null || self == null || outWriter == null)
+			if (exprTree == null || self == null || output == null)
 			{
 				return 0;
 			}
 			// System.out.println("evaluating conditional tree: "+exprTree.toStringList());
-			ActionEvaluator eval = new ActionEvaluator(self, this, outWriter);
+			ActionEvaluator eval = new ActionEvaluator(self, this, output);
+			ActionParser.initializeASTFactory(eval.getASTFactory());
 			int n = 0;
 			try
 			{
@@ -89,21 +88,25 @@ namespace antlr.stringtemplate.language
 					* new template instance every time we exec this chunk to get the new
 					* "enclosing instance" pointer.
 					*/
-					StringTemplate s = subtemplate.getInstanceOf();
-					s.setEnclosingInstance(self);
-					n = s.write(outWriter);
+					StringTemplate s = subtemplate.GetInstanceOf();
+					s.EnclosingInstance = self;
+					// make sure we evaluate in context of enclosing template's
+					// group so polymorphism works. :)
+					s.Group = self.Group;
+					n = s.Write(output);
 				}
 				else if (elseSubtemplate != null)
 				{
 					// evaluate ELSE clause if present and IF condition failed
-					StringTemplate s = elseSubtemplate.getInstanceOf();
-					s.setEnclosingInstance(self);
-					n = s.write(outWriter);
+					StringTemplate s = elseSubtemplate.GetInstanceOf();
+					s.EnclosingInstance = self;
+					s.Group = self.Group;
+					n = s.Write(output);
 				}
 			}
 			catch (RecognitionException re)
 			{
-				self.error("can't evaluate tree: " + exprTree.ToStringList(), re);
+				self.Error("can't evaluate tree: " + exprTree.ToStringList(), re);
 			}
 			return n;
 		}

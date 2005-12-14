@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,19 +24,22 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using antlr.stringtemplate;
-using StringTemplate = antlr.stringtemplate.StringTemplate;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate = Antlr.StringTemplate.StringTemplate;
 	
-	/// <summary>Represents a newline.  Separated so I can do smart things like not
+	/// <summary>
+	/// Represents a newline.  Separated so I can do smart things like not
 	/// spitting out newlines when the only thing on a line is an attr expr.
 	/// </summary>
-	public class NewlineRef:StringRef
+	public class NewlineRef : StringRef
 	{
-		public NewlineRef(StringTemplate enclosingTemplate, String str):base(enclosingTemplate, str)
+		public NewlineRef(StringTemplate enclosingTemplate, string str) : base(enclosingTemplate, str)
 		{
 		}
 	}

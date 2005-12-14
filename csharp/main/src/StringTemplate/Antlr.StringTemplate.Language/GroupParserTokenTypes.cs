@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "group.g" -> "GroupParser.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "group.g" -> "GroupParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.Collections;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	public class GroupParserTokenTypes
 	{
@@ -38,24 +38,26 @@ namespace antlr.stringtemplate.language
 		public const int LITERAL_group = 4;
 		public const int ID = 5;
 		public const int SEMI = 6;
-		public const int LPAREN = 7;
-		public const int RPAREN = 8;
-		public const int DEFINED_TO_BE = 9;
-		public const int STRING = 10;
-		public const int BIGSTRING = 11;
-		public const int COMMA = 12;
-		public const int ASSIGN = 13;
-		public const int ANONYMOUS_TEMPLATE = 14;
-		public const int LBRACK = 15;
-		public const int RBRACK = 16;
-		public const int COLON = 17;
-		public const int LITERAL_default = 18;
-		public const int STAR = 19;
-		public const int PLUS = 20;
-		public const int OPTIONAL = 21;
-		public const int SL_COMMENT = 22;
-		public const int ML_COMMENT = 23;
-		public const int WS = 24;
+		public const int AT = 7;
+		public const int DOT = 8;
+		public const int LPAREN = 9;
+		public const int RPAREN = 10;
+		public const int DEFINED_TO_BE = 11;
+		public const int STRING = 12;
+		public const int BIGSTRING = 13;
+		public const int COMMA = 14;
+		public const int ASSIGN = 15;
+		public const int ANONYMOUS_TEMPLATE = 16;
+		public const int LBRACK = 17;
+		public const int RBRACK = 18;
+		public const int COLON = 19;
+		public const int LITERAL_default = 20;
+		public const int STAR = 21;
+		public const int PLUS = 22;
+		public const int OPTIONAL = 23;
+		public const int SL_COMMENT = 24;
+		public const int ML_COMMENT = 25;
+		public const int WS = 26;
 		
 	}
 }

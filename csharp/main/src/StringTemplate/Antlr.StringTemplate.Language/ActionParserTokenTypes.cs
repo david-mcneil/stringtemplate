@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "action.g" -> "ActionParser.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "action.g" -> "ActionParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.Collections;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	public class ActionParserTokenTypes
 	{

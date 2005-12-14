@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,15 +24,19 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using StringTemplate = antlr.stringtemplate.StringTemplate;
-using StringTemplateGroup = antlr.stringtemplate.StringTemplateGroup;
-using StringTemplateWriter = antlr.stringtemplate.StringTemplateWriter;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
+	using System;
+	using StringTemplate			= Antlr.StringTemplate.StringTemplate;
+	using StringTemplateGroup		= Antlr.StringTemplate.StringTemplateGroup;
+	using IStringTemplateWriter		= Antlr.StringTemplate.IStringTemplateWriter;
 	
-	/// <summary>A string template expression embedded within the template.
+	/// <summary>
+	/// A string template expression embedded within the template.
 	/// A template is parsed into a tokenized vector of Expr objects
 	/// and then executed after the user sticks in attribute values.
 	/// 
@@ -40,39 +45,42 @@ namespace antlr.stringtemplate.language
 	/// </summary>
 	abstract public class Expr
 	{
-		/// <summary>The StringTemplate object surrounding this expr </summary>
-		protected internal StringTemplate enclosingTemplate;
+		public Expr(StringTemplate enclosingTemplate)
+		{
+			this.enclosingTemplate = enclosingTemplate;
+		}
 		
-		/// <summary>Any thing spit out as a chunk (even plain text) must be indented
+		virtual public StringTemplate EnclosingTemplate
+		{
+			get { return enclosingTemplate; }
+			
+		}
+		virtual public string Indentation
+		{
+			get { return indentation; }
+			set { this.indentation = value; }
+			
+		}
+
+		/// <summary>
+		/// How to write this node to output; return how many char written 
+		/// </summary>
+		/// <returns>Count of characters written.</returns>
+		abstract public int Write(StringTemplate self, IStringTemplateWriter output);
+
+		/// <summary>
+		/// The StringTemplate object surrounding this expr
+		/// </summary>
+		protected StringTemplate enclosingTemplate;
+		
+		/// <summary>
+		/// Any thing spit out as a chunk (even plain text) must be indented
 		/// according to whitespace before the action that generated it.  So,
 		/// plain text in the outermost template is never indented, but the
 		/// text and attribute references in a nested template will all be
 		/// indented by the amount seen directly in front of the attribute
 		/// reference that initiates construction of the nested template.
 		/// </summary>
-		protected internal String indentation = null;
-		
-		public Expr(StringTemplate enclosingTemplate)
-		{
-			this.enclosingTemplate = enclosingTemplate;
-		}
-		
-		/// <summary>How to write this node to output; return how many char written </summary>
-		abstract public int write(StringTemplate self, StringTemplateWriter outWriter);
-		
-		public virtual StringTemplate getEnclosingTemplate()
-		{
-			return enclosingTemplate;
-		}
-		
-		public virtual String getIndentation()
-		{
-			return indentation;
-		}
-		
-		public virtual void setIndentation(String indentation)
-		{
-			this.indentation = indentation;
-		}
+		protected string indentation = null;
 	}
 }

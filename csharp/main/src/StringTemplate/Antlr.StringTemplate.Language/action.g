@@ -31,7 +31,7 @@ using System.Collections;
 
 options {
 	language="CSharp";
-	namespace="antlr.stringtemplate.language";
+	namespace="Antlr.StringTemplate.Language";
 }
 
 /** Parse the individual attribute expressions */
@@ -39,7 +39,7 @@ class ActionParser extends Parser;
 options {
 	k = 2;
     buildAST = true;
-    ASTLabelType = "antlr.stringtemplate.language.StringTemplateAST";
+    ASTLabelType = "Antlr.StringTemplate.Language.StringTemplateAST";
 }
 
 tokens {
@@ -63,7 +63,13 @@ tokens {
     }
 
 	override public void reportError(RecognitionException e) {
-		self.error("template parse error", e);
+        StringTemplateGroup group = self.Group;
+        if ( group==StringTemplate.defaultGroup ) {
+            self.Error("action parse error; template context is "+self.GetEnclosingInstanceStackString(), e);
+        }
+        else {
+            self.Error("action parse error in group "+self.Group.Name+" line "+self.GroupFileLine+"; template context is "+self.GetEnclosingInstanceStackString(), e);
+        }
 	}
 }
 
@@ -102,13 +108,13 @@ expr:   primaryExpr (PLUS^ primaryExpr)*
     ;
 
 primaryExpr
-    :	atom
+    :	(templateInclude)=>templateInclude  // (see past parens to arglist)
+    |	atom
     	( DOT^ // ignore warning on DOT ID
      	  ( ID
           | valueExpr
           )
      	)*
-    |   (templateInclude)=>templateInclude  // (see past parens to arglist)
     |	function
     |   valueExpr
     |	list
@@ -149,11 +155,11 @@ anonymousTemplate
 	:	t:ANONYMOUS_TEMPLATE
         {
         StringTemplate anonymous = new StringTemplate();
-        anonymous.setGroup(self.getGroup());
-        anonymous.setEnclosingInstance(self);
-        anonymous.setTemplate(t.getText());
-        anonymous.defineFormalArguments(((StringTemplateToken)t).args);
-        #t.setStringTemplate(anonymous);
+        anonymous.Group = self.Group;
+        anonymous.EnclosingInstance = self;
+        anonymous.Template = t.getText();
+        anonymous.DefineFormalArguments(((StringTemplateToken)t).args);
+        #t.StringTemplate = anonymous;
         }
 	;
 

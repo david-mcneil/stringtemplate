@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,67 +24,78 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using System.Reflection;
-using System.Collections;
-using antlr.stringtemplate;
-using AST = antlr.collections.AST;
-using RecognitionException = antlr.RecognitionException;
-namespace antlr.stringtemplate.language
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate.Language
 {
-	
-	/// <summary>A single string template expression enclosed in $...; separator=...$
+	using System;
+	using Antlr.StringTemplate;
+	using StringWriter				= System.IO.StringWriter;
+	using ArrayList					= System.Collections.ArrayList;
+	using IList						= System.Collections.IList;
+	using ICollection				= System.Collections.ICollection;
+	using IDictionary				= System.Collections.IDictionary;
+	using IEnumerator				= System.Collections.IEnumerator;
+	using Hashtable					= System.Collections.Hashtable;
+	using HybridDictionary			= System.Collections.Specialized.HybridDictionary;
+	using MemberInfo				= System.Reflection.MemberInfo;
+	using PropertyInfo				= System.Reflection.PropertyInfo;
+	using FieldInfo					= System.Reflection.FieldInfo;
+	using MethodInfo				= System.Reflection.MethodInfo;
+	using BindingFlags				= System.Reflection.BindingFlags;
+	using AST						= antlr.collections.AST;
+	using RecognitionException		= antlr.RecognitionException;
+	using HashList					= Antlr.StringTemplate.Collections.HashList;
+	using CollectionUtils			= Antlr.StringTemplate.Collections.CollectionUtils;
+
+	/// <summary>
+	/// A single string template expression enclosed in $...; separator=...$
 	/// parsed into an AST chunk to be evaluated.
 	/// </summary>
-	public class ASTExpr:Expr
+	public class ASTExpr : Expr
 	{
-		public const String DEFAULT_ATTRIBUTE_NAME = "it";
-		public const String DEFAULT_ATTRIBUTE_NAME_DEPRECATED = "attr";
-		public const String DEFAULT_INDEX_VARIABLE_NAME = "i";
-		public const String DEFAULT_MAP_VALUE_NAME = "_default_";
-		
-		/// <summary>How to refer to the surrounding template object;
-		/// this is attribute name to use.
-		/// public static final String SELF_ATTR = "self";
-		/// </summary>
-		
-		/// <summary>When lint mode is on, this attribute contains a list of reflection
-		/// objects that tell you about the attributes set by the user of the
-		/// template.
-		/// </summary>
-		public const String REFLECTION_ATTRIBUTES = "attributes";
-		
-		internal AST exprTree = null;
-		
-		/// <summary>store separator etc... </summary>
-		internal IDictionary options = null;
-		
-		public ASTExpr(StringTemplate enclosingTemplate, AST exprTree, IDictionary options):base(enclosingTemplate)
+		public const string DEFAULT_ATTRIBUTE_NAME = "it";
+		public const string DEFAULT_ATTRIBUTE_NAME_DEPRECATED = "attr";
+		public const string DEFAULT_INDEX_VARIABLE_NAME = "i";
+		public const string DEFAULT_MAP_VALUE_NAME = "_default_";
+
+		public ASTExpr(StringTemplate enclosingTemplate, AST exprTree, IDictionary options)
+			: base(enclosingTemplate)
 		{
 			this.exprTree = exprTree;
 			this.options = options;
 		}
 		
-		/// <summary>Return the tree interpreted when this template is written out. </summary>
-		public virtual AST getAST()
+		/// <summary>
+		/// Return the tree interpreted when this template is written out.
+		/// </summary>
+		virtual public AST AST
 		{
-			return exprTree;
+			get { return exprTree; }
 		}
 		
-		/// <summary>To write out the value of an ASTExpr, invoke the evaluator in eval.g
+		protected AST exprTree = null;
+		
+		/// <summary>store separator etc... </summary>
+		private IDictionary options = null;
+		
+		/// <summary>
+		/// To write out the value of an ASTExpr, invoke the evaluator in eval.g
 		/// to walk the tree writing out the values.  For efficiency, don't
 		/// compute a bunch of strings and then pack them together.  Write out directly.
 		/// </summary>
-		public override int write(StringTemplate self, StringTemplateWriter outWriter)
+		public override int Write(StringTemplate self, IStringTemplateWriter output)
 		{
-			if (exprTree == null || self == null || outWriter == null)
+			if (exprTree == null || self == null || output == null)
 			{
 				return 0;
 			}
-			outWriter.pushIndentation(getIndentation());
+			output.PushIndentation(Indentation);
 			//System.out.println("evaluating tree: "+exprTree.toStringList());
-			ActionEvaluator eval = new ActionEvaluator(self, this, outWriter);
+			ActionEvaluator eval = new ActionEvaluator(self, this, output);
+			ActionParser.initializeASTFactory(eval.getASTFactory());
 			int n = 0;
 			try
 			{
@@ -91,208 +103,193 @@ namespace antlr.stringtemplate.language
 			}
 			catch (RecognitionException re)
 			{
-				self.error("can't evaluate tree: " + exprTree.ToStringList(), re);
+				self.Error("can't evaluate tree: " + exprTree.ToStringList(), re);
 			}
-			outWriter.popIndentation();
+			output.PopIndentation();
 			return n;
 		}
 		
 		// HELP ROUTINES CALLED BY EVALUATOR TREE WALKER
-
+		
 		/// <summary>
-		/// For names,phones:{n,p | ...} treat the names, phones as lists
+		/// For <names,phones:{n,p | ...}> treat the names, phones as lists
 		/// to be walked in lock step as n=names[i], p=phones[i].
 		/// </summary>
-		public virtual Object applyTemplateToListOfAttributes(StringTemplate self, IList attributes, StringTemplate templateToApply)
+		public virtual object ApplyTemplateToListOfAttributes(StringTemplate self, IList attributes, StringTemplate templateToApply)
 		{
-			if ( attributes==null || templateToApply==null || attributes.Count==0 ) 
+			if (attributes == null || templateToApply == null || attributes.Count == 0)
 			{
 				return null; // do not apply if missing templates or empty values
 			}
 			IDictionary argumentContext = null;
 			IList results = new ArrayList();
-
+			
 			// convert all attributes to iterators even if just one value
-			for (int a = 0; a < attributes.Count; a++) 
+			for (int a = 0; a < attributes.Count; a++)
 			{
-				Object o = attributes[a];
-				o = convertAnythingToIterator(o);
-				attributes[a] = o;
+				object o = (object) attributes[a];
+				o = ConvertAnythingToIterator(o);
+				attributes[a] = o; // alter the list in place
 			}
-
+			
 			int numAttributes = attributes.Count;
-
+			
 			// ensure arguments line up
-			IDictionary formalArguments = templateToApply.getFormalArguments();
-			if ( formalArguments==null || formalArguments.Count==0 ) 
+			HashList formalArguments = (HashList) templateToApply.FormalArguments;
+			if (formalArguments == null || formalArguments.Count == 0)
 			{
-				self.error("missing arguments in anonymous"+
-					" template in context "+self.getEnclosingInstanceStackString());
+				self.Error("missing arguments in anonymous" + " template in context " + self.GetEnclosingInstanceStackString());
 				return null;
 			}
-			ICollection keys = formalArguments.Keys;
-			Object[] formalArgumentNames = new object[keys.Count];
-			keys.CopyTo(formalArgumentNames,0);
-			if ( formalArgumentNames.Length!=numAttributes ) 
+			object[] formalArgumentNames = new object[formalArguments.Count];
+			formalArguments.Keys.CopyTo(formalArgumentNames, 0);
+			if (formalArgumentNames.Length != numAttributes)
 			{
-				self.error("number of arguments "+SupportClass.CollectionToString(formalArguments.Keys)+
-					" mismatch between attribute list and anonymous"+
-					" template in context "+self.getEnclosingInstanceStackString());
+				self.Error("number of arguments " + formalArguments.Keys.ToString() + " mismatch between attribute list and anonymous" + " template in context " + self.GetEnclosingInstanceStackString());
 				// truncate arg list to match smaller size
-				int shorterSize = Math.Min(formalArgumentNames.Length, numAttributes);
+				int shorterSize = System.Math.Min(formalArgumentNames.Length, numAttributes);
 				numAttributes = shorterSize;
-				Object[] newFormalArgumentNames = new Object[shorterSize];
-				System.Array.Copy(formalArgumentNames, 0,
-					newFormalArgumentNames, 0,
-					shorterSize);
+				object[] newFormalArgumentNames = new object[shorterSize];
+				Array.Copy(formalArgumentNames, 0, newFormalArgumentNames, 0, shorterSize);
 				formalArgumentNames = newFormalArgumentNames;
 			}
-
+			
 			// keep walking while at least one attribute has values
-			while ( true ) 
+			while (true)
 			{
 				argumentContext = new Hashtable();
 				// get a value for each attribute in list; put into arg context
 				// to simulate template invocation of anonymous template
 				int numEmpty = 0;
-				for (int a = 0; a < numAttributes; a++) 
+				for (int a = 0; a < numAttributes; a++)
 				{
-					IEnumerator it = (IEnumerator)attributes[a];
-					if ( it.MoveNext() ) 
+					IEnumerator it = (IEnumerator) attributes[a];
+					if (it.MoveNext())
 					{
-						String argName = (String)formalArgumentNames[a];
-						Object iteratedValue = it.Current;
+						string argName = (string) formalArgumentNames[a];
+						object iteratedValue = it.Current;
 						argumentContext[argName] = iteratedValue;
 					}
-					else 
+					else
 					{
 						numEmpty++;
 					}
 				}
-				if ( numEmpty==numAttributes ) 
+				if (numEmpty == numAttributes)
 				{
 					break;
 				}
-				StringTemplate embedded = templateToApply.getInstanceOf();
-				embedded.setEnclosingInstance(self);
-				embedded.setArgumentContext(argumentContext);
+				StringTemplate embedded = templateToApply.GetInstanceOf();
+				embedded.EnclosingInstance = self;
+				embedded.ArgumentContext = argumentContext;
 				results.Add(embedded);
 			}
-
+			
 			return results;
 		}
 		
-		public virtual Object applyListOfAlternatingTemplates(StringTemplate self, Object attributeValue, IList templatesToApply)
+		public virtual object ApplyListOfAlternatingTemplates(StringTemplate self, object attributeValue, IList templatesToApply)
 		{
-			if (attributeValue == null || templatesToApply == null || templatesToApply.Count == 0) {
+			if (attributeValue == null || templatesToApply == null || templatesToApply.Count == 0)
+			{
 				return null; // do not apply if missing templates or empty value
 			}
-
 			StringTemplate embedded = null;
 			IDictionary argumentContext = null;
 			
 			// normalize collections and such to use iterators
 			// anything iteratable can be used for "APPLY"
-			attributeValue = convertAnythingIteratableToIterator(attributeValue);
+			attributeValue = ConvertAnythingIteratableToIterator(attributeValue);
 			
-			if (attributeValue is IEnumerator) {
+			if (attributeValue is IEnumerator)
+			{
 				IList resultVector = new ArrayList();
 				IEnumerator iter = (IEnumerator) attributeValue;
 				int i = 0;
-
-				while (iter.MoveNext()) {
-					Object ithValue = iter.Current;
-
-					if (ithValue == null) {
+				while (iter.MoveNext())
+				{
+					object ithValue = iter.Current;
+					if (ithValue == null)
+					{
 						// weird...a null value in the list; ignore
 						continue;
 					}
-
-					// rotate through
-					int templateIndex = i % templatesToApply.Count; 
+					int templateIndex = i % templatesToApply.Count; // rotate through
 					embedded = (StringTemplate) templatesToApply[templateIndex];
-
 					// template to apply is an actual StringTemplate (created in
 					// eval.g), but that is used as the examplar.  We must create
 					// a new instance of the embedded template to apply each time
 					// to get new attribute sets etc...
-					StringTemplateAST args = embedded.getArgumentsAST();
-					embedded = embedded.getInstanceOf(); // make new instance
-					embedded.setEnclosingInstance(self);
-					embedded.setArgumentsAST(args);
+					StringTemplateAST args = embedded.ArgumentsAST;
+					embedded = embedded.GetInstanceOf(); // make new instance
+					embedded.EnclosingInstance = self;
+					embedded.ArgumentsAST = args;
 
 					argumentContext = new Hashtable();
-					setSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue);
+					SetSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue);
 					argumentContext[DEFAULT_ATTRIBUTE_NAME] = ithValue;
 					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue;
-					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = i + 1;
-					embedded.setArgumentContext(argumentContext);
-
-					evaluateArguments(embedded);
-
+					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = (System.Int32) (i + 1);
+					embedded.ArgumentContext = argumentContext;
+					EvaluateArguments(embedded);
 					/*
 					System.err.println("i="+i+": applyTemplate("+embedded.getName()+
 					", args="+argumentContext+
 					" to attribute value "+ithValue);
 					*/
-
 					resultVector.Add(embedded);
 					i++;
 				}
-
+				if (resultVector.Count == 0)
+				{
+					resultVector = null;
+				}
 				return resultVector;
 			}
-			else {
+			else
+			{
 				/*
-				Console.WriteLine("setting attribute "+DefaultAttributeName+" in arg context of "+
+				System.out.println("setting attribute "+DEFAULT_ATTRIBUTE_NAME+" in arg context of "+
 				embedded.getName()+
 				" to "+attributeValue);
 				*/
 				embedded = (StringTemplate) templatesToApply[0];
-
 				argumentContext = new Hashtable();
-				setSoleFormalArgumentToIthValue(embedded, argumentContext, attributeValue);
+				SetSoleFormalArgumentToIthValue(embedded, argumentContext, attributeValue);
 				argumentContext[DEFAULT_ATTRIBUTE_NAME] = attributeValue;
 				argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue;
 				argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = 1;
-				embedded.setArgumentContext(argumentContext);
-				evaluateArguments(embedded);
-
+				embedded.ArgumentContext = argumentContext;
+				EvaluateArguments(embedded);
 				return embedded;
 			}
 		}
-
-		protected void setSoleFormalArgumentToIthValue(StringTemplate embedded, IDictionary argumentContext, Object ithValue) 
+		
+		protected internal virtual void  SetSoleFormalArgumentToIthValue(StringTemplate embedded, IDictionary argumentContext, object ithValue)
 		{
-			IDictionary formalArgs = embedded.getFormalArguments();
-			if ( formalArgs!=null ) 
+			IDictionary formalArgs = embedded.FormalArguments;
+			if (formalArgs != null)
 			{
-				String soleArgName = null;
-				bool isAnonymous = embedded.getName().Equals(StringTemplate.ANONYMOUS_ST_NAME);
-				if ( formalArgs.Count==1 || (isAnonymous&&formalArgs.Count>0) ) 
+				string soleArgName = null;
+				bool isAnonymous = embedded.Name.Equals(StringTemplate.ANONYMOUS_ST_NAME);
+				if (formalArgs.Count == 1 || (isAnonymous && formalArgs.Count > 0))
 				{
-					if ( isAnonymous && formalArgs.Count>1 ) 
+					if (isAnonymous && formalArgs.Count > 1)
 					{
-						embedded.error("too many arguments on {...} template: "+formalArgs);
+						embedded.Error("too many arguments on {...} template: " + CollectionUtils.DictionaryToString(formalArgs));
 					}
 					// if exactly 1 arg or anonymous, give that the value of
 					// "it" as a convenience like they said
 					// $list:template(arg=it)$
-					ICollection argNames = formalArgs.Keys;
-					string[] argNamesArray = new string[argNames.Count];
-					argNames.CopyTo(argNamesArray,0);
-					soleArgName = argNamesArray[0];
+					IEnumerator iter = formalArgs.Keys.GetEnumerator();
+					// Retrieve first key
+					iter.MoveNext();
+					soleArgName = (string) iter.Current;
 					argumentContext[soleArgName] = ithValue;
 				}
 			}
 		}
-		
-		/// <summary>Return o.getPropertyName() given o and propertyName.  If o is
-		/// a stringtemplate then access it's attributes looking for propertyName
-		/// instead (don't check any of the enclosing scopes; look directly into
-		/// that object).  Also try isXXX() for booleans.  Allow HashMap,
-		/// Hashtable as special case (grab value for key).
-		/// </summary>
+
 		/// <summary>
 		/// Return o.getPropertyName() given o and propertyName.  If o is
 		/// a stringtemplate then access it's attributes looking for propertyName
@@ -300,98 +297,85 @@ namespace antlr.stringtemplate.language
 		/// that object).  Also try isXXX() for booleans.  Allow HashMap,
 		/// Hashtable as special case (grab value for key).
 		/// </summary>
-		public virtual Object getObjectProperty(StringTemplate self, object o, string propertyName) {
-			if (o == null || propertyName == null) {
+		public virtual object GetObjectProperty(StringTemplate self, object o, string propertyName)
+		{
+			if (o == null || propertyName == null)
+			{
 				return null;
 			}
-
 			Type c = o.GetType();
-			Object value = null;
+			object val = null;
 			
 			// Special case: our automatically created Aggregates via
 			// attribute name: "{obj.{prop1,prop2}}"
-			if (c == typeof(StringTemplate.Aggregate)) {
-				value = ((StringTemplate.Aggregate) o).get(propertyName);
+			if (c == typeof(StringTemplate.Aggregate))
+			{
+				val = ((StringTemplate.Aggregate) o).Get(propertyName);
 			}
 				// Special case: if it's a template, pull property from
 				// it's attribute table.
 				// TODO: TJP just asked himself why we can't do inherited attr here?
-			else if (c == typeof(StringTemplate)) {
-				IDictionary attributes = ((StringTemplate) o).getAttributes();
-				if ( attributes!=null ) {
-					value = attributes[propertyName];
+			else if (c == typeof(StringTemplate))
+			{
+				IDictionary attributes = ((StringTemplate) o).Attributes;
+				if (attributes != null)
+				{
+					val = attributes[propertyName];
 				}
 			}
 				// Special case: if it's a HashMap, Hashtable then pull using
 				// key not the property method.  Do NOT allow general Map interface
 				// as people could pass in their database masquerading as a Map.
-			else if ( isValidMapInstance(c) ) {
-				IDictionary map = (IDictionary)o;
-				value = map[propertyName];
-				if ( value==null ) 
+			else if (typeof(IDictionary).IsAssignableFrom(c))
+			{
+				IDictionary map = (IDictionary) o;
+				val = map[propertyName];
+				if (val == null)
 				{
 					// no property defined; if a map in this group
 					// then there may be a default value
-					value = map[DEFAULT_MAP_VALUE_NAME];
+					val = map[DEFAULT_MAP_VALUE_NAME];
 				}
 			}
-	
-			else {
-				// lookup as property or accessor-method
-				string lookupName = Char.ToUpper(propertyName[0])+
-					propertyName.Substring(1);
-
-				// LL Add NonPublic
-				//see if it's a property
-				PropertyInfo pi = c.GetProperty(lookupName, 
-					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
-					null, null, new Type[0], null);
-
-				if (pi != null) {
-					value = pi.GetValue(o, null);
-				}
-				else {
-					//see if it's a method
-					String methodName = "Get" + lookupName;
-					MethodInfo mi = c.GetMethod(methodName, 
-						BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
-						null, new Type[0], null);
-
-					if (mi == null) {
-						mi = c.GetMethod("Is" + lookupName, 
-							BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase, 
-							null, new Type[0], null);
+			else
+			{
+				// Search for propertyName as: 
+				//   Property (non-indexed), Method(get_XXX, GetXXX, IsXXX, getXXX, isXXX), Field, this[string]
+				string methodSuffix = System.Char.ToUpper(propertyName[0]) + propertyName.Substring(1);
+				if (!GetPropertyValueByName(self, c, o, methodSuffix, ref val))
+				{
+					bool found = false;
+					foreach (string prefix in new string[] { "get_", "Get", "Is", "get", "is" })
+					{
+						if (found = GetMethodValueByName(self, c, o, prefix + methodSuffix, ref val))
+							break;
 					}
 
-					// LL Changed
-					if (mi != null)
+					if (!found)
 					{
-						value = mi.Invoke(o, null);
-					}
-					else 
-					{
-						// Check for string indexer
-						Type[] paramarray = new Type[1];
-						paramarray[0] = typeof(string);
-						PropertyInfo ipi = c.GetProperty("Item", paramarray);
-
-						if (ipi != null) 
+						if (!GetFieldValueByName(self, c, o, methodSuffix, ref val))
 						{
-							object[] invparam = new object[1];
-							invparam[0] = propertyName;
-							value = ipi.GetValue(o, invparam);
-						}
-						else
-						{
-							self.error("Can't get property " +propertyName+ " as C# property '" +lookupName+ 
-								"' or as C# methods 'Get" +lookupName+ "' or 'Is" +lookupName+
-								"' from " +c.FullName+ " instance");
+							PropertyInfo pi = c.GetProperty("Item", new Type[] { typeof(string) });
+							if (pi != null)
+							{
+								try
+								{
+									val = pi.GetValue(o, new object[] { propertyName });
+								}
+								catch(Exception ex)
+								{
+									self.Error("Can't get property " + propertyName + " via C# string indexer from " + c.FullName + " instance", ex);
+								}
+							}
+							else
+							{
+								self.Error("Class " + c.FullName + " has no such attribute: " + propertyName + " in template context " + self.GetEnclosingInstanceStackString());
+							}
 						}
 					}
 				}
 			}
-			
-			return value;
+			return val;
 		}
 		
 		/// <summary>Normally StringTemplate tests presence or absence of attributes
@@ -410,33 +394,36 @@ namespace antlr.stringtemplate.language
 		/// 
 		/// Post 2.1, I added a check for non-null Iterators, Collections, ...
 		/// with size==0 to return false. TJP 5/1/2005
-		///
 		/// </summary>
-		public virtual bool testAttributeTrue(Object a)
+		public virtual bool TestAttributeTrue(object a)
 		{
-			IAttributeStrategy attribstrat = enclosingTemplate.getGroup().AttributeStrategy;
-			if (attribstrat != null)
+			if (a == null)
 			{
-				return attribstrat.testAttributeTrue(a);
+				return false;
 			}
-			else
+			if (a is System.Boolean)
 			{
-				if (a==null) 
-					return false;
-				if (a is Boolean)
-					return (bool)a;
-				if (a is ICollection)
-					return ((ICollection)a).Count>0;
-				if (a is IDictionary)
-					return ((IDictionary)a).Count>0;
-				if (a is IEnumerator) 
-					return ((IEnumerator)a).MoveNext();
-				return true;
+				return ((System.Boolean) a);
 			}
+			if (a is System.Collections.ICollection)
+			{
+				return ((System.Collections.ICollection) a).Count > 0;
+			}
+			if (a is IDictionary)
+			{
+				return ((IDictionary) a).Count > 0;
+			}
+			if (a is IEnumerator)
+			{
+				return ((IEnumerator) a).MoveNext();
+			}
+			return true; // any other non-null object, return true--it's present
 		}
 		
-		/// <summary>For now, we can only add two objects as strings; convert objects to Strings then cat.</summary>
-		public virtual Object add(Object a, Object b)
+		/// <summary>For now, we can only add two objects as strings; convert objects to
+		/// Strings then cat.
+		/// </summary>
+		public virtual object Add(object a, object b)
 		{
 			if (a == null)
 			{
@@ -450,21 +437,23 @@ namespace antlr.stringtemplate.language
 			return a.ToString() + b.ToString();
 		}
 		
-		/// <summary>Call a string template with args and return result.  Do not convert
+		/// <summary>
+		/// Call a string template with args and return result.  Do not convert
 		/// to a string yet.  It may need attributes that will be available after
 		/// this is inserted into another template.
 		/// </summary>
-		public virtual StringTemplate getTemplateInclude(StringTemplate enclosing, String templateName, StringTemplateAST argumentsAST)
+		public virtual StringTemplate GetTemplateInclude(StringTemplate enclosing, string templateName, StringTemplateAST argumentsAST)
 		{
-			StringTemplateGroup group = enclosing.getGroup();
-			StringTemplate embedded = group.getEmbeddedInstanceOf(enclosing, templateName);
+			//Console.WriteLine("getTemplateInclude: look up "+enclosing.Group.Name+"::"+templateName);
+			StringTemplateGroup group = enclosing.Group;
+			StringTemplate embedded = group.GetEmbeddedInstanceOf(enclosing, templateName);
 			if (embedded == null)
 			{
-				enclosing.error("cannot make embedded instance of " + templateName + " in template " + enclosing.getName());
+				enclosing.Error("cannot make embedded instance of " + templateName + " in template " + enclosing.Name);
 				return null;
 			}
-			embedded.setArgumentsAST(argumentsAST);
-			evaluateArguments(embedded);
+			embedded.ArgumentsAST = argumentsAST;
+			EvaluateArguments(embedded);
 			return embedded;
 		}
 		
@@ -478,17 +467,17 @@ namespace antlr.stringtemplate.language
 		/// If self is an embedded template, you might have specified
 		/// a separator arg; used when is a vector.
 		/// </summary>
-		public virtual int writeAttribute(StringTemplate self, Object o, StringTemplateWriter outWriter)
+		public virtual int WriteAttribute(StringTemplate self, object o, IStringTemplateWriter output)
 		{
-			Object separator = null;
+			object separator = null;
 			if (options != null)
 			{
 				separator = options["separator"];
 			}
-			return write(self, o, outWriter, separator);
+			return Write(self, o, output, separator);
 		}
 		
-		protected internal virtual int write(StringTemplate self, Object o, StringTemplateWriter outWriter, Object separator)
+		protected internal virtual int Write(StringTemplate self, object o, IStringTemplateWriter output, object separator)
 		{
 			if (o == null)
 			{
@@ -506,78 +495,74 @@ namespace antlr.stringtemplate.language
 					// than one template (like both a header file and C file when
 					// generating C code).  It must execute within the context of
 					// the enclosing template.
-					stToWrite.setEnclosingInstance(self);
+					stToWrite.EnclosingInstance = self;
 					// if self is found up the enclosing instance chain, then
 					// infinite recursion
-					if (StringTemplate.inLintMode() && StringTemplate.isRecursiveEnclosingInstance(stToWrite))
+					if (StringTemplate.IsInLintMode && StringTemplate.IsRecursiveEnclosingInstance(stToWrite))
 					{
 						// throw exception since sometimes eval keeps going
 						// even after I ignore this write of o.
-						throw new System.SystemException("infinite recursion to " + stToWrite.getTemplateDeclaratorString() + " referenced in " + stToWrite.getEnclosingInstance().getTemplateDeclaratorString() + "; stack trace:\n" + stToWrite.getEnclosingInstanceStackTrace());
+						throw new System.SystemException("infinite recursion to " + stToWrite.GetTemplateDeclaratorString() + " referenced in " + stToWrite.EnclosingInstance.GetTemplateDeclaratorString() + "; stack trace:\n" + stToWrite.GetEnclosingInstanceStackTrace());
 					}
 					else
 					{
-						n = stToWrite.write(outWriter);
+						n = stToWrite.Write(output);
 					}
 					return n;
 				}
 				// normalize anything iteratable to iterator
-				o = convertAnythingIteratableToIterator(o);
+				o = ConvertAnythingIteratableToIterator(o);
 				if (o is IEnumerator)
 				{
 					IEnumerator iter = (IEnumerator) o;
-					String separatorString = null;
+					bool processingFirstItem = true;
+					int charWrittenForValue = 0;
+					string separatorString = null;
 					if (separator != null)
 					{
-						separatorString = computeSeparator(self, outWriter, separator);
+						separatorString = ComputeSeparator(self, output, separator);
 					}
-
-					int i = 0;
-					int charWrittenForValue = 0;
-					Object iterValue = null;
-
 					while (iter.MoveNext())
 					{
-						if (i > 0) 
+						object iterValue = iter.Current;
+						if (!processingFirstItem)
 						{
 							bool valueIsPureConditional = false;
 							if (iterValue is StringTemplate)
 							{
 								StringTemplate iterValueST = (StringTemplate) iterValue;
-								IList chunks = (IList) iterValueST.getChunks();
+								IList chunks = (IList) iterValueST.Chunks;
 								Expr firstChunk = (Expr) chunks[0];
-								valueIsPureConditional = firstChunk is ConditionalExpr && ((ConditionalExpr) firstChunk).getElseSubtemplate() == null;
+								valueIsPureConditional = firstChunk is ConditionalExpr && ((ConditionalExpr) firstChunk).ElseSubtemplate == null;
 							}
 							bool emptyIteratedValue = valueIsPureConditional && charWrittenForValue == 0;
 							if (!emptyIteratedValue && separator != null)
 							{
-								n += outWriter.write(separatorString);
+								n += output.Write(separatorString);
 							}
 						}
-
-						iterValue = iter.Current;
-						charWrittenForValue = write(self, iterValue, outWriter, separator);
+						charWrittenForValue = Write(self, iterValue, output, separator);
 						n += charWrittenForValue;
-						i++;
+						processingFirstItem = false;
 					}
 				}
 				else
 				{
-					AttributeRenderer renderer = self.getAttributeRenderer(o.GetType());
-					if ( renderer!=null ) 
+					IAttributeRenderer renderer = self.GetAttributeRenderer(o.GetType());
+					if (renderer != null)
 					{
-						n = outWriter.write(renderer.ToString(o));
+						n = output.Write(renderer.ToString(o));
 					}
-					else 
+					else
 					{
-                		n = outWriter.write(o.ToString());
-					}			
+						n = output.Write(o.ToString());
+					}
 					return n;
 				}
 			}
 			catch (System.IO.IOException io)
 			{
-				self.error("problem writing object: " + o, io);
+				self.Error("problem writing object: " + o, io);
 			}
 			return n;
 		}
@@ -586,7 +571,7 @@ namespace antlr.stringtemplate.language
 		/// we must evaluate.  The separator can be any expression such as a template
 		/// include or string cat expression etc...
 		/// </summary>
-		protected internal virtual String computeSeparator(StringTemplate self, StringTemplateWriter outWriter, Object separator)
+		protected internal virtual string ComputeSeparator(StringTemplate self, IStringTemplateWriter output, object separator)
 		{
 			if (separator == null)
 			{
@@ -596,33 +581,34 @@ namespace antlr.stringtemplate.language
 			{
 				StringTemplateAST separatorTree = (StringTemplateAST) separator;
 				// must evaluate, writing to a string so we can hand on to it
-				ASTExpr e = new ASTExpr(getEnclosingTemplate(), separatorTree, null);
-				System.IO.StringWriter buf = new System.IO.StringWriter();
-				// create a new instance of whatever StringTemplateWriter
+				ASTExpr e = new ASTExpr(EnclosingTemplate, separatorTree, null);
+				StringWriter buf = new StringWriter();
+				// create a new instance of whatever IStringTemplateWriter
 				// implementation they are using.  Default is AutoIndentWriter.
 				// Defalut behavior is to indent but without
 				// any prior indents surrounding this attribute expression
-				StringTemplateWriter sw = null;
-				System.Type writerClass = outWriter.GetType();
+				IStringTemplateWriter sw = null;
+				System.Type writerClass = output.GetType();
 				try
 				{
-					System.Reflection.ConstructorInfo ctor = writerClass.GetConstructor(new System.Type[]{typeof(System.IO.TextWriter)});
-					sw = (StringTemplateWriter) ctor.Invoke(new Object[]{buf});
+					//UPGRADE_ISSUE: Class hierarchy differences between 'java.io.Writer' and 'System.IO.StreamWriter' may cause compilation errors. 'ms-help://MS.VSCC.2003/commoner/redir/redirect.htm?keyword="jlca1186_3"'
+					System.Reflection.ConstructorInfo ctor = writerClass.GetConstructor(new System.Type[]{typeof(System.IO.StreamWriter)});
+					sw = (IStringTemplateWriter) ctor.Invoke(new object[]{buf});
 				}
 				catch (System.Exception exc)
 				{
 					// default new AutoIndentWriter(buf)
-					self.error("cannot make implementation of StringTemplateWriter", exc);
+					self.Error("cannot make implementation of IStringTemplateWriter", exc);
 					sw = new AutoIndentWriter(buf);
 				}
 				
 				try
 				{
-					e.write(self, sw);
+					e.Write(self, sw);
 				}
 				catch (System.IO.IOException ioe)
 				{
-					self.error("can't evaluate separator expression", ioe);
+					self.Error("can't evaluate separator expression", ioe);
 				}
 				return buf.ToString();
 			}
@@ -633,32 +619,37 @@ namespace antlr.stringtemplate.language
 			}
 		}
 		
-		/// <summary>
-		/// Evaluate an argument list within the context of the enclosing
+		/// <summary>Evaluate an argument list within the context of the enclosing
 		/// template but store the values in the context of self, the
 		/// new embedded template.  For example, bold(item=item) means
 		/// that bold.item should get the value of enclosing.item.
-		///	</summary>
-		protected internal virtual void evaluateArguments(StringTemplate self)
+		/// </summary>
+		protected internal virtual void  EvaluateArguments(StringTemplate self)
 		{
-			StringTemplateAST argumentsAST = self.getArgumentsAST();
+			StringTemplateAST argumentsAST = self.ArgumentsAST;
 			if (argumentsAST == null || argumentsAST.getFirstChild() == null)
 			{
 				// return immediately if missing tree or no actual args
 				return ;
 			}
+			
 			// Evaluate args in the context of the enclosing template, but we
 			// need the predefined args like 'it', 'attr', and 'i' to be
 			// available as well so we put a dummy ST between the enclosing
 			// context and the embedded context.  The dummy has the predefined
 			// context as does the embedded.
-			StringTemplate enclosing = self.getEnclosingInstance();
-			StringTemplate argContextST = new StringTemplate(self.getGroup(), "");
-			argContextST.setName("<invoke "+self.getName()+" arg context>");
-			argContextST.setEnclosingInstance(enclosing);
-			argContextST.setArgumentContext(self.getArgumentContext());
-
+			StringTemplate enclosing = self.EnclosingInstance;
+			StringTemplate argContextST = new StringTemplate(self.Group, "");
+			argContextST.Name = "<invoke " + self.Name + " arg context>";
+			argContextST.EnclosingInstance = enclosing;
+			argContextST.ArgumentContext = self.ArgumentContext;
+			
 			ActionEvaluator eval = new ActionEvaluator(argContextST, this, null);
+			ActionParser.initializeASTFactory(eval.getASTFactory());
+			/*
+			System.out.println("eval args: "+argumentsAST.toStringList());
+			System.out.println("ctx is "+self.getArgumentContext());
+			*/
 			try
 			{
 				// using any initial argument context (such as when obj is set),
@@ -666,135 +657,132 @@ namespace antlr.stringtemplate.language
 				// in any existing arg context, that context gets filled with
 				// new values.  With bold(item=obj), context becomes:
 				// {[obj=...],[item=...]}.
-				IDictionary ac = eval.argList(argumentsAST, self, self.getArgumentContext());
-				self.setArgumentContext(ac);
+				IDictionary ac = eval.argList(argumentsAST, self, self.ArgumentContext);
+				self.ArgumentContext = ac;
 			}
 			catch (RecognitionException re)
 			{
-				self.error("can't evaluate tree: " + argumentsAST.ToStringList(), re);
+				self.Error("can't evaluate tree: " + argumentsAST.ToStringList(), re);
 			}
 		}
 		
-		/// <summary>Do a standard conversion of array attributes to Lists.</summary>
-		private static Object convertAnythingIteratableToIterator(Object o) {
-			IEnumerator iter = null;
-
-			if (o is IDictionary) {
-				iter = ((IDictionary) o).Values.GetEnumerator();
-			}
-			else if (o is ICollection) {
-				iter = ((ICollection) o).GetEnumerator();
-			}
-			else if (o is IEnumerator) {
-				iter = (IEnumerator) o;
-			}
-
-			if (iter == null) {
-				return o;
-			}
-
-			return iter;
-		}
-
-		public static IEnumerator convertAnythingToIterator(Object o) 
+		private static object ConvertAnythingIteratableToIterator(object o)
 		{
 			IEnumerator iter = null;
-			if (o is ICollection)
+			if (o is IDictionary)
 			{
-				iter = ((ICollection)o).GetEnumerator();
+				iter = ((IDictionary) o).Values.GetEnumerator();
 			}
-			else if (o is IDictionary)
+			else if (o is ICollection)
 			{
-				iter = ((IDictionary)o).Values.GetEnumerator();
+				iter = ((ICollection) o).GetEnumerator();
 			}
 			else if (o is IEnumerator)
 			{
-				iter = (IEnumerator)o;
+				iter = (IEnumerator) o;
 			}
-
-			if ( iter==null ) 
+			if (iter == null)
 			{
-				IList singleton = new ArrayList(1);
-				singleton.Add(o);
-				iter=singleton.GetEnumerator();
+				return o;
 			}
 			return iter;
 		}
-
-		/// <summary>
-		/// Return the first attribute if multiple valued or the attribute
-		/// itself if single-valued.  Used in names:first()
-		/// </summary>
-		public Object first(Object attribute) 
+		
+		internal static IEnumerator ConvertAnythingToIterator(object o)
 		{
-			if ( attribute==null ) 
+			IEnumerator iter = null;
+			if (o is IDictionary)
+			{
+				iter = ((IDictionary) o).Values.GetEnumerator();
+			}
+			else if (o is ICollection)
+			{
+				iter = ((ICollection) o).GetEnumerator();
+			}
+			else if (o is IEnumerator)
+			{
+				iter = (IEnumerator) o;
+			}
+			if (iter == null)
+			{
+				IList singleton = new ArrayList(1);
+				singleton.Add(o);
+				return singleton.GetEnumerator();
+			}
+			return iter;
+		}
+		
+		/// <summary>Return the first attribute if multiple valued or the attribute
+		/// itself if single-valued.  Used in <names:first()>
+		/// </summary>
+		public virtual object First(object attribute)
+		{
+			if (attribute == null)
 			{
 				return null;
 			}
-			Object f = attribute;
-			attribute = convertAnythingIteratableToIterator(attribute);
-			if (attribute is IEnumerator) 
+			object f = attribute;
+			attribute = ConvertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator)
 			{
-				IEnumerator it = (IEnumerator)attribute;
-				if (it.MoveNext()) 
+				IEnumerator it = (IEnumerator) attribute;
+				if (it.MoveNext())
 				{
 					f = it.Current;
 				}
 			}
+			
 			return f;
 		}
-
-		/// <summary>
-		/// Return the everything but the first attribute if multiple valued
-		/// or null if single-valued.  Used in names:rest().
+		
+		/// <summary>Return the everything but the first attribute if multiple valued
+		/// or null if single-valued.  Used in <names:rest()>.
 		/// </summary>
-		public Object rest(Object attribute) 
+		public virtual object Rest(object attribute)
 		{
-			if ( attribute==null ) 
+			if (attribute == null)
 			{
 				return null;
 			}
-			Object theRest = attribute;
-			attribute = convertAnythingIteratableToIterator(attribute);
-			if (attribute is IEnumerator) 
+			object theRest = attribute;
+			attribute = ConvertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator)
 			{
-				IEnumerator it = (IEnumerator)attribute;
-				if (!it.MoveNext()) 
+				IEnumerator it = (IEnumerator) attribute;
+				if (!it.MoveNext())
 				{
 					return null; // if not even one value return null
 				}
-				it.MoveNext(); // ignore first value
-				if (!it.MoveNext()) 
-				{
-					return null; // if not more than one value, return null
-				}
-				theRest = it;    // return suitably altered iterator
+				theRest = it; // return suitably altered iterator
+				//				theRest = new ArrayList();
+				//				while (it.MoveNext())
+				//					((ArrayList) theRest).Add(it.Current);
 			}
-			else 
+			else
 			{
-				theRest = null;  // rest of single-valued attribute is null
+				theRest = null; // rest of single-valued attribute is null
 			}
+			
 			return theRest;
 		}
-
-		/// <summary>
-		/// Return the last attribute if multiple valued or the attribute
-		/// itself if single-valued.  Used in names:last().  This is pretty
+		
+		/// <summary>Return the last attribute if multiple valued or the attribute
+		/// itself if single-valued.  Used in <names:last()>.  This is pretty
 		/// slow as it iterates until the last element.  Ultimately, I could
 		/// make a special case for a List or Vector.
 		/// </summary>
-		public Object last(Object attribute) 
+		public virtual object Last(object attribute)
 		{
-			if ( attribute==null ) 
+			if (attribute == null)
 			{
 				return null;
 			}
-			Object last = attribute;
-			attribute = convertAnythingIteratableToIterator(attribute);
-			if (attribute is IEnumerator) 
+			object last = attribute;
+			attribute = ConvertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator)
 			{
-				IEnumerator it = (IEnumerator)attribute;
-				while (it.MoveNext()) 
+				IEnumerator it = (IEnumerator) attribute;
+				while (it.MoveNext())
 				{
 					last = it.Current;
 				}
@@ -802,17 +790,117 @@ namespace antlr.stringtemplate.language
 			return last;
 		}
 
-		public static bool isValidMapInstance(System.Type type)
+		public override string ToString()
 		{
-			return type == typeof(Hashtable) || type == typeof(Hashtable);
+			return exprTree.ToStringList();
 		}
-		
-		/// <summary>A property can be declared as Map, but the instance must be
-		/// isValidMapInstance().
-		/// </summary>
-		public static bool isValidReturnTypeMapInstance(System.Type type)
+
+		#region Private Helper Methods
+
+		private bool GetMethodValueByName(StringTemplate self, Type prototype, object instance, string methodName, ref object val)
 		{
-			return isValidMapInstance(type) || type == typeof(IDictionary);
+			MethodInfo mi = null;
+			try 
+			{
+				mi = prototype.GetMethod(
+					methodName,
+					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase,
+					null,
+					Type.EmptyTypes,
+					null
+					);
+
+				if (mi != null)
+				{
+					try
+					{
+						val = mi.Invoke(instance, (object[]) null);
+						return true;
+					}
+					catch(Exception ex)
+					{
+						self.Error("Can't get property " + methodName + " using method get_/Get/Is/get/is" + methodName + " from " + prototype.FullName + " instance", ex);
+					}
+				}
+			}
+			catch(Exception)
+			{
+				;
+			}
+			return false;
 		}
+
+		private bool GetPropertyValueByName(StringTemplate self, Type prototype, object instance, string propertyName, ref object val)
+		{
+			PropertyInfo pi = null;
+			try 
+			{
+				pi = prototype.GetProperty(
+					propertyName,
+					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase,
+					null,
+					null,
+					Type.EmptyTypes,
+					null
+					);
+
+				if (pi != null)
+				{
+					if (pi.CanRead)
+					{
+						try
+						{
+							val = pi.GetValue(instance, (object[]) null);
+							return true;
+						}
+						catch(Exception ex)
+						{
+							self.Error("Can't get property " + propertyName + " as CLR property " + propertyName + " from " + prototype.FullName + " instance", ex);
+						}
+					}
+					else
+					{
+						self.Error("Class " + prototype.FullName + " property: " + propertyName + " is write-only in template context " + self.GetEnclosingInstanceStackString());
+					}
+				}
+			}
+			catch(Exception)
+			{
+				;
+			}
+			return false;
+		}
+
+		private bool GetFieldValueByName(StringTemplate self, Type prototype, object instance, string fieldName, ref object val)
+		{
+			FieldInfo fi = null;
+			try 
+			{
+				fi = prototype.GetField(
+					fieldName,
+					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase
+					);
+
+				if (fi != null)
+				{
+					try
+					{
+						val = fi.GetValue(instance);
+						return true;
+					}
+					catch(Exception ex)
+					{
+						self.Error("Can't get property " + fieldName + " using direct field access from " + prototype.FullName + " instance", ex);
+					}
+				}
+			}
+			catch(Exception)
+			{
+				;
+			}
+			return false;
+		}
+
+		#endregion
 	}
 }

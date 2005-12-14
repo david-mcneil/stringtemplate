@@ -1,5 +1,6 @@
 /*
 [The "BSD licence"]
+Copyright (c) 2005 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -23,17 +24,45 @@ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-using System;
-using System.Collections;
-using antlr.stringtemplate.language;
-using AttributeReflectionController = antlr.stringtemplate.language.AttributeReflectionController;
-using antlr;
-using AST = antlr.collections.AST;
-namespace antlr.stringtemplate
+THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+namespace Antlr.StringTemplate
 {
+	using System;
+	using Hashtable							= System.Collections.Hashtable;
+	using ArrayList							= System.Collections.ArrayList;
+	using ICollection						= System.Collections.ICollection;
+	using IList								= System.Collections.IList;
+	using IDictionary						= System.Collections.IDictionary;
+	using IEnumerator						= System.Collections.IEnumerator;
+	using StringBuilder						= System.Text.StringBuilder;
+	using StringWriter						= System.IO.StringWriter;
+	using StringReader						= System.IO.StringReader;
+	using TextReader						= System.IO.TextReader;
+	using IOException						= System.IO.IOException;
+	using AST								= antlr.collections.AST;
+	using CharScanner						= antlr.CharScanner;
+	using RecognitionException				= antlr.RecognitionException;
+	using TokenStreamException				= antlr.TokenStreamException;
+	using CollectionUtils					= Antlr.StringTemplate.Collections.CollectionUtils;
+	using HashList							= Antlr.StringTemplate.Collections.HashList;
+	using ASTExpr							= Antlr.StringTemplate.Language.ASTExpr;
+	using Expr								= Antlr.StringTemplate.Language.Expr;
+	using ConditionalExpr					= Antlr.StringTemplate.Language.ConditionalExpr;
+	using ChunkToken						= Antlr.StringTemplate.Language.ChunkToken;
+	using StringTemplateToken				= Antlr.StringTemplate.Language.StringTemplateToken;
+	using StringTemplateAST					= Antlr.StringTemplate.Language.StringTemplateAST;
+	using FormalArgument					= Antlr.StringTemplate.Language.FormalArgument;
+	using TemplateParser					= Antlr.StringTemplate.Language.TemplateParser;
+	using ActionLexer						= Antlr.StringTemplate.Language.ActionLexer;
+	using ActionParser						= Antlr.StringTemplate.Language.ActionParser;
+	using ActionParserTokenTypes			= Antlr.StringTemplate.Language.ActionParserTokenTypes;
+	using NewlineRef						= Antlr.StringTemplate.Language.NewlineRef;
 	
-	/// <summary>A <TT>StringTemplate</TT> is a "document" with holes in it where you can stick
+	/// <summary>
+	/// A <TT>StringTemplate</TT> is a "document" with holes in it where you can stick
 	/// values.  <TT>StringTemplate</TT> breaks up your template into chunks of text and
 	/// attribute expressions, which are by default enclosed in angle brackets:
 	/// <TT>&lt;</TT><em>attribute-expression</em><TT>&gt;</TT>.  <TT>StringTemplate</TT>
@@ -72,7 +101,7 @@ namespace antlr.stringtemplate
 	/// file foo.st in the CLASSPATH.  note that you can use org/antlr/misc/foo()
 	/// (qualified template names) as a template ref.
 	/// 
-	/// <p>StringTemplateErrorListener is an interface you can implement to
+	/// <p>IStringTemplateErrorListener is an interface you can implement to
 	/// specify where StringTemplate reports errors.  Setting the listener
 	/// for a group automatically makes all associated StringTemplate
 	/// objects use the same listener.  For example,
@@ -80,7 +109,7 @@ namespace antlr.stringtemplate
 	/// <font size=2><pre>
 	/// StringTemplateGroup group = new StringTemplateGroup("loutSyndiags");
 	/// group.setErrorListener(
-	/// new StringTemplateErrorListener() {
+	/// new IStringTemplateErrorListener() {
 	/// public void error(String msg, Exception e) {
 	/// System.err.println("StringTemplate error: "+
 	/// msg+((e!=null)?": "+e.getMessage():""));
@@ -109,7 +138,7 @@ namespace antlr.stringtemplate
 	/// Java object whence they were constructed.  So, there are multiple
 	/// pointers to the list of chunks (one for each instance with that
 	/// pattern) and only one back ptr from a chunk to the original pattern
-	/// object.  This is used primarily to get the grcoup of that original
+	/// object.  This is used primarily to get the group of that original
 	/// so new templates can be loaded into that group.
 	/// 
 	/// <p>To write out a template, the chunks are walked in order and asked to
@@ -119,13 +148,354 @@ namespace antlr.stringtemplate
 	/// </summary>
 	public class StringTemplate
 	{
-		private void InitBlock()
+		public const string VERSION = "2.3b4";
+
+		/// <summary><@r()></summary>
+		internal const int REGION_IMPLICIT = 1;
+
+		/// <summary><@r>...<@end></summary>
+		internal const int REGION_EMBEDDED = 2;
+
+		/// <summary>@t.r() ::= "..." defined manually by coder</summary>
+		internal const int REGION_EXPLICIT = 3;
+
+		private static int GetNextTemplateCounter
 		{
-			formalArguments = FormalArgument.UNKNOWN;
+			get
+			{
+				lock (typeof(StringTemplate))
+				{
+					templateCounter++;
+					return templateCounter;
+				}
+			}
 		}
-		public const String VERSION = "2.2";
+		/// <summary>
+		/// Make an instance of this template; it contains an exact copy of
+		/// everything (except the attributes and enclosing instance pointer).
+		/// So the new template refers to the previously compiled chunks of this
+		/// template but does not have any attribute values.
+		/// </summary>
+		virtual public StringTemplate GetInstanceOf()
+		{
+			StringTemplate t = group.CreateStringTemplate();
+			dup(this, t);
+			return t;
+		}
+
+		virtual public StringTemplate EnclosingInstance
+		{
+			get { return enclosingInstance; }
+			set
+			{
+				if (this == value)
+				{
+					throw new System.ArgumentException("cannot embed template " + Name + " in itself");
+				}
+				// set the parent for this template
+				this.enclosingInstance = value;
+				// make the parent track this template as an embedded template
+				if (value != null)
+				{
+					this.enclosingInstance.AddEmbeddedInstance(this);
+				}
+			}
+		}
+
+		virtual public StringTemplate OutermostEnclosingInstance
+		{
+			get
+			{
+				if ( enclosingInstance!=null ) 
+				{
+					return enclosingInstance.OutermostEnclosingInstance;
+				}
+				return this;
+			}
+		}
+
+		virtual public IDictionary ArgumentContext
+		{
+			get { return argumentContext; }
+			set { argumentContext = value; }
+		}
+		virtual public StringTemplateAST ArgumentsAST
+		{
+			get { return argumentsAST; }
+			set { this.argumentsAST = value; }
+		}
+		virtual public string Name
+		{
+			get { return name; }
+			set { this.name = value; }
+		}
+		virtual public string OutermostName
+		{
+			get
+			{
+				if (enclosingInstance != null)
+				{
+					return enclosingInstance.OutermostName;
+				}
+				return Name;
+			}
+			
+		}
+		virtual public StringTemplateGroup Group
+		{
+			get { return group; }
+			set { this.group = value; }
+		}
+		virtual public StringTemplateGroup NativeGroup 
+		{
+			get { return nativeGroup; }
+			set { this.nativeGroup = value; }
+		}
+
+		/// <summary>
+		/// Return the outermost template's group file line number
+		/// </summary>
+		public int GroupFileLine 
+		{
+			get
+			{
+				if ( enclosingInstance!=null ) 
+				{
+					return enclosingInstance.GroupFileLine;
+				}
+				return groupFileLine;
+			}
+			set { this.groupFileLine = value; }
+		}
+
+		virtual public string Template
+		{
+			get { return pattern; }
+			set
+			{
+				this.pattern = value;
+				BreakTemplateIntoChunks();
+			}
+		}
+		virtual public IStringTemplateErrorListener ErrorListener
+		{
+			get
+			{
+				if (errorListener == NullErrorListener.DefaultNullListener)
+				{
+					return group.ErrorListener;
+				}
+				return errorListener;
+			}
+			set 
+			{
+				if (value == null)
+					this.errorListener = NullErrorListener.DefaultNullListener;
+				else
+					this.errorListener = value;
+			}
+		}
+		virtual public int TemplateID
+		{
+			get { return templateID; }
+		}
+		virtual public IDictionary Attributes
+		{
+			get { return attributes; }
+			set { this.attributes = value; }
+		}
+
+		/// <summary>
+		/// Get a list of the strings and subtemplates and attribute
+		/// refs in a template.
+		/// </summary>
+		virtual public IList Chunks
+		{
+			get { return chunks; }
+		}
+
+		/// <summary>
+		/// Normally if you call template y from x, y cannot see any attributes
+		/// of x that are defined as formal parameters of y.  Setting this
+		/// passThroughAttributes to true, will override that and allow a
+		/// template to see through the formal arg list to inherited values.
+		/// </summary>
+		virtual public bool PassThroughAttributes
+		{
+			set { this.passThroughAttributes = value; }
+		}
+
+		/// <summary>
+		/// Specify a complete map of what object classes should map to which
+		/// renderer objects.
+		/// </summary>
+		virtual public IDictionary AttributeRenderers
+		{
+			set { this.attributeRenderers = value; }
+		}
+		/// <summary>
+		/// Make StringTemplate check your work as it evaluates templates.
+		/// Problems are sent to error listener.   Currently warns when
+		/// you set attributes that are not used.
+		/// </summary>
+		public static bool LintMode
+		{
+			set { StringTemplate.lintMode = value; }
+		}
+
+		virtual public string GetEnclosingInstanceStackTrace()
+		{
+			StringBuilder buf = new StringBuilder();
+			Hashtable seen = new Hashtable();
+			StringTemplate p = this;
+			while (p != null)
+			{
+				if (seen.Contains(p))
+				{
+					buf.Append(p.GetTemplateDeclaratorString());
+					buf.Append(" (start of recursive cycle)");
+					buf.Append("\n");
+					buf.Append("...");
+					break;
+				}
+				seen[p] = null;
+				buf.Append(p.GetTemplateDeclaratorString());
+				if (p.attributes != null)
+				{
+					buf.Append(", attributes=[");
+					int i = 0;
+					for (IEnumerator iter = p.attributes.Keys.GetEnumerator(); iter.MoveNext(); )
+					{
+						string attrName = (string) iter.Current;
+						if (i > 0)
+						{
+							buf.Append(", ");
+						}
+						i++;
+						buf.Append(attrName);
+						object o = p.attributes[attrName];
+						if (o is StringTemplate)
+						{
+							StringTemplate st = (StringTemplate) o;
+							buf.Append("=");
+							buf.Append("<");
+							buf.Append(st.Name);
+							buf.Append("()@");
+							buf.Append(st.TemplateID.ToString());
+							buf.Append(">");
+						}
+						else if (o is IList)
+						{
+							buf.Append("=List[..");
+							IList list = (IList) o;
+							int n = 0;
+							for (int j = 0; j < list.Count; j++)
+							{
+								object listValue = list[j];
+								if (listValue is StringTemplate)
+								{
+									if (n > 0)
+									{
+										buf.Append(", ");
+									}
+									n++;
+									StringTemplate st = (StringTemplate) listValue;
+									buf.Append("<");
+									buf.Append(st.Name);
+									buf.Append("()@");
+									buf.Append(st.TemplateID.ToString());
+									buf.Append(">");
+								}
+							}
+							buf.Append("..]");
+						}
+					}
+					buf.Append("]");
+				}
+				if (p.referencedAttributes != null)
+				{
+					buf.Append(", references=");
+					buf.Append(CollectionUtils.ListToString(p.referencedAttributes));
+				}
+				buf.Append(">\n");
+				p = p.enclosingInstance;
+			}
+			/*
+			if ( enclosingInstance!=null ) {
+			buf.append(enclosingInstance.getEnclosingInstanceStackTrace());
+			}
+			*/
+			return buf.ToString();
+		}
+
+		virtual public string GetTemplateDeclaratorString()
+		{
+			StringBuilder buf = new StringBuilder();
+			buf.Append("<");
+			buf.Append(Name);
+			buf.Append("(");
+			buf.Append(formalArguments.Keys.ToString());
+			buf.Append(")@");
+			buf.Append(TemplateID.ToString());
+			buf.Append(">");
+			return buf.ToString();
+		}
+
+		/// <summary>
+		/// If an instance of x is enclosed in a y which is in a z, return
+		/// a String of these instance names in order from topmost to lowest;
+		/// here that would be "[z y x]".
+		/// </summary>
+		virtual public string GetEnclosingInstanceStackString()
+		{
+			IList names = new ArrayList();
+			StringTemplate p = this;
+			while (p != null)
+			{
+				string name = p.Name;
+				names.Insert(0, name + (p.passThroughAttributes ? "(...)" : ""));
+				p = p.enclosingInstance;
+			}
+			return CollectionUtils.ListToString(names).Replace(",", "");
+		}
 		
-		/// <summary>An automatically created aggregate of properties.
+		public bool IsRegion
+		{
+			get { return isRegion; }
+			set { this.isRegion = value; }
+		}
+
+		public void AddRegionName(string name) 
+		{
+			if ( regions==null ) 
+			{
+				regions = new Hashtable();
+			}
+			regions.Add(name, name);
+		}
+
+		/// <summary>
+		/// Does this template ref or embed region name?
+		/// </summary>
+		/// <param name="name">Region name</param>
+		/// <returns>True if named region is found else false.</returns>
+		public bool ContainsRegionName(string name) 
+		{
+			if ( regions==null ) 
+			{
+				return false;
+			}
+			return regions.Contains(name);
+		}
+
+		public int RegionDefType
+		{
+			get { return regionDefType; }
+			set { this.regionDefType = value; }
+		}
+
+		/// <summary>
+		/// An automatically created aggregate of properties.
 		/// 
 		/// I often have lists of things that need to be formatted, but the list
 		/// items are actually pieces of data that are not already in an object.  I
@@ -168,20 +538,31 @@ namespace antlr.stringtemplate
 		public sealed class Aggregate
 		{
 			internal Hashtable properties = new Hashtable();
-			/// <summary>Allow StringTemplate to add values, but prevent the end
+
+			/// <summary>
+			/// Allow StringTemplate to add values, but prevent the end
 			/// user from doing so.
 			/// </summary>
-			internal void put(String propName, Object propValue)
+			internal void Put(string propName, object propValue)
 			{
 				properties[propName] = propValue;
 			}
-			public Object get(String propName)
+			public object Get(string propName)
 			{
-				return properties[propName];
+				object returnVal;
+				try
+				{
+					returnVal = properties[propName];
+				}
+				catch
+				{
+					returnVal = null;
+				}
+				return returnVal;
 			}
 		}
 		
-		internal static string ANONYMOUS_ST_NAME = "anonymous";
+		public const string ANONYMOUS_ST_NAME = "anonymous";
 		
 		/// <summary>track probable issues like setting attribute that is not referenced. </summary>
 		internal static bool lintMode = false;
@@ -189,29 +570,22 @@ namespace antlr.stringtemplate
 		protected internal IList referencedAttributes = null;
 		
 		/// <summary>What's the name of this template? </summary>
-		protected internal String name = ANONYMOUS_ST_NAME;
+		protected internal string name = ANONYMOUS_ST_NAME;
 		
 		private static int templateCounter = 0;
-
-		private static int getNextTemplateCounter()
-		{
-			lock (typeof(antlr.stringtemplate.StringTemplate))
-			{
-				templateCounter++;
-				return templateCounter;
-			}
-		}
-		/// <summary>reset the template ID counter to 0; public so that testing routine
+		/// <summary>
+		/// reset the template ID counter to 0; public so that testing routine
 		/// can access but not really of interest to the user.
 		/// </summary>
-		public static void resetTemplateCounter()
+		public static void  resetTemplateCounter()
 		{
 			templateCounter = 0;
 		}
 		
-		protected internal int templateID = getNextTemplateCounter();
+		protected internal int templateID = GetNextTemplateCounter;
 		
-		/// <summary>Enclosing instance if I'm embedded within another template.
+		/// <summary>
+		/// Enclosing instance if I'm embedded within another template.
 		/// IF-subtemplates are considered embedded as well.
 		/// </summary>
 		protected internal StringTemplate enclosingInstance = null;
@@ -219,7 +593,8 @@ namespace antlr.stringtemplate
 		/// <summary>A list of embedded templates </summary>
 		protected internal IList embeddedInstances = null;
 		
-		/// <summary>If this template is an embedded template such as when you apply
+		/// <summary>
+		/// If this template is an embedded template such as when you apply
 		/// a template to an attribute, then the arguments passed to this
 		/// template represent the argument context--a set of values
 		/// computed by walking the argument assignment list.  For example,
@@ -238,7 +613,8 @@ namespace antlr.stringtemplate
 		/// </summary>
 		protected internal IDictionary argumentContext = null;
 		
-		/// <summary>If this template is embedded in another template, the arguments
+		/// <summary>
+		/// If this template is embedded in another template, the arguments
 		/// must be evaluated just before each application when applying
 		/// template to a list of values.  The "it" attribute must change
 		/// with each application so that $names:bold(item=it)$ works.  If
@@ -250,45 +626,71 @@ namespace antlr.stringtemplate
 		/// </summary>
 		protected internal StringTemplateAST argumentsAST = null;
 		
-		/// <summary>When templates are defined in a group file format, the attribute
+		/// <summary>
+		/// When templates are defined in a group file format, the attribute
 		/// list is provided including information about attribute cardinality
 		/// such as present, optional, ...  When this information is available,
-		/// rawSetAttribute should do a quick existence check as should the
+		/// RawSetAttribute should do a quick existence check as should the
 		/// invocation of other templates.  So if you ref bold(item="foo") but
 		/// item is not defined in bold(), then an exception should be thrown.
 		/// When actually rendering the template, the cardinality is checked.
 		/// This is a Map<String,FormalArgument>.
 		/// </summary>
-		protected internal IDictionary formalArguments;
-
-		/** How many formal arguments to this template have default values
-		*  specified?
-		*/
+		protected internal IDictionary formalArguments = FormalArgument.UNKNOWN;
+		
+		/// <summary>
+		/// How many formal arguments to this template have default values
+		/// specified?
+		/// </summary>
 		protected internal int numberOfDefaultArgumentValues = 0;
-
-		/** Normally, formal parameters hide any attributes inherited from the
-		 *  enclosing template with the same name.  This is normally what you
-		 *  want, but makes it hard to invoke another template passing in all
-		 *  the data.  Use notation now: <otherTemplate(...)> to say "pass in
-		 *  all data".  Works great.  Can also say <otherTemplate(foo="xxx",...)>
-		 */
+		
+		/// <summary>
+		/// Normally, formal parameters hide any attributes inherited from the
+		/// enclosing template with the same name.  This is normally what you
+		/// want, but makes it hard to invoke another template passing in all
+		/// the data.  Use notation now: <otherTemplate(...)> to say "pass in
+		/// all data".  Works great.  Can also say <otherTemplate(foo="xxx",...)>
+		/// </summary>
 		protected internal bool passThroughAttributes = false;
 		
-		/// <summary>What group originally defined the prototype for this template?
+		/// <summary>
+		/// What group originally defined the prototype for this template?
 		/// This affects the set of templates I can refer to.
+		/// always refer to the super of the original group.
+		/// 
+		/// group base;
+		/// t ::= "base";
+		/// 
+		/// group sub;
+		/// t ::= "super.t()2"
+		/// 
+		/// group subsub;
+		/// t ::= "super.t()3"
+		/// </summary>
+		protected StringTemplateGroup nativeGroup;
+
+		/// <summary>
+		/// This template was created as part of what group?  Even if this
+		/// template was created from a prototype in a supergroup, its group
+		/// will be the subgroup.  That's the way polymorphism works.
 		/// </summary>
 		protected internal StringTemplateGroup group;
 		
+		/// <summary>If this template is defined within a group file, what line number?</summary>
+		protected int groupFileLine;
+
 		/// <summary>Where to report errors </summary>
-		internal StringTemplateErrorListener listener = null;
+		protected IStringTemplateErrorListener errorListener = NullErrorListener.DefaultNullListener;
 		
-		/// <summary>The original, immutable pattern/language (not really used again after
+		/// <summary>
+		/// The original, immutable pattern/language (not really used again after
 		/// initial "compilation", setup/parsing).
 		/// </summary>
-		protected internal String pattern;
+		protected internal string pattern;
 		
-		/// <summary>Map an attribute name to its value(s).  These values are set by outside
-		/// code via st.setAttribute(name, value).  StringTemplate is like self in
+		/// <summary>
+		/// Map an attribute name to its value(s).  These values are set by outside
+		/// code via st.SetAttribute(name, value).  StringTemplate is like self in
 		/// that a template is both the "class def" and "instance".  When you
 		/// create a StringTemplate or setTemplate, the text is broken up into chunks
 		/// (i.e., compiled down into a series of chunks that can be evaluated later).
@@ -297,62 +699,88 @@ namespace antlr.stringtemplate
 		protected internal IDictionary attributes;
 		
 		/// <summary>
-		/// A Map that allows people to register a renderer for
-		///	a particular kind of object to be displayed in this template.  This
+		/// A Map<Class,Object> that allows people to register a renderer for
+		/// a particular kind of object to be displayed in this template.  This
 		/// overrides any renderer set for this template's group.
-		///
+		/// 
 		/// Most of the time this map is not used because the StringTemplateGroup
 		/// has the general renderer map for all templates in that group.
 		/// Sometimes though you want to override the group's renderers.
 		/// </summary>
 		protected internal IDictionary attributeRenderers;
-
-		/// <summary>A list of alternating string and ASTExpr references.
+		
+		/// <summary>
+		/// A list of alternating string and ASTExpr references.
 		/// This is compiled to when the template is loaded/defined and walked to
 		/// write out a template instance.
 		/// </summary>
 		protected internal IList chunks;
 		
+		/// <summary>
+		/// If someone refs <@r()> in template t, an implicit
+		/// 
+		/// @t.r() ::= ""
+		/// 
+		/// is defined, but you can overwrite this def by defining your
+		/// own.  We need to prevent more than one manual def though.  Between
+		/// this var and isEmbeddedRegion we can determine these cases. 
+		/// </summary>
+		protected int regionDefType;
+
+		/// <summary>
+		/// Does this template come from a <@region>...<@end> embedded in
+		/// another template?
+		/// </summary>
+		protected bool isRegion;
+
+		/// <summary>Set of implicit and embedded regions for this template</summary>
+		protected IDictionary regions;
+
 		protected internal static StringTemplateGroup defaultGroup = new StringTemplateGroup("defaultGroup", ".");
 		
-		/// <summary>Create a blank template with no pattern and no attributes </summary>
+		/// <summary>
+		/// Create a blank template with no pattern and no attributes
+		/// </summary>
 		public StringTemplate()
 		{
-			InitBlock();
 			group = defaultGroup; // make sure has a group even if default
 		}
 		
-		/// <summary>Create an anonymous template.  It has no name just
+		/// <summary>
+		/// Create an anonymous template.  It has no name just
 		/// chunks (which point to this anonymous template) and attributes.
 		/// </summary>
-		public StringTemplate(String template):this(null, template)
+		public StringTemplate(string template):this(null, template)
 		{
 		}
 		
-		public StringTemplate(String template, System.Type lexer):this()
+		public StringTemplate(string template, System.Type lexer):this()
 		{
-			setGroup(new StringTemplateGroup("angleBracketsGroup", lexer));
-			setTemplate(template);
+			Group = new StringTemplateGroup("angleBracketsGroup", lexer);
+			Template = template;
 		}
 		
-		/// <summary>Create an anonymous template with no name, but with a group </summary>
-		public StringTemplate(StringTemplateGroup group, String template):this()
+		/// <summary>
+		/// Create an anonymous template with no name, but with a group
+		/// </summary>
+		public StringTemplate(StringTemplateGroup group, string template):this()
 		{
 			if (group != null)
 			{
-				setGroup(group);
+				Group = group;
 			}
-			setTemplate(template);
+			Template = template;
 		}
 		
-		/// <summary>Make the 'to' template look exactly like the 'from' template
+		/// <summary>
+		/// Make the 'to' template look exactly like the 'from' template
 		/// except for the attributes.  This is like creating an instance
 		/// of a class in that the executable code is the same (the template
 		/// chunks), but the instance data is blank (the attributes).  Do
 		/// not copy the enclosingInstance pointer since you will want this
 		/// template to eval in a context different from the examplar.
 		/// </summary>
-		protected internal virtual void dup(StringTemplate from, StringTemplate to)
+		protected internal virtual void  dup(StringTemplate from, StringTemplate to)
 		{
 			to.pattern = from.pattern;
 			to.chunks = from.chunks;
@@ -360,42 +788,14 @@ namespace antlr.stringtemplate
 			to.numberOfDefaultArgumentValues = from.numberOfDefaultArgumentValues;
 			to.name = from.name;
 			to.group = from.group;
-			to.listener = from.listener;
+			to.nativeGroup = from.nativeGroup;
+			to.errorListener = from.errorListener;
+			to.regions = from.regions;
+			to.isRegion = from.isRegion;
+			to.regionDefType = from.regionDefType;
 		}
 		
-		/// <summary>Make an instance of this template; it contains an exact copy of
-		/// everything (except the attributes and enclosing instance pointer).
-		/// So the new template refers to the previously compiled chunks of this
-		/// template but does not have any attribute values.
-		/// </summary>
-		public virtual StringTemplate getInstanceOf()
-		{
-			StringTemplate t = group.createStringTemplate();
-			dup(this, t);
-			return t;
-		}
-		
-		public virtual StringTemplate getEnclosingInstance()
-		{
-			return enclosingInstance;
-		}
-		
-		public virtual void setEnclosingInstance(StringTemplate enclosingInstance)
-		{
-			if (this == enclosingInstance)
-			{
-				throw new System.ArgumentException("cannot embed template " + getName() + " in itself");
-			}
-			// set the parent for this template
-			this.enclosingInstance = enclosingInstance;
-			// make the parent track this template as an embedded template
-			if (enclosingInstance!=null)
-			{
-				this.enclosingInstance.addEmbeddedInstance(this);
-			}
-		}
-		
-		public virtual void addEmbeddedInstance(StringTemplate embeddedInstance)
+		public virtual void  AddEmbeddedInstance(StringTemplate embeddedInstance)
 		{
 			if (this.embeddedInstances == null)
 			{
@@ -404,109 +804,24 @@ namespace antlr.stringtemplate
 			this.embeddedInstances.Add(embeddedInstance);
 		}
 		
-		public virtual IDictionary getArgumentContext()
-		{
-			return argumentContext;
-		}
-		
-		public virtual void setArgumentContext(IDictionary ac)
-		{
-			argumentContext = ac;
-		}
-		
-		public virtual StringTemplateAST getArgumentsAST()
-		{
-			return argumentsAST;
-		}
-		
-		public virtual void setArgumentsAST(StringTemplateAST argumentsAST)
-		{
-			this.argumentsAST = argumentsAST;
-		}
-		
-		public virtual String getName()
-		{
-			return name;
-		}
-		
-		public virtual String getOutermostName()
-		{
-			if (enclosingInstance != null)
-			{
-				return enclosingInstance.getOutermostName();
-			}
-			return getName();
-		}
-		
-		public virtual void setName(String name)
-		{
-			this.name = name;
-		}
-		
-		public virtual StringTemplateGroup getGroup()
-		{
-			return group;
-		}
-		
-		public virtual void setGroup(StringTemplateGroup group)
-		{
-			this.group = group;
-		}
-		
-		public virtual void setTemplate(String template)
-		{
-			this.pattern = template;
-			breakTemplateIntoChunks();
-		}
-		
-		public virtual String getTemplate()
-		{
-			return pattern;
-		}
-		
-		public virtual void setErrorListener(StringTemplateErrorListener listener)
-		{
-			this.listener = listener;
-		}
-		
-		public virtual StringTemplateErrorListener getErrorListener()
-		{
-			if (listener == null)
-			{
-				return group.getErrorListener();
-			}
-			return listener;
-		}
-		
-		public virtual void reset()
+		public virtual void  Reset()
 		{
 			attributes = new Hashtable(); // just throw out table and make new one
 		}
 		
-		public virtual void setPredefinedAttributes()
+		public virtual void  SetPredefinedAttributes()
 		{
-			if (!inLintMode())
+			if (!IsInLintMode)
 			{
 				return ; // only do this method so far in lint mode
 			}
-			if (formalArguments != FormalArgument.UNKNOWN)
-			{
-				// must define self before setting if the user has defined
-				// formal arguments to the template
-				defineFormalArgument(ASTExpr.REFLECTION_ATTRIBUTES);
-			}
-			if (attributes == null)
-			{
-				attributes = new Hashtable();
-			}
-			rawSetAttribute(attributes, ASTExpr.REFLECTION_ATTRIBUTES, new AttributeReflectionController(this).ToString());
 		}
 		
-		public virtual void removeAttribute(String name)
+		public virtual void  RemoveAttribute(string name)
 		{
 			attributes.Remove(name);
 		}
-
+		
 		/// <summary>
 		/// Set an attribute for this template.  If you set the same
 		/// attribute more than once, you get a multi-valued attribute.
@@ -519,225 +834,207 @@ namespace antlr.stringtemplate
 		/// If you send in an array, it is converted to a List.  Works
 		/// with arrays of objects and arrays of {int,float,double}.
 		/// </summary>
-		public virtual void setAttribute(String name, Object value) {
-			if (value == null) {
-				return;
+		public virtual void  SetAttribute(string name, object val)
+		{
+			if (val == null)
+			{
+				return ;
 			}
-
-			if (attributes == null) {
+			if (attributes == null)
+			{
 				attributes = new Hashtable();
 			}
-
-			if (value is StringTemplate) {
-				((StringTemplate) value).setEnclosingInstance(this);
+			
+			if (val is StringTemplate)
+			{
+				((StringTemplate) val).EnclosingInstance = this;
 			}
-
+			
 			// convert plain collections
 			// get exactly in this scope (no enclosing)
-			Object o = attributes[name];
-
-			if (o != null) {
+			object o = attributes[name];
+			if (o != null)
+			{
 				// it's a multi-value attribute
 				//Console.WriteLine("exists: "+name+"="+o);
 				IList v = null;
-
-				if (o is IList) {
+				if (o is IList)
+				{
 					// already a List
 					v = (IList) o;
-
-					if (value is IList) {
+					if (val is IList)
+					{
 						// flatten incoming list into existing
 						// (do nothing if same List to avoid trouble)
-						IList v2 = (IList) value;
-
-						for (int i = 0; v != v2 && i < v2.Count; i++) {
+						IList v2 = (IList) val;
+						for (int i = 0; v != v2 && i < v2.Count; i++)
+						{
 							// Console.WriteLine("flattening "+name+"["+i+"]="+v2.elementAt(i)+" into existing value");
 							v.Add(v2[i]);
 						}
 					}
-					if (value is ICollection) {
-						// flatten incoming list into existing
+					else if (val is ICollection)
+					{
+						// flatten incoming collection into existing list
 						// (do nothing if same List to avoid trouble)
-						IList v2 = (IList) value;
-
-						foreach (Object o1 in v2) {
-							// Console.WriteLine("flattening "+name+"["+i+"]="+v2.elementAt(i)+" into existing value");
-							v.Add(o1);
+						ICollection coll = (ICollection) val;
+						foreach (object obj in coll)
+						{
+							v.Add(obj);
 						}
 					}
-					else {
-						v.Add(value);
+					else
+					{
+						v.Add(val);
 					}
 				}
-				else {
+				else
+				{
 					// second attribute, must convert existing to ArrayList
 					v = new ArrayList(); // make list to hold multiple values
 					// make it point to list now
-					rawSetAttribute(this.attributes, name, v);
+					RawSetAttribute(attributes, name, v);
 					v.Add(o); // add previous single-valued attribute
-
-					if (value is IList) {
-						// flatten incoming list into existing
-						IList v2 = (IList) value;
-
-						for (int i = 0; i < v2.Count; i++) {
+					if (val is IList)
+					{
+						// flatten incoming list into new list
+						IList v2 = (IList) val;
+						for (int i = 0; i < v2.Count; i++)
+						{
 							v.Add(v2[i]);
 						}
 					}
-					else {
-						v.Add(value);
+					else if (val is ICollection)
+					{
+						// flatten incoming collection into new list
+						ICollection coll = (ICollection) val;
+						foreach (object obj in coll)
+						{
+							v.Add(obj);
+						}
+					}
+					else
+					{
+						v.Add(val);
 					}
 				}
 			}
-			else {
-				rawSetAttribute(attributes, name, value);
+			else
+			{
+				RawSetAttribute(attributes, name, val);
 			}
 		}
 		
-
 		/// <summary>
 		/// Create an aggregate from the list of properties in aggrSpec and fill
 		/// with values from values array.  This is not publically visible because
 		/// it conflicts semantically with setAttribute("foo",new Object[] {...});
 		/// </summary>
-		public virtual void setAttribute(String aggrSpec, params Object[] values) {
+		public virtual void  SetAttribute(string aggrSpec, params object[] values)
+		{
 			IList properties = new ArrayList();
-			String aggrName = null;
-			
-			try {
-				aggrName = parseAggregateAttributeSpec(aggrSpec, properties);
+			string aggrName = ParseAggregateAttributeSpec(aggrSpec, properties);
+			if (values == null || properties.Count == 0)
+			{
+				throw new System.ArgumentException("missing properties or values for '" + aggrSpec + "'");
 			}
-			catch (ArgumentException) {
-				//hmm, maybe they just want to set an attribute to an array value?
-				setAttribute(aggrSpec, (Object) values);
-				return;
+			if (values.Length != properties.Count)
+			{
+				throw new System.ArgumentException("number of properties in '" + aggrSpec + "' != number of values");
 			}
-
-			if (values == null || properties.Count == 0) {
-				throw new ArgumentException("missing properties or values for '" + aggrSpec + "'");
-			}
-
-			if (values.Length != properties.Count) {
-				throw new ArgumentException("number of properties in '" + aggrSpec + "' != number of values");
-			}
-
 			Aggregate aggr = new Aggregate();
-
-			for (int i = 0; i < values.Length; i++) {
-				Object value = values[i];
-				aggr.put((String) properties[i], value);
+			for (int i = 0; i < values.Length; i++)
+			{
+				object val = values[i];
+				if (val is StringTemplate)
+				{
+					((StringTemplate) val).EnclosingInstance = this;
+				}
+				aggr.Put((string) properties[i], val);
 			}
-
-			setAttribute(aggrName, aggr);
+			SetAttribute(aggrName, aggr);
 		}
 		
-
 		/// <summary>
 		/// Split "aggrName.{propName1,propName2}" into list [propName1,propName2]
 		/// and the aggrName.
 		/// </summary>
-		protected virtual String parseAggregateAttributeSpec(String aggrSpec, IList properties) {
-			int dot = aggrSpec.IndexOf('.');
-
-			if (dot <= 0) {
-				throw new ArgumentException("invalid aggregate attribute format: " + aggrSpec);
+		protected virtual string ParseAggregateAttributeSpec(string aggrSpec, IList properties)
+		{
+			int dot = aggrSpec.IndexOf((System.Char) '.');
+			if (dot <= 0)
+			{
+				throw new System.ArgumentException("invalid aggregate attribute format: " + aggrSpec);
 			}
-
-			String aggrName = aggrSpec.Substring(0, dot);
-			String propString = aggrSpec.Substring(dot + 1, (aggrSpec.Length) - (dot + 1));
-			bool error = true;
-			SupportClass.Tokenizer tokenizer = new SupportClass.Tokenizer(propString, "{,}", true);
-
-			if (tokenizer.HasMoreTokens()) {
-				String token = tokenizer.NextToken(); // advance to {
-
-				if (token.Equals("{")) {
-					token = tokenizer.NextToken(); // advance to first prop name
-					properties.Add(token);
-					token = tokenizer.NextToken(); // advance to a comma
-
-					while (token.Equals(",")) {
-						token = tokenizer.NextToken(); // advance to a prop name
-						properties.Add(token);
-						token = tokenizer.NextToken(); // advance to a "," or "}"
-					}
-
-					if (token.Equals("}")) {
-						error = false;
-					}
-				}
+			string aggrName = aggrSpec.Substring(0, (dot) - (0));
+			string propString = aggrSpec.Substring(dot + 2, (aggrSpec.Length) - (dot + 3));
+			string[] propList = propString.Split(new char[]{','});
+			for (int i = 0; i < propList.Length; i++)
+			{
+				properties.Add(propList[i].Trim());
 			}
-
-			if (error) {
-				throw new ArgumentException("invalid aggregate attribute format: " + aggrSpec);
-			}
-
 			return aggrName;
 		}
 		
-
 		/// <summary>
-		/// Map a value to a named attribute.  Throw ArgumentOutOfRangeException if
-		/// the named attribute is not formally defined in this specific template
+		/// Map a value to a named attribute.  Throw NoSuchElementException if
+		/// the named attribute is not formally defined in self's specific template
 		/// and a formal argument list exists.
 		/// </summary>
-		public virtual void rawSetAttribute(IDictionary attributes, String name, Object value) 
+		protected internal virtual void  RawSetAttribute(IDictionary attributes, string name, object objValue)
 		{
-			if (formalArguments != FormalArgument.UNKNOWN && formalArguments[name] == null) {
-				throw new ArgumentOutOfRangeException("name", String.Format("no such attribute: " + 
-					"{0} in template {1} or in enclosing template", name, this.getName()));
+			if (formalArguments != FormalArgument.UNKNOWN && GetFormalArgument(name) == null)
+			{
+				// a normal call to setAttribute with unknown attribute
+				throw new InvalidOperationException("no such attribute: " + name + " in template context " + GetEnclosingInstanceStackString());
 			}
-
-			if (value == null) {
-				return;
+			if (objValue == null)
+			{
+				return ;
 			}
-
-			attributes[name] = value;
+			attributes[name] = objValue;
 		}
-
+		
 		/// <summary>
 		/// Argument evaluation such as foo(x=y), x must
 		/// be checked against foo's argument list not this's (which is
 		/// the enclosing context).  So far, only eval.g uses arg self as
 		/// something other than "this".
-		///	</summary>
-		public virtual void rawSetArgumentAttribute(StringTemplate embedded, IDictionary attributes, String name, Object value)
+		/// </summary>
+		protected internal virtual void  RawSetArgumentAttribute(StringTemplate embedded, IDictionary attributes, string name, object objValue)
 		{
-			if ( embedded.formalArguments!=FormalArgument.UNKNOWN &&
-				embedded.getFormalArgument(name)==null )
+			if (embedded.formalArguments != FormalArgument.UNKNOWN && embedded.GetFormalArgument(name) == null)
 			{
-				throw new ArgumentOutOfRangeException("template "+embedded.getName()+
-					" has no such attribute: "+name+
-					" in template context "+
-					getEnclosingInstanceStackString());
+				throw new InvalidOperationException("template " + embedded.Name + " has no such attribute: " + name + " in template context " + GetEnclosingInstanceStackString());
 			}
-			if ( value == null ) 
+			if (objValue == null)
 			{
-				return;
+				return ;
 			}
-			attributes[name] = value;
+			attributes[name] = objValue;
 		}
 		
-		public virtual Object getAttribute(String name)
+		public virtual object GetAttribute(string name)
 		{
-			return get(this, name);
+			return Get(this, name);
 		}
 		
-		/// <summary>Walk the chunks, asking them to write themselves out according
+		/// <summary>
+		/// Walk the chunks, asking them to write themselves out according
 		/// to attribute values of 'this.attributes'.  This is like evaluating or
 		/// interpreting the StringTemplate as a program using the
 		/// attributes.  The chunks will be identical (point at same list)
 		/// for all instances of this template.
 		/// </summary>
-		public virtual int write(StringTemplateWriter outWriter)
+		public virtual int Write(IStringTemplateWriter output)
 		{
 			int n = 0;
-			setPredefinedAttributes();
-			setDefaultArgumentValues();
+			SetPredefinedAttributes();
+			SetDefaultArgumentValues();
 			for (int i = 0; chunks != null && i < chunks.Count; i++)
 			{
 				Expr a = (Expr) chunks[i];
-				int chunkN = a.write(this, outWriter);
+				int chunkN = a.Write(this, output);
 				// NEWLINE expr-with-no-output NEWLINE => NEWLINE
 				// Indented $...$ have the indent stored with the ASTExpr
 				// so the indent does not come out as a StringRef
@@ -750,12 +1047,13 @@ namespace antlr.stringtemplate
 			}
 			if (lintMode)
 			{
-				checkForTrouble();
+				CheckForTrouble();
 			}
 			return n;
 		}
 		
-		/// <summary>Resolve an attribute reference.  It can be in four possible places:
+		/// <summary>
+		/// Resolve an attribute reference.  It can be in four possible places:
 		/// 
 		/// 1. the attribute list for the current template
 		/// 2. if self is an embedded template, somebody invoked us possibly
@@ -763,7 +1061,7 @@ namespace antlr.stringtemplate
 		/// 3. if self is an embedded template, the attribute list for the enclosing
 		/// instance (recursively up the enclosing instance chain)
 		/// 4. if nothing is found in the enclosing instance chain, then it might
-		///	be a map defined in the group or the its supergroup etc...
+		/// be a map defined in the group or the its supergroup etc...
 		/// 
 		/// Attribute references are checked for validity.  If an attribute has
 		/// a value, its validity was checked before template rendering.
@@ -779,10 +1077,12 @@ namespace antlr.stringtemplate
 		/// argument, foo, then foo will hide any value available from "above"
 		/// in order to prevent infinite recursion.
 		/// 
-		/// This method is not static so people can overrided functionality.
+		/// This method is not static so people can override functionality.
 		/// </summary>
-		public virtual Object get(StringTemplate self, String attribute)
+		public virtual object Get(StringTemplate self, string attribute)
 		{
+			//System.out.println("### get("+self.getEnclosingInstanceStackString()+", "+attribute+")");
+			//System.out.println("attributes="+(self.attributes!=null?self.attributes.keySet().toString():"none"));
 			if (self == null)
 			{
 				return null;
@@ -790,11 +1090,11 @@ namespace antlr.stringtemplate
 			
 			if (lintMode)
 			{
-				self.trackAttributeReference(attribute);
+				self.TrackAttributeReference(attribute);
 			}
 			
 			// is it here?
-			Object o = null;
+			object o = null;
 			if (self.attributes != null)
 			{
 				o = self.attributes[attribute];
@@ -803,14 +1103,14 @@ namespace antlr.stringtemplate
 			// nope, check argument context in case embedded
 			if (o == null)
 			{
-				IDictionary argContext = self.getArgumentContext();
+				IDictionary argContext = self.ArgumentContext;
 				if (argContext != null)
 				{
 					o = argContext[attribute];
 				}
 			}
 			
-			if (o == null && !self.passThroughAttributes && self.getFormalArgument(attribute) != null)
+			if (o == null && !self.passThroughAttributes && self.GetFormalArgument(attribute) != null)
 			{
 				// if you've defined attribute as formal arg for this
 				// template and it has no value, do not look up the
@@ -826,30 +1126,31 @@ namespace antlr.stringtemplate
 				System.out.println("looking for "+getName()+"."+attribute+" in super="+
 				enclosingInstance.getName());
 				*/
-				Object valueFromEnclosing = get(self.enclosingInstance, attribute);
+				object valueFromEnclosing = Get(self.enclosingInstance, attribute);
 				if (valueFromEnclosing == null)
 				{
-					checkNullAttributeAgainstFormalArguments(self, attribute);
+					CheckNullAttributeAgainstFormalArguments(self, attribute);
 				}
 				o = valueFromEnclosing;
 			}
 				// not found and no enclosing instance to look at
-			else if ( o==null && self.enclosingInstance==null ) 
+			else if (o == null && self.enclosingInstance == null)
 			{
 				// It might be a map in the group or supergroup...
-				o = self.group.getMap(attribute);
+				o = self.group.GetMap(attribute);
 			}
 			
 			return o;
 		}
 		
-		/// <summary>Walk a template, breaking it into a list of
+		/// <summary>
+		/// Walk a template, breaking it into a list of
 		/// chunks: Strings and actions/expressions.
 		/// </summary>
-		protected internal virtual void breakTemplateIntoChunks()
+		protected internal virtual void  BreakTemplateIntoChunks()
 		{
 			//System.out.println("parsing template: "+pattern);
-			if (pattern == null || pattern == "")
+			if (pattern == null)
 			{
 				return ;
 			}
@@ -860,35 +1161,35 @@ namespace antlr.stringtemplate
 				// The default is DefaultTemplateLexer.
 				// The only constraint is that you use an ANTLR lexer
 				// so I can use the special ChunkToken.
-				System.Type lexerClass = group.getTemplateLexerClass();
-				System.Reflection.ConstructorInfo ctor = lexerClass.GetConstructor(new System.Type[]{typeof(StringTemplate), typeof(System.IO.StreamReader)});
-				CharScanner chunkStream = (CharScanner) ctor.Invoke(new Object[]{this, new System.IO.StringReader(pattern)});
-				chunkStream.setTokenObjectClass("antlr.stringtemplate.language.ChunkToken");
+				System.Type lexerClass = group.TemplateLexerClass;
+				System.Reflection.ConstructorInfo ctor = lexerClass.GetConstructor(new System.Type[]{typeof(StringTemplate), typeof(TextReader)});
+				CharScanner chunkStream = (CharScanner) ctor.Invoke(new object[]{this, new System.IO.StringReader(pattern)});
+				chunkStream.setTokenCreator(ChunkToken.Creator);
 				TemplateParser chunkifier = new TemplateParser(chunkStream);
 				chunkifier.template(this);
 			}
 			catch (System.Exception e)
 			{
-				String name = "<unknown>";
-				String outerName = getOutermostName();
-				if (getName() != null)
+				string name = "<unknown>";
+				string outerName = OutermostName;
+				if (Name != null)
 				{
-					name = getName();
+					name = Name;
 				}
 				if (outerName != null && !name.Equals(outerName))
 				{
 					name = name + " nested in " + outerName;
 				}
-				error("problem parsing template '" + name + "'", e);
+				Error("problem parsing template '" + name + "'", e);
 			}
 		}
 		
-		public virtual ASTExpr parseAction(String action)
+		public virtual ASTExpr ParseAction(string action)
 		{
-			ActionLexer lexer = new ActionLexer(new System.IO.StringReader(action.ToString()));
+			ActionLexer lexer = new ActionLexer(new StringReader(action.ToString()));
+			lexer.setTokenCreator(StringTemplateToken.Creator);
 			ActionParser parser = new ActionParser(lexer, this);
-			parser.setASTNodeClass("antlr.stringtemplate.language.StringTemplateAST");
-			lexer.setTokenObjectClass("antlr.stringtemplate.language.StringTemplateToken");
+			parser.getASTFactory().setASTNodeCreator(StringTemplateAST.Creator);
 			ASTExpr a = null;
 			try
 			{
@@ -896,7 +1197,7 @@ namespace antlr.stringtemplate
 				AST tree = parser.getAST();
 				if (tree != null)
 				{
-					if (tree.Type == ActionParser.CONDITIONAL)
+					if (tree.Type == ActionParserTokenTypes.CONDITIONAL)
 					{
 						a = new ConditionalExpr(this, tree);
 					}
@@ -908,34 +1209,16 @@ namespace antlr.stringtemplate
 			}
 			catch (RecognitionException re)
 			{
-				error("Can't parse chunk: " + action.ToString(), re);
+				Error("Can't parse chunk: " + action.ToString(), re);
 			}
 			catch (TokenStreamException tse)
 			{
-				error("Can't parse chunk: " + action.ToString(), tse);
+				Error("Can't parse chunk: " + action.ToString(), tse);
 			}
 			return a;
 		}
 		
-		public virtual int getTemplateID()
-		{
-			return templateID;
-		}
-		
-		public virtual IDictionary getAttributes()
-		{
-			return attributes;
-		}
-		
-		/// <summary>Get a list of the strings and subtemplates and attribute
-		/// refs in a template.
-		/// </summary>
-		public virtual IList getChunks()
-		{
-			return chunks;
-		}
-		
-		public virtual void addChunk(Expr e)
+		protected internal virtual void  AddChunk(Expr e)
 		{
 			if (chunks == null)
 			{
@@ -944,23 +1227,14 @@ namespace antlr.stringtemplate
 			chunks.Add(e);
 		}
 		
-		public virtual void setAttributes(IDictionary attributes)
-		{
-			this.attributes = attributes;
-		}
-		
 		// F o r m a l  A r g  S t u f f
 		
-		public virtual IDictionary getFormalArguments()
+		public virtual IDictionary FormalArguments
 		{
-			return formalArguments;
+			get { return formalArguments; }
+			set { formalArguments = value; }
 		}
 		
-		public virtual void setFormalArguments(IDictionary args)
-		{
-			formalArguments = args;
-		}
-
 		/// <summary>
 		/// Set any default argument values that were not set by the
 		/// invoking template or by setAttribute directly.  Note
@@ -972,29 +1246,30 @@ namespace antlr.stringtemplate
 		/// Default values are stored in the argument context rather than
 		/// the template attributes table just for consistency's sake.
 		/// </summary>
-		public virtual void setDefaultArgumentValues() 
+		public virtual void  SetDefaultArgumentValues()
 		{
-			if ( numberOfDefaultArgumentValues==0 ) 
+			if (numberOfDefaultArgumentValues == 0)
 			{
-				return;
+				return ;
 			}
-			if ( argumentContext==null ) 
+			if (argumentContext == null)
 			{
 				argumentContext = new Hashtable();
 			}
-			if ( formalArguments!=FormalArgument.UNKNOWN ) 
+			if (formalArguments != FormalArgument.UNKNOWN)
 			{
 				ICollection argNames = formalArguments.Keys;
-				foreach (string argName in argNames)
+				for (IEnumerator it = argNames.GetEnumerator(); it.MoveNext(); )
 				{
+					string argName = (string) it.Current;
 					// use the default value then
-					FormalArgument arg =
-						(FormalArgument)formalArguments[argName];
-					if ( arg.defaultValueST!=null ) 
+					FormalArgument arg = (FormalArgument) formalArguments[argName];
+					if (arg.defaultValueST != null)
 					{
-						Object existingValue = getAttribute(argName);
-						if ( existingValue==null ) 
-						{ // value unset?
+						object existingValue = GetAttribute(argName);
+						if (existingValue == null)
+						{
+							// value unset?
 							// if no value for attribute, set arg context
 							// to the default value.  We don't need an instance
 							// here because no attributes can be set in
@@ -1006,190 +1281,141 @@ namespace antlr.stringtemplate
 			}
 		}
 		
-		/// <summary>From this template upward in the enclosing template tree,
+		/// <summary>
+		/// From this template upward in the enclosing template tree,
 		/// recursively look for the formal parameter.
 		/// </summary>
-		public virtual FormalArgument lookupFormalArgument(String name)
+		public virtual FormalArgument LookupFormalArgument(string name)
 		{
-			FormalArgument arg = getFormalArgument(name);
+			FormalArgument arg = GetFormalArgument(name);
 			if (arg == null && enclosingInstance != null)
 			{
-				arg = enclosingInstance.lookupFormalArgument(name);
+				arg = enclosingInstance.LookupFormalArgument(name);
 			}
 			return arg;
 		}
 		
-		public virtual FormalArgument getFormalArgument(String name)
+		public virtual FormalArgument GetFormalArgument(string name)
 		{
 			return (FormalArgument) formalArguments[name];
 		}
 		
-		public virtual void defineEmptyFormalArgumentList()
+		public virtual void  DefineEmptyFormalArgumentList()
 		{
-			setFormalArguments(new Hashtable());
+			FormalArguments = new HashList();
 		}
 		
-		public virtual void defineFormalArgument(string name) 
+		public virtual void  DefineFormalArgument(string name)
 		{
-			defineFormalArgument(name,null);
+			DefineFormalArgument(name, null);
 		}
-
-		public virtual void defineFormalArguments(IList names) 
+		
+		public virtual void  DefineFormalArguments(IList names)
 		{
-			if ( names==null ) 
+			if (names == null)
 			{
-				return;
+				return ;
 			}
-			foreach (string name in names)
+			for (int i = 0; i < names.Count; i++)
 			{
-				defineFormalArgument(name);
+				string name = (string) names[i];
+				DefineFormalArgument(name);
 			}
 		}
-
-		public virtual void defineFormalArgument(string name, StringTemplate defaultValue) 
+		
+		public virtual void  DefineFormalArgument(string name, StringTemplate defaultValue)
 		{
-			if ( defaultValue!=null ) 
+			if (defaultValue != null)
 			{
 				numberOfDefaultArgumentValues++;
 			}
-			FormalArgument a = new FormalArgument(name,defaultValue);
-			if ( formalArguments==FormalArgument.UNKNOWN ) 
+			FormalArgument a = new FormalArgument(name, defaultValue);
+			if (formalArguments == FormalArgument.UNKNOWN)
 			{
-				formalArguments = new Hashtable();
+				formalArguments = new HashList();
 			}
 			formalArguments[name] = a;
 		}
-
-		/// <summary>
-		/// Normally if you call template y from x, y cannot see any attributes
-		/// of x that are defined as formal parameters of y.  Setting this
-		/// passThroughAttributes to true, will override that and allow a
-		/// template to see through the formal arg list to inherited values.
-		/// </summary>
-		public virtual void setPassThroughAttributes(bool passThroughAttributes) 
-		{
-			this.passThroughAttributes = passThroughAttributes;
-		}
-
-		///	<summary>
-		/// Specify a complete map of what object classes should map to which
-		/// renderer objects.
-		///	</summary>
-		public virtual void setAttributeRenderers(IDictionary renderers) 
-		{
-			this.attributeRenderers = renderers;
-		}
-
+		
 		/// <summary>
 		/// Register a renderer for all objects of a particular type.  This
 		/// overrides any renderer set in the group for this class type.
 		/// </summary>
-		public virtual void registerRenderer(Type attributeClassType, Object renderer) 
+		public virtual void  RegisterAttributeRenderer(Type attributeClassType, object renderer)
 		{
-			if ( attributeRenderers==null ) 
+			if (attributeRenderers == null)
 			{
 				attributeRenderers = new Hashtable();
 			}
 			attributeRenderers[attributeClassType] = renderer;
 		}
+		
 		/// <summary>
 		/// What renderer is registered for this attributeClassType for
 		/// this template.  If not found, the template's group is queried.
 		/// </summary>
-		public virtual AttributeRenderer getAttributeRenderer(Type attributeClassType) 
+		public virtual IAttributeRenderer GetAttributeRenderer(Type attributeClassType)
 		{
-			if ( attributeRenderers==null ) 
+			if (attributeRenderers == null)
 			{
 				// we have no renderer overrides for the template, check group
-				return group.getAttributeRenderer(attributeClassType);
+				return group.GetAttributeRenderer(attributeClassType);
 			}
-			AttributeRenderer renderer = (AttributeRenderer)attributeRenderers[attributeClassType];
-			if ( renderer==null ) 
+			IAttributeRenderer renderer = (IAttributeRenderer) attributeRenderers[attributeClassType];
+			if (renderer == null)
 			{
 				// no renderer override registered for this class, check group
-				renderer = group.getAttributeRenderer(attributeClassType);
+				renderer = group.GetAttributeRenderer(attributeClassType);
 			}
 			return renderer;
 		}
 		
 		// U T I L I T Y  R O U T I N E S
 		
-		public virtual void error(String msg)
+		public virtual void  Error(string msg)
 		{
-			error(msg, null);
+			Error(msg, null);
 		}
 		
-		public virtual void warning(String msg)
+		public virtual void  Warning(string msg)
 		{
-			if (getErrorListener() != null)
-			{
-				getErrorListener().warning(msg);
-			}
-			else
-			{
-				System.Console.Error.WriteLine("StringTemplate: warning: " + msg);
-			}
+			ErrorListener.Warning(msg);
 		}
 		
-		public virtual void debug(String msg)
+		/// <deprecated> 2.2
+		/// </deprecated>
+		public virtual void  Debug(string msg)
 		{
-			if (getErrorListener() != null)
-			{
-				getErrorListener().debug(msg);
-			}
-			else
-			{
-				System.Console.Error.WriteLine("StringTemplate: debug: " + msg);
-			}
+			ErrorListener.Debug(msg);
 		}
 		
-		public virtual void error(String msg, System.Exception e)
+		public virtual void  Error(string msg, Exception e)
 		{
-			if (getErrorListener() != null)
-			{
-				getErrorListener().error(msg, e);
-			}
-			else
-			{
-				if (e != null)
-				{
-					System.Console.Error.WriteLine("StringTemplate: error: " + msg + ": " + e.ToString());
-				}
-				else
-				{
-					System.Console.Error.WriteLine("StringTemplate: error: " + msg);
-				}
-			}
+			ErrorListener.Error(msg, e);
 		}
 		
-		/// <summary>Make StringTemplate check your work as it evaluates templates.
-		/// Problems are sent to error listener.   Currently warns when
-		/// you set attributes that are not used.
+		public static bool IsInLintMode
+		{
+			get { return lintMode; }
+		}
+		
+		/// <summary>
+		/// Indicates that 'name' has been referenced in this template.
 		/// </summary>
-		public static void setLintMode(bool lint)
-		{
-			StringTemplate.lintMode = lint;
-		}
-		
-		public static bool inLintMode()
-		{
-			return lintMode;
-		}
-				
-		/// <summary>Indicates that 'name' has been referenced in this template. </summary>
-		protected internal virtual void trackAttributeReference(String name)
+		protected internal virtual void  TrackAttributeReference(string name)
 		{
 			if (referencedAttributes == null)
 			{
-				referencedAttributes = new ArrayList();
+				referencedAttributes = new System.Collections.ArrayList();
 			}
 			referencedAttributes.Add(name);
 		}
 		
-		/// <summary>Look up the enclosing instance chain (and include this) to see
+		/// <summary>
+		/// Look up the enclosing instance chain (and include this) to see
 		/// if st is a template already in the enclosing instance chain.
 		/// </summary>
-		public static bool isRecursiveEnclosingInstance(StringTemplate st)
+		public static bool IsRecursiveEnclosingInstance(StringTemplate st)
 		{
 			if (st == null)
 			{
@@ -1212,105 +1438,8 @@ namespace antlr.stringtemplate
 			return false;
 		}
 		
-		public virtual String getEnclosingInstanceStackTrace()
-		{
-			System.Text.StringBuilder buf = new System.Text.StringBuilder();
-			IDictionary seen = new Hashtable();
-			StringTemplate p = this;
-			while (p != null)
-			{
-				if (seen.Contains(p))
-				{
-					buf.Append(p.getTemplateDeclaratorString());
-					buf.Append(" (start of recursive cycle)");
-					buf.Append("\n");
-					buf.Append("...");
-					break;
-				}
-				seen.Add(p, null);
-				buf.Append(p.getTemplateDeclaratorString());
-				if (p.attributes != null)
-				{
-					buf.Append(", attributes=[");
-					int i = 0;
-					for (IEnumerator iter = p.attributes.Keys.GetEnumerator(); iter.MoveNext(); )
-					{
-						String attrName = (String) iter.Current;
-						if (i > 0)
-						{
-							buf.Append(", ");
-						}
-						i++;
-						buf.Append(attrName);
-						Object o = p.attributes[attrName];
-						if (o is StringTemplate)
-						{
-							StringTemplate st = (StringTemplate) o;
-							buf.Append("=");
-							buf.Append("<");
-							buf.Append(st.getName());
-							buf.Append("()@");
-							buf.Append(System.Convert.ToString(st.getTemplateID()));
-							buf.Append(">");
-						}
-						else if (o is IList)
-						{
-							buf.Append("=List[..");
-							IList list = (IList) o;
-							int n = 0;
-							for (int j = 0; j < list.Count; j++)
-							{
-								Object listValue = list[j];
-								if (listValue is StringTemplate)
-								{
-									if (n > 0)
-									{
-										buf.Append(", ");
-									}
-									n++;
-									StringTemplate st = (StringTemplate) listValue;
-									buf.Append("<");
-									buf.Append(st.getName());
-									buf.Append("()@");
-									buf.Append(System.Convert.ToString(st.getTemplateID()));
-									buf.Append(">");
-								}
-							}
-							buf.Append("..]");
-						}
-					}
-					buf.Append("]");
-				}
-				if (p.referencedAttributes != null)
-				{
-					buf.Append(", references=");
-					buf.Append(SupportClass.CollectionToString(p.referencedAttributes));
-				}
-				buf.Append(">\n");
-				p = p.enclosingInstance;
-			}
-			/*
-			if ( enclosingInstance!=null ) {
-			buf.append(enclosingInstance.getEnclosingInstanceStackTrace());
-			}
-			*/
-			return buf.ToString();
-		}
-		
-		public virtual String getTemplateDeclaratorString()
-		{
-			System.Text.StringBuilder buf = new System.Text.StringBuilder();
-			buf.Append("<");
-			buf.Append(getName());
-			buf.Append("(");
-			buf.Append(SupportClass.CollectionToString(formalArguments.Keys));
-			buf.Append(")@");
-			buf.Append(System.Convert.ToString(getTemplateID()));
-			buf.Append(">");
-			return buf.ToString();
-		}
-		
-		/// <summary>Find "missing attribute" and "cardinality mismatch" errors.
+		/// <summary>
+		/// Find "missing attribute" and "cardinality mismatch" errors.
 		/// Excecuted before a template writes its chunks out.
 		/// When you find a problem, throw an IllegalArgumentException.
 		/// We must check the attributes as well as the incoming arguments
@@ -1342,36 +1471,37 @@ namespace antlr.stringtemplate
 		/// }
 		/// </summary>
 		
-		/// <summary>A reference to an attribute with no value, must be compared against
+		/// <summary>
+		/// A reference to an attribute with no value, must be compared against
 		/// the formal parameter to see if it exists; if it exists all is well,
 		/// but if not, throw an exception.
 		/// 
 		/// Don't do the check if no formal parameters exist for this template;
 		/// ask enclosing.
 		/// </summary>
-		protected internal virtual void checkNullAttributeAgainstFormalArguments(StringTemplate self, String attribute)
+		protected internal virtual void  CheckNullAttributeAgainstFormalArguments(StringTemplate self, string attribute)
 		{
-			if (self.getFormalArguments() == FormalArgument.UNKNOWN)
+			if (self.FormalArguments == FormalArgument.UNKNOWN)
 			{
 				// bypass unknown arg lists
 				if (self.enclosingInstance != null)
 				{
-					checkNullAttributeAgainstFormalArguments(self.enclosingInstance, attribute);
+					CheckNullAttributeAgainstFormalArguments(self.enclosingInstance, attribute);
 				}
 				return ;
 			}
-			FormalArgument formalArg = self.lookupFormalArgument(attribute);
+			FormalArgument formalArg = self.LookupFormalArgument(attribute);
 			if (formalArg == null)
 			{
-				throw new ArgumentOutOfRangeException("attribute", "no such attribute: " + attribute +
-					" in template context " + getEnclosingInstanceStackString());
+				throw new InvalidOperationException("no such attribute: " + attribute + " in template context " + GetEnclosingInstanceStackString());
 			}
 		}
 		
-		/// <summary>Executed after evaluating a template.  For now, checks for setting
+		/// <summary>
+		/// Executed after evaluating a template.  For now, checks for setting
 		/// of attributes not reference.
 		/// </summary>
-		protected internal virtual void checkForTrouble()
+		protected internal virtual void  CheckForTrouble()
 		{
 			// we have table of set values and list of values referenced
 			// compare, looking for SET BUT NOT REFERENCED ATTRIBUTES
@@ -1379,109 +1509,42 @@ namespace antlr.stringtemplate
 			{
 				return ;
 			}
-			ICollection names = attributes.Keys;
-			IEnumerator iter = names.GetEnumerator();
 			// if in names and not in referenced attributes, trouble
-			while (iter.MoveNext())
+			foreach (string name in attributes.Keys)
 			{
-				String name = (String) iter.Current;
-				if (referencedAttributes != null && !referencedAttributes.Contains(name) && !name.Equals(ASTExpr.REFLECTION_ATTRIBUTES))
+				if (referencedAttributes != null && !referencedAttributes.Contains(name))
 				{
-					warning(getName() + ": set but not used: " + name);
+					Warning(Name + ": set but not used: " + name);
 				}
 			}
 			// can do the reverse, but will have lots of false warnings :(
 		}
-
-		///	<summary>
-		/// If an instance of x is enclosed in a y which is in a z, return
-		/// a String of these instance names in order from topmost to lowest;
-		/// here that would be "[z y x]".
-		/// </summary>
-		public String getEnclosingInstanceStackString() 
+		
+		public virtual string ToDebugString()
 		{
-			IList names = new ArrayList();
-			StringTemplate p = this;
-			while ( p!=null ) 
-			{
-				String name = p.getName();
-				names.Insert(0,name+(p.passThroughAttributes?"(...)":""));
-				p = p.enclosingInstance;
-			}
-			return names.ToString().Replace(",","");
-		}
-	
-		/// <summary>Compute a bitset of valid cardinality for an actual attribute value.
-		/// A length of 0, satisfies OPTIONAL|ZERO_OR_MORE
-		/// whereas a length of 1 satisfies all. A length>1
-		/// satisfies ZERO_OR_MORE|ONE_OR_MORE
-		/// 
-		/// UNUSED
-		/// public static int getActualArgumentCardinality(Object value) {
-		/// int actualLength = getObjectLength(value);
-		/// if ( actualLength==0 ) {
-		/// return FormalArgument.OPTIONAL|FormalArgument.ZERO_OR_MORE;
-		/// }
-		/// if ( actualLength==1 ) {
-		/// return FormalArgument.REQUIRED|
-		/// FormalArgument.ONE_OR_MORE|
-		/// FormalArgument.ZERO_OR_MORE|
-		/// FormalArgument.OPTIONAL;
-		/// }
-		/// return FormalArgument.ZERO_OR_MORE|FormalArgument.ONE_OR_MORE;
-		/// }
-		/// </summary>
-		
-		/// <summary>UNUSED </summary>
-		/*
-		protected static int getObjectLength(Object value) {
-		int actualLength = 0;
-		if ( value!=null ) {
-		if ( value instanceof Collection ) {
-		actualLength = ((Collection)value).size();
-		}
-		if ( value instanceof Map ) {
-		actualLength = ((Map)value).size();
-		}
-		else {
-		actualLength = 1;
-		}
-		}
-		
-		return actualLength;
-		}
-		*/
-		
-		public virtual String toDebugString()
-		{
-			System.Text.StringBuilder buf = new System.Text.StringBuilder();
-			buf.Append("template-"+getTemplateDeclaratorString()+":");
+			StringBuilder buf = new StringBuilder();
+			buf.Append("template-" + GetTemplateDeclaratorString() + ":");
 			buf.Append("chunks=");
-			if ( chunks!=null ) 
+			if (chunks != null)
 			{
-				buf.Append(SupportClass.CollectionToString(chunks));
+				buf.Append(CollectionUtils.ListToString(chunks));
 			}
 			buf.Append("attributes=[");
-			if ( attributes!=null ) 
+			if (attributes != null)
 			{
-				int n=0;
-				for (IEnumerator iter = attributes.Keys.GetEnumerator(); iter.MoveNext(); )
+				int n = 0;
+				foreach (string name in attributes.Keys)
 				{
-					if ( n>0 ) 
+					if (n > 0)
 					{
 						buf.Append(',');
 					}
-					String name = (String) iter.Current;
-					buf.Append(name+"=");
-					Object value = attributes[name];
-					if ( value is StringTemplate ) 
-					{
-						buf.Append(((StringTemplate)value).toDebugString());
-					}
-					else 
-					{
-						buf.Append(value);
-					}
+					buf.Append(name + "=");
+					object @value = attributes[name];
+					if (@value is StringTemplate)
+						buf.Append(((StringTemplate) @value).ToDebugString());
+					else
+						buf.Append(@value);
 					n++;
 				}
 				buf.Append("]");
@@ -1489,76 +1552,74 @@ namespace antlr.stringtemplate
 			return buf.ToString();
 		}
 		
-		public virtual void printDebugString()
+		public virtual void  PrintDebugString()
 		{
-			System.Console.Out.WriteLine("template-" + getName() + ":");
-			System.Console.Out.Write("chunks=");
-			System.Console.Out.WriteLine(SupportClass.CollectionToString(chunks));
+			Console.Out.WriteLine("template-" + Name + ":");
+			Console.Out.Write("chunks=");
+			Console.Out.WriteLine(CollectionUtils.ListToString(chunks));
 			if (attributes == null)
 			{
 				return ;
 			}
-			System.Console.Out.Write("attributes=[");
+			Console.Out.Write("attributes=[");
 			int n = 0;
-
-			for (IEnumerator iter = attributes.Keys.GetEnumerator(); iter.MoveNext(); )
+			foreach (string name in attributes.Keys)
 			{
 				if (n > 0)
 				{
-					System.Console.Out.Write(',');
+					Console.Out.Write(',');
 				}
-				String name = (String) iter.Current;
-				Object value = attributes[name];
-				if (value is StringTemplate)
+				object val = attributes[name];
+				if (val is StringTemplate)
 				{
-					System.Console.Out.Write(name + "=");
-					((StringTemplate) value).printDebugString();
+					Console.Out.Write(name + "=");
+					((StringTemplate) val).PrintDebugString();
 				}
 				else
 				{
-					if (value is IList)
+					if (val is IList)
 					{
-						ArrayList alist = (ArrayList) value;
+						ArrayList alist = (ArrayList) val;
 						for (int i = 0; i < alist.Count; i++)
 						{
-							Object o = alist[i];
-							System.Console.Out.Write(name + "[" + i + "] is " + o.GetType().FullName + "=");
+							object o = (object) alist[i];
+							Console.Out.Write(name + "[" + i + "] is " + o.GetType().FullName + "=");
 							if (o is StringTemplate)
 							{
-								((StringTemplate) o).printDebugString();
+								((StringTemplate) o).PrintDebugString();
 							}
 							else
 							{
-								System.Console.Out.WriteLine(o);
+								Console.Out.WriteLine(o);
 							}
 						}
 					}
 					else
 					{
-						System.Console.Out.Write(name + "=");
-						System.Console.Out.WriteLine(value);
+						Console.Out.Write(name + "=");
+						Console.Out.WriteLine(val);
 					}
 				}
 				n++;
 			}
-			System.Console.Out.Write("]\n");
+			Console.Out.Write("]\n");
 		}
 		
-		public override String ToString()
+		public override string ToString()
 		{
-			System.IO.StringWriter outWriter = new System.IO.StringWriter();
+			StringWriter output = new StringWriter();
 			// Write the output to a StringWriter
 			// TODO seems slow to create all these objects, can I use a singleton?
-			StringTemplateWriter wr = group.getStringTemplateWriter(outWriter);
+			IStringTemplateWriter wr = group.CreateInstanceOfTemplateWriter(output);
 			try
 			{
-				write(wr);
+				Write(wr);
 			}
-			catch (System.IO.IOException)
+			catch(IOException)
 			{
-				error("Got IOException writing to StringWriter"+wr.GetType().Name);
+				Error("Got IOException writing to writer " + wr.GetType().FullName);
 			}
-			return outWriter.ToString();
+			return output.ToString();
 		}
 	}
 }

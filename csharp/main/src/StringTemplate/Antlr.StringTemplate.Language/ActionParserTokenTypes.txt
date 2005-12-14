@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): action.g -> ActionParserTokenTypes.txt$
+// $ANTLR 2.7.5rc2 (2005-01-08): action.g -> ActionParserTokenTypes.txt$
 ActionParser    // output token vocab name
 APPLY=4
 MULTI_APPLY=5

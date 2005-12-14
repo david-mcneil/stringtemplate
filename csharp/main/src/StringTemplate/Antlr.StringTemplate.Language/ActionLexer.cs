@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "action.g" -> "ActionLexer.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "action.g" -> "ActionLexer.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.Collections;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	// Generate header specific to lexer CSharp file
 	using System;
@@ -641,17 +641,16 @@ _loop65_breakloop:			;
 {
 		IList args=new ArrayList();
 		int _ttype; IToken _token=null; int _begin=text.Length;
-		int _saveIndex = 0;
 		_ttype = TEMPLATE_ARGS;
 		IToken a = null;
 		IToken a2 = null;
 		
+		int _saveIndex = 0;
 		{
 			switch ( cached_LA1 )
 			{
 			case '\t':  case '\n':  case '\r':  case ' ':
 			{
-				_saveIndex = 0;
 				_saveIndex = text.Length;
 				mWS_CHAR(false);
 				text.Length = _saveIndex;
@@ -680,7 +679,6 @@ _loop65_breakloop:			;
 			}
 			 }
 		}
-		_saveIndex = 0;
 		_saveIndex = text.Length;
 		mID(true);
 		text.Length = _saveIndex;

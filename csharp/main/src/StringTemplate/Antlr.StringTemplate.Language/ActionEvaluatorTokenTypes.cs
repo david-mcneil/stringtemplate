@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "eval.g" -> "ActionEvaluator.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "eval.g" -> "ActionEvaluator.cs"$
 
 /*
  [The "BSD licence"]
@@ -27,12 +27,13 @@
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-using antlr.stringtemplate;
+using Antlr.StringTemplate;
+using Antlr.StringTemplate.Collections;
 using System.Collections;
 using System.IO;
 using System.Reflection;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	public class ActionEvaluatorTokenTypes
 	{

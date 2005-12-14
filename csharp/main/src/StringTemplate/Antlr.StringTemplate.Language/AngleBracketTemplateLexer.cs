@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5 (20050128): "angle.bracket.template.g" -> "AngleBracketTemplateLexer.cs"$
+// $ANTLR 2.7.5rc2 (2005-01-08): "angle.bracket.template.g" -> "AngleBracketTemplateLexer.cs"$
 
 /*
  [The "BSD licence"]
@@ -29,7 +29,7 @@
 */
 using System.IO;
 
-namespace antlr.stringtemplate.language
+namespace Antlr.StringTemplate.Language
 {
 	// Generate header specific to lexer CSharp file
 	using System;
@@ -73,14 +73,16 @@ namespace antlr.stringtemplate.language
 		public const int IF = 7;
 		public const int ELSE = 8;
 		public const int ENDIF = 9;
-		public const int EXPR = 10;
-		public const int TEMPLATE = 11;
-		public const int IF_EXPR = 12;
-		public const int ESC = 13;
-		public const int SUBTEMPLATE = 14;
-		public const int NESTED_PARENS = 15;
-		public const int INDENT = 16;
-		public const int COMMENT = 17;
+		public const int REGION_REF = 10;
+		public const int REGION_DEF = 11;
+		public const int EXPR = 12;
+		public const int TEMPLATE = 13;
+		public const int IF_EXPR = 14;
+		public const int ESC = 15;
+		public const int SUBTEMPLATE = 16;
+		public const int NESTED_PARENS = 17;
+		public const int INDENT = 18;
+		public const int COMMENT = 19;
 		
 		
 protected String currentIndent = null;
@@ -91,7 +93,7 @@ public AngleBracketTemplateLexer(StringTemplate self, TextReader r) : this(r) {
 }
 
 override public void reportError(RecognitionException e) {
-	self.error("template parse error", e);
+	self.Error("<...> chunk lexer error", e);
 }
 
 protected bool upcomingELSE(int i) {
@@ -102,6 +104,12 @@ protected bool upcomingELSE(int i) {
 protected bool upcomingENDIF(int i) {
 	return LA(i)=='<'&&LA(i+1)=='e'&&LA(i+2)=='n'&&LA(i+3)=='d'&&LA(i+4)=='i'&&
 	       LA(i+5)=='f'&&LA(i+6)=='>';
+}
+protected bool upcomingAtEND(int i) {
+	return LA(i)=='<'&&LA(i+1)=='@'&&LA(i+2)=='e'&&LA(i+3)=='n'&&LA(i+4)=='d'&&LA(i+5)=='>';
+}
+protected bool upcomingNewline(int i) {
+	return (LA(i)=='\r'&&LA(i+1)=='\n')||LA(i)=='\n';
 }
 
 		public AngleBracketTemplateLexer(Stream ins) : this(new ByteBuffer(ins))
@@ -155,7 +163,7 @@ tryAgain:
 							break;
 						}
 						default:
-							if (((tokenSet_0_.member(cached_LA1)))&&(LA(1)!='\r'&&LA(1)!='\n'))
+							if (((tokenSet_0_.member(cached_LA1)))&&(((cached_LA1 != '\r') && (cached_LA1 != '\n'))))
 							{
 								mLITERAL(true);
 								theRetToken = returnToken_;
@@ -193,8 +201,8 @@ tryAgain:
 		_ttype = LITERAL;
 		IToken ind = null;
 		
-		if (!(LA(1)!='\r'&&LA(1)!='\n'))
-		  throw new SemanticException("LA(1)!='\\r'&&LA(1)!='\\n'");
+		if (!(((cached_LA1 != '\r') && (cached_LA1 != '\n'))))
+		  throw new SemanticException("((cached_LA1 != '\\r') && (cached_LA1 != '\\n'))");
 		{ // ( ... )+
 			int _cnt5=0;
 			for (;;)
@@ -228,7 +236,7 @@ tryAgain:
 					mINDENT(true);
 					ind = returnToken_;
 					
-					if ( col==1 && LA(1)=='<' ) {
+					if ( (col == 1) && (cached_LA1 == '<') ) {
 					// store indent in ASTExpr not in a literal
 					currentIndent=ind.getText();
 								  text.Length = loopStartIndex; // reset length to wack text
@@ -393,23 +401,7 @@ _loop8_breakloop:			;
 _loop14_breakloop:						;
 					}    // ( ... )*
 					match("(");
-					{ // ( ... )+
-						int _cnt16=0;
-						for (;;)
-						{
-							if ((tokenSet_3_.member(cached_LA1)))
-							{
-								matchNot(')');
-							}
-							else
-							{
-								if (_cnt16 >= 1) { goto _loop16_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
-							}
-							
-							_cnt16++;
-						}
-_loop16_breakloop:						;
-					}    // ( ... )+
+					mIF_EXPR(false);
 					match(")");
 					_saveIndex = text.Length;
 					match('>');
@@ -534,6 +526,238 @@ _loop16_breakloop:						;
 						
 					}
 				}
+				else if ((cached_LA1=='<') && (cached_LA2=='@') && (tokenSet_4_.member(LA(3))) && ((LA(4) >= '\u0001' && LA(4) <= '\ufffe')) && ((LA(5) >= '\u0001' && LA(5) <= '\ufffe')) && ((LA(6) >= '\u0001' && LA(6) <= '\ufffe')) && (true)) {
+					int _saveIndex = 0;
+					_saveIndex = text.Length;
+					match('<');
+					text.Length = _saveIndex;
+					_saveIndex = text.Length;
+					match('@');
+					text.Length = _saveIndex;
+					{ // ( ... )+
+						int _cnt23=0;
+						for (;;)
+						{
+							if ((tokenSet_4_.member(cached_LA1)))
+							{
+								{
+									match(tokenSet_4_);
+								}
+							}
+							else
+							{
+								if (_cnt23 >= 1) { goto _loop23_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+							}
+							
+							_cnt23++;
+						}
+_loop23_breakloop:						;
+					}    // ( ... )+
+					{
+						switch ( cached_LA1 )
+						{
+						case '(':
+						{
+							_saveIndex = text.Length;
+							match("()");
+							text.Length = _saveIndex;
+							_saveIndex = text.Length;
+							match('>');
+							text.Length = _saveIndex;
+							_ttype = TemplateParser.REGION_REF;
+							break;
+						}
+						case '>':
+						{
+							_saveIndex = text.Length;
+							match('>');
+							text.Length = _saveIndex;
+							
+									_ttype = TemplateParser.REGION_DEF;
+									string t=text.ToString(_begin, text.Length-_begin);
+									text.Length = _begin; text.Append(t+"::=");
+									
+							{
+								if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true))
+								{
+									{
+										switch ( cached_LA1 )
+										{
+										case '\r':
+										{
+											_saveIndex = text.Length;
+											match('\r');
+											text.Length = _saveIndex;
+											break;
+										}
+										case '\n':
+										{
+											break;
+										}
+										default:
+										{
+											throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+										}
+										 }
+									}
+									_saveIndex = text.Length;
+									match('\n');
+									text.Length = _saveIndex;
+									newline();
+								}
+								else if (((cached_LA1 >= '\u0001' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true)) {
+								}
+								else
+								{
+									throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+								}
+								
+							}
+							bool atLeft = false;
+							{ // ( ... )+
+								int _cnt30=0;
+								for (;;)
+								{
+									if ((((cached_LA1 >= '\u0001' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true))&&(!(upcomingAtEND(1) || (upcomingNewline(1) && upcomingAtEND(2)))))
+									{
+										{
+											if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true))
+											{
+												{
+													switch ( cached_LA1 )
+													{
+													case '\r':
+													{
+														match('\r');
+														break;
+													}
+													case '\n':
+													{
+														break;
+													}
+													default:
+													{
+														throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+													}
+													 }
+												}
+												match('\n');
+												newline(); atLeft = true;
+											}
+											else if (((cached_LA1 >= '\u0001' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true)) {
+												matchNot(EOF/*_CHAR*/);
+												atLeft = false;
+											}
+											else
+											{
+												throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+											}
+											
+										}
+									}
+									else
+									{
+										if (_cnt30 >= 1) { goto _loop30_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+									}
+									
+									_cnt30++;
+								}
+_loop30_breakloop:								;
+							}    // ( ... )+
+							{
+								if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true))
+								{
+									{
+										switch ( cached_LA1 )
+										{
+										case '\r':
+										{
+											_saveIndex = text.Length;
+											match('\r');
+											text.Length = _saveIndex;
+											break;
+										}
+										case '\n':
+										{
+											break;
+										}
+										default:
+										{
+											throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+										}
+										 }
+									}
+									_saveIndex = text.Length;
+									match('\n');
+									text.Length = _saveIndex;
+									newline(); atLeft = true;
+								}
+								else if (((cached_LA1 >= '\u0001' && cached_LA1 <= '\ufffe')) && (true) && (true) && (true) && (true) && (true) && (true)) {
+								}
+								else
+								{
+									throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+								}
+								
+							}
+							{
+								if ((cached_LA1=='<') && (cached_LA2=='@'))
+								{
+									_saveIndex = text.Length;
+									match("<@end>");
+									text.Length = _saveIndex;
+								}
+								else if (((cached_LA1 >= '\u0001' && cached_LA1 <= '\ufffe')) && (true)) {
+									matchNot(EOF/*_CHAR*/);
+									self.Error("missing region "+t+" <@end> tag");
+								}
+								else
+								{
+									throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+								}
+								
+							}
+							{
+								if (((cached_LA1=='\n'||cached_LA1=='\r'))&&(atLeft))
+								{
+									{
+										switch ( cached_LA1 )
+										{
+										case '\r':
+										{
+											_saveIndex = text.Length;
+											match('\r');
+											text.Length = _saveIndex;
+											break;
+										}
+										case '\n':
+										{
+											break;
+										}
+										default:
+										{
+											throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+										}
+										 }
+									}
+									_saveIndex = text.Length;
+									match('\n');
+									text.Length = _saveIndex;
+									newline();
+								}
+								else {
+								}
+								
+							}
+							break;
+						}
+						default:
+						{
+							throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+						}
+						 }
+					}
+				}
 				else if ((cached_LA1=='<') && (tokenSet_2_.member(cached_LA2)) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true)) {
 					int _saveIndex = 0;
 					_saveIndex = text.Length;
@@ -551,8 +775,8 @@ _loop16_breakloop:						;
 				
 			}
 			
-			ChunkToken t = new ChunkToken(_ttype, text.ToString(_begin, text.Length-_begin), currentIndent);
-			_token = t;
+			ChunkToken ctok = new ChunkToken(_ttype, text.ToString(_begin, text.Length-_begin), currentIndent);
+			_token = ctok;
 				
 		}
 		else
@@ -581,7 +805,7 @@ _loop16_breakloop:						;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='!') && (cached_LA2=='>') && (true) && (true) && (true) && (true) && (true)) goto _loop51_breakloop;
+				if ((cached_LA1=='!') && (cached_LA2=='>') && (true) && (true) && (true) && (true) && (true)) goto _loop64_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true))
 				{
 					{
@@ -610,11 +834,11 @@ _loop16_breakloop:						;
 				}
 				else
 				{
-					goto _loop51_breakloop;
+					goto _loop64_breakloop;
 				}
 				
 			}
-_loop51_breakloop:			;
+_loop64_breakloop:			;
 		}    // ( ... )*
 		match("!>");
 		{
@@ -653,13 +877,13 @@ _loop51_breakloop:			;
 		returnToken_ = _token;
 	}
 	
-	protected void mEXPR(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
+	protected void mIF_EXPR(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
 {
 		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = EXPR;
+		_ttype = IF_EXPR;
 		
 		{ // ( ... )+
-			int _cnt27=0;
+			int _cnt52=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -693,6 +917,83 @@ _loop51_breakloop:			;
 					newline();
 					break;
 				}
+				case '{':
+				{
+					mSUBTEMPLATE(false);
+					break;
+				}
+				case '(':
+				{
+					mNESTED_PARENS(false);
+					break;
+				}
+				default:
+					if ((tokenSet_5_.member(cached_LA1)))
+					{
+						matchNot(')');
+					}
+				else
+				{
+					if (_cnt52 >= 1) { goto _loop52_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+				}
+				break; }
+				_cnt52++;
+			}
+_loop52_breakloop:			;
+		}    // ( ... )+
+		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
+		{
+			_token = makeToken(_ttype);
+			_token.setText(text.ToString(_begin, text.Length-_begin));
+		}
+		returnToken_ = _token;
+	}
+	
+	protected void mEXPR(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
+{
+		int _ttype; IToken _token=null; int _begin=text.Length;
+		_ttype = EXPR;
+		
+		{ // ( ... )+
+			int _cnt40=0;
+			for (;;)
+			{
+				switch ( cached_LA1 )
+				{
+				case '\\':
+				{
+					mESC(false);
+					break;
+				}
+				case '\n':  case '\r':
+				{
+					{
+						switch ( cached_LA1 )
+						{
+						case '\r':
+						{
+							match('\r');
+							break;
+						}
+						case '\n':
+						{
+							break;
+						}
+						default:
+						{
+							throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+						}
+						 }
+					}
+					match('\n');
+					newline();
+					break;
+				}
+				case '{':
+				{
+					mSUBTEMPLATE(false);
+					break;
+				}
 				default:
 					if ((cached_LA1=='=') && (cached_LA2=='"'||cached_LA2=='<'))
 					{
@@ -703,23 +1004,23 @@ _loop51_breakloop:			;
 						match('=');
 						mSUBTEMPLATE(false);
 					}
-					else if ((cached_LA1=='=') && (tokenSet_4_.member(cached_LA2))) {
+					else if ((cached_LA1=='=') && (tokenSet_6_.member(cached_LA2))) {
 						match('=');
 						{
-							match(tokenSet_4_);
+							match(tokenSet_6_);
 						}
 					}
-					else if ((tokenSet_5_.member(cached_LA1))) {
+					else if ((tokenSet_7_.member(cached_LA1))) {
 						matchNot('>');
 					}
 				else
 				{
-					if (_cnt27 >= 1) { goto _loop27_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt40 >= 1) { goto _loop40_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt27++;
+				_cnt40++;
 			}
-_loop27_breakloop:			;
+_loop40_breakloop:			;
 		}    // ( ... )+
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -807,9 +1108,54 @@ _loop27_breakloop:			;
 		returnToken_ = _token;
 	}
 	
+	protected void mSUBTEMPLATE(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
+{
+		int _ttype; IToken _token=null; int _begin=text.Length;
+		_ttype = SUBTEMPLATE;
+		
+		match('{');
+		{ // ( ... )+
+			int _cnt57=0;
+			for (;;)
+			{
+				switch ( cached_LA1 )
+				{
+				case '{':
+				{
+					mSUBTEMPLATE(false);
+					break;
+				}
+				case '\\':
+				{
+					mESC(false);
+					break;
+				}
+				default:
+					if ((tokenSet_8_.member(cached_LA1)))
+					{
+						matchNot('}');
+					}
+				else
+				{
+					if (_cnt57 >= 1) { goto _loop57_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+				}
+				break; }
+				_cnt57++;
+			}
+_loop57_breakloop:			;
+		}    // ( ... )+
+		match('}');
+		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
+		{
+			_token = makeToken(_ttype);
+			_token.setText(text.ToString(_begin, text.Length-_begin));
+		}
+		returnToken_ = _token;
+	}
+	
 	protected void mTEMPLATE(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
 {
-		int _ttype; IToken _token=null; int _begin=text.Length; int _saveIndex = 0;
+		int _ttype; IToken _token=null; int _begin=text.Length;
 		_ttype = TEMPLATE;
 		
 		switch ( cached_LA1 )
@@ -818,24 +1164,24 @@ _loop27_breakloop:			;
 		{
 			match('"');
 			{ // ( ... )+
-				int _cnt30=0;
+				int _cnt43=0;
 				for (;;)
 				{
 					if ((cached_LA1=='\\'))
 					{
 						mESC(false);
 					}
-					else if ((tokenSet_6_.member(cached_LA1))) {
+					else if ((tokenSet_9_.member(cached_LA1))) {
 						matchNot('"');
 					}
 					else
 					{
-						if (_cnt30 >= 1) { goto _loop30_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+						if (_cnt43 >= 1) { goto _loop43_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 					}
 					
-					_cnt30++;
+					_cnt43++;
 				}
-_loop30_breakloop:				;
+_loop43_breakloop:				;
 			}    // ( ... )+
 			match('"');
 			break;
@@ -846,12 +1192,12 @@ _loop30_breakloop:				;
 			{
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && ((LA(4) >= '\u0001' && LA(4) <= '\ufffe')) && (true) && (true) && (true))
 				{
+					int _saveIndex = 0;
 					{
 						switch ( cached_LA1 )
 						{
 						case '\r':
 						{
-							_saveIndex = 0;
 							_saveIndex = text.Length;
 							match('\r');
 							text.Length = _saveIndex;
@@ -867,7 +1213,6 @@ _loop30_breakloop:				;
 						}
 						 }
 					}
-					_saveIndex = 0;
 					_saveIndex = text.Length;
 					match('\n');
 					text.Length = _saveIndex;
@@ -885,10 +1230,10 @@ _loop30_breakloop:				;
 				for (;;)
 				{
 					// nongreedy exit test
-					if ((cached_LA1=='>') && (cached_LA2=='>') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true)) goto _loop35_breakloop;
+					if ((cached_LA1=='>') && (cached_LA2=='>') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true)) goto _loop48_breakloop;
 					if (((cached_LA1=='\r') && (cached_LA2=='\n') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && ((LA(4) >= '\u0001' && LA(4) <= '\ufffe')) && ((LA(5) >= '\u0001' && LA(5) <= '\ufffe')) && (true) && (true))&&(LA(3)=='>'&&LA(4)=='>'))
 					{
-						_saveIndex = 0;
+						int _saveIndex = 0;
 						_saveIndex = text.Length;
 						match('\r');
 						text.Length = _saveIndex;
@@ -898,7 +1243,7 @@ _loop30_breakloop:				;
 						newline();
 					}
 					else if (((cached_LA1=='\n') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && ((LA(4) >= '\u0001' && LA(4) <= '\ufffe')) && (true) && (true) && (true))&&(LA(2)=='>'&&LA(3)=='>')) {
-						_saveIndex = 0;
+						int _saveIndex = 0;
 						_saveIndex = text.Length;
 						match('\n');
 						text.Length = _saveIndex;
@@ -931,11 +1276,11 @@ _loop30_breakloop:				;
 					}
 					else
 					{
-						goto _loop35_breakloop;
+						goto _loop48_breakloop;
 					}
 					
 				}
-_loop35_breakloop:				;
+_loop48_breakloop:				;
 			}    // ( ... )*
 			match(">>");
 			break;
@@ -953,123 +1298,6 @@ _loop35_breakloop:				;
 		returnToken_ = _token;
 	}
 	
-	protected void mSUBTEMPLATE(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = SUBTEMPLATE;
-		
-		match('{');
-		{ // ( ... )+
-			int _cnt44=0;
-			for (;;)
-			{
-				switch ( cached_LA1 )
-				{
-				case '{':
-				{
-					mSUBTEMPLATE(false);
-					break;
-				}
-				case '\\':
-				{
-					mESC(false);
-					break;
-				}
-				default:
-					if ((tokenSet_7_.member(cached_LA1)))
-					{
-						matchNot('}');
-					}
-				else
-				{
-					if (_cnt44 >= 1) { goto _loop44_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
-				}
-				break; }
-				_cnt44++;
-			}
-_loop44_breakloop:			;
-		}    // ( ... )+
-		match('}');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	protected void mIF_EXPR(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = IF_EXPR;
-		
-		{ // ( ... )+
-			int _cnt39=0;
-			for (;;)
-			{
-				switch ( cached_LA1 )
-				{
-				case '\\':
-				{
-					mESC(false);
-					break;
-				}
-				case '\n':  case '\r':
-				{
-					{
-						switch ( cached_LA1 )
-						{
-						case '\r':
-						{
-							match('\r');
-							break;
-						}
-						case '\n':
-						{
-							break;
-						}
-						default:
-						{
-							throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
-						}
-						 }
-					}
-					match('\n');
-					newline();
-					break;
-				}
-				case '{':
-				{
-					mSUBTEMPLATE(false);
-					break;
-				}
-				case '(':
-				{
-					mNESTED_PARENS(false);
-					break;
-				}
-				default:
-					if ((tokenSet_8_.member(cached_LA1)))
-					{
-						matchNot(')');
-					}
-				else
-				{
-					if (_cnt39 >= 1) { goto _loop39_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
-				}
-				break; }
-				_cnt39++;
-			}
-_loop39_breakloop:			;
-		}    // ( ... )+
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
 	protected void mNESTED_PARENS(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
 {
 		int _ttype; IToken _token=null; int _begin=text.Length;
@@ -1077,7 +1305,7 @@ _loop39_breakloop:			;
 		
 		match('(');
 		{ // ( ... )+
-			int _cnt47=0;
+			int _cnt60=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -1093,18 +1321,18 @@ _loop39_breakloop:			;
 					break;
 				}
 				default:
-					if ((tokenSet_9_.member(cached_LA1)))
+					if ((tokenSet_10_.member(cached_LA1)))
 					{
 						matchNot(')');
 					}
 				else
 				{
-					if (_cnt47 >= 1) { goto _loop47_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt60 >= 1) { goto _loop60_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt47++;
+				_cnt60++;
 			}
-_loop47_breakloop:			;
+_loop60_breakloop:			;
 		}    // ( ... )+
 		match(')');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -1159,48 +1387,14 @@ _loop47_breakloop:			;
 	private static long[] mk_tokenSet_4_()
 	{
 		long[] data = new long[2048];
-		data[0]=-1152921521786716162L;
-		data[1]=-576460752303423489L;
-		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
+		data[0]=-4611687117939015682L;
+		for (int i = 1; i<=1022; i++) { data[i]=-1L; }
 		data[1023]=9223372036854775807L;
 		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());
 	private static long[] mk_tokenSet_5_()
-	{
-		long[] data = new long[2048];
-		data[0]=-6917529027641091074L;
-		data[1]=-268435457L;
-		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
-		data[1023]=9223372036854775807L;
-		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
-		return data;
-	}
-	public static readonly BitSet tokenSet_5_ = new BitSet(mk_tokenSet_5_());
-	private static long[] mk_tokenSet_6_()
-	{
-		long[] data = new long[2048];
-		data[0]=-17179869186L;
-		data[1]=-268435457L;
-		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
-		data[1023]=9223372036854775807L;
-		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
-		return data;
-	}
-	public static readonly BitSet tokenSet_6_ = new BitSet(mk_tokenSet_6_());
-	private static long[] mk_tokenSet_7_()
-	{
-		long[] data = new long[2048];
-		data[0]=-2L;
-		data[1]=-2882303761785552897L;
-		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
-		data[1023]=9223372036854775807L;
-		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
-		return data;
-	}
-	public static readonly BitSet tokenSet_7_ = new BitSet(mk_tokenSet_7_());
-	private static long[] mk_tokenSet_8_()
 	{
 		long[] data = new long[2048];
 		data[0]=-3298534892546L;
@@ -1210,8 +1404,52 @@ _loop47_breakloop:			;
 		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
 		return data;
 	}
+	public static readonly BitSet tokenSet_5_ = new BitSet(mk_tokenSet_5_());
+	private static long[] mk_tokenSet_6_()
+	{
+		long[] data = new long[2048];
+		data[0]=-1152921521786716162L;
+		data[1]=-576460752303423489L;
+		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
+		data[1023]=9223372036854775807L;
+		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
+		return data;
+	}
+	public static readonly BitSet tokenSet_6_ = new BitSet(mk_tokenSet_6_());
+	private static long[] mk_tokenSet_7_()
+	{
+		long[] data = new long[2048];
+		data[0]=-6917529027641091074L;
+		data[1]=-576460752571858945L;
+		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
+		data[1023]=9223372036854775807L;
+		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
+		return data;
+	}
+	public static readonly BitSet tokenSet_7_ = new BitSet(mk_tokenSet_7_());
+	private static long[] mk_tokenSet_8_()
+	{
+		long[] data = new long[2048];
+		data[0]=-2L;
+		data[1]=-2882303761785552897L;
+		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
+		data[1023]=9223372036854775807L;
+		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
+		return data;
+	}
 	public static readonly BitSet tokenSet_8_ = new BitSet(mk_tokenSet_8_());
 	private static long[] mk_tokenSet_9_()
+	{
+		long[] data = new long[2048];
+		data[0]=-17179869186L;
+		data[1]=-268435457L;
+		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
+		data[1023]=9223372036854775807L;
+		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
+		return data;
+	}
+	public static readonly BitSet tokenSet_9_ = new BitSet(mk_tokenSet_9_());
+	private static long[] mk_tokenSet_10_()
 	{
 		long[] data = new long[2048];
 		data[0]=-3298534883330L;
@@ -1221,7 +1459,7 @@ _loop47_breakloop:			;
 		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
 		return data;
 	}
-	public static readonly BitSet tokenSet_9_ = new BitSet(mk_tokenSet_9_());
+	public static readonly BitSet tokenSet_10_ = new BitSet(mk_tokenSet_10_());
 	
 }
 }
