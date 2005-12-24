@@ -14,6 +14,16 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+12-24-2005
+
+Added StringTemplate.getDependencyGraph() to get a list of n->m edges
+where template n contains template m.  Also made convenient
+getDOTForDependencyGraph().  You get a template back that lets you reset
+node shape, fontsize, width, height attributes.  Use removeAttribute
+before setting so you are sure you only get one value.
+
+Added StringTemplate.toStructureString() to help discover nested structure.
+
 11-25-2005
 
 If you iterated multiple empty attributes, it iterated once with null values.  Bizarre. Fixed.
