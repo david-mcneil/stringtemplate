@@ -477,7 +477,9 @@ o should we allow length of an attribute?  Sure. <names.length> or something.
 
 o should we create a template group interface so that I can define the
  set of all templates an ANTLR code generator can/must supply?  Can this help
- the website related stuff to allow argument spec?
+ the website related stuff to allow argument spec?  How do we handle
+defining templates that are not mandatory but if they are used, they
+must follow this interface?
 
 o should we allow overridden methods to add arguments to the "signature"?
 Seems like would want this as it avoids having to add debug, profile, autoAST,
@@ -557,6 +559,9 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o Can't escape in template group?
+   \>> fails.  \>\> generates \>\>.
 
 o  No indent for the <if>
 <<
