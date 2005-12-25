@@ -16,13 +16,30 @@ StringTemplate Bugs, Requests, Changes
 
 12-24-2005
 
-Added StringTemplate.getDependencyGraph() to get a list of n->m edges
+* Added interfaces.  See unit tests.
+
+group Java implements ANTLRCoreTarget;
+rule(...) ::= "..."
+...
+
+You can say "optional template(args);" also.  Uses group loader to
+find interfaces.
+
+* Added CommonGroupLoader so you can reference groups/interfaces now
+in group files etc...
+String tmpdir = System.getProperty("java.io.tmpdir");
+StringTemplateGroup.registerGroupLoader(new CommonGroupLoader(tmpdir,errors));
+
+* There was a bug in StringTemplateGroup.isDefined that it always
+returned true.
+
+* Added StringTemplate.getDependencyGraph() to get a list of n->m edges
 where template n contains template m.  Also made convenient
 getDOTForDependencyGraph().  You get a template back that lets you reset
 node shape, fontsize, width, height attributes.  Use removeAttribute
 before setting so you are sure you only get one value.
 
-Added StringTemplate.toStructureString() to help discover nested structure.
+* Added StringTemplate.toStructureString() to help discover nested structure.
 
 11-25-2005
 
@@ -481,15 +498,23 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
-o do we want a means of indicating which templates are internally used only?
+o cache Method object look up for property look up; could save lots of
+time.  Find the email reference in the archive.  He got like 25% speed
+improvement.
 
-o should we allow length of an attribute?  Sure. <names.length> or something.
+o should we allow length of an attribute?  Sure. <names.length> or
+something.  We could even test the length against an int w/o violating
+the rules I think.  If size==1, you may want to do something different.
 
 o should we create a template group interface so that I can define the
  set of all templates an ANTLR code generator can/must supply?  Can this help
  the website related stuff to allow argument spec?  How do we handle
 defining templates that are not mandatory but if they are used, they
-must follow this interface?
+must follow this interface?  Perhaps an optional keyword in front.
+
+o Finish StringTemplateGroupLoader so we can do "group foo : super".
+
+o do we want a means of indicating which templates are internally used only?
 
 o should we allow overridden methods to add arguments to the "signature"?
 Seems like would want this as it avoids having to add debug, profile, autoAST,
@@ -517,9 +542,6 @@ o add note in doc about no dots in filenames.  and Thread safety:
 StringTemplate is not thread safe, use StringTemplate.getInstanceOf()
 to get a local work copy; StringTemplateGroup is not thread safe,
 manipulation of the "templates" HashMap must be made thread-safe
-
-o cache Method object look up for property look up; could save lots of
-time.
 
 o A nested IF is an AND condition...no two ways about it.  I find that
 I'm doing really complicated things to get OR and AND operations;
