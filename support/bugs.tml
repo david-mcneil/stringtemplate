@@ -14,6 +14,13 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+12-27-2005
+
+* Added group inheritance notation; added unit tests.  setSuperGroup(name)
+  now does something useful.  Notation:
+
+group subG : superG;
+
 12-24-2005
 
 * Added interfaces.  See unit tests.
@@ -29,6 +36,8 @@ find interfaces.
 in group files etc...
 String tmpdir = System.getProperty("java.io.tmpdir");
 StringTemplateGroup.registerGroupLoader(new CommonGroupLoader(tmpdir,errors));
+
+The tmpdir can be "dir1:dir2:dir3" etc...
 
 * There was a bug in StringTemplateGroup.isDefined that it always
 returned true.
