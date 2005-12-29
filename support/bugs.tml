@@ -14,6 +14,11 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+12-28-2005
+
+* Fixed bug where an expr on the first line that yields no output left
+a blank line.
+
 12-27-2005
 
 * Added group inheritance notation; added unit tests.  setSuperGroup(name)
