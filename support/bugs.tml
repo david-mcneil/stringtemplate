@@ -14,6 +14,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+01-02-2005
+
+* Added STG.getInstanceOf(name,attributes)
+
 12-28-2005
 
 * Fixed bug where an expr on the first line that yields no output left
