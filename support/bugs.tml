@@ -14,25 +14,30 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+01-27-2006
+
+o Added default lexer mechanism for groups so you can set once
+public static void registerDefaultLexer(Class lexerClass) 
+
 01-02-2005
 
-* Added STG.getInstanceOf(name,attributes)
+o Added STG.getInstanceOf(name,attributes)
 
 12-28-2005
 
-* Fixed bug where an expr on the first line that yields no output left
+o Fixed bug where an expr on the first line that yields no output left
 a blank line.
 
 12-27-2005
 
-* Added group inheritance notation; added unit tests.  setSuperGroup(name)
+o Added group inheritance notation; added unit tests.  setSuperGroup(name)
   now does something useful.  Notation:
 
 group subG : superG;
 
 12-24-2005
 
-* Added interfaces.  See unit tests.
+o Added interfaces.  See unit tests.
 
 group Java implements ANTLRCoreTarget;
 rule(...) ::= "..."
@@ -41,23 +46,23 @@ rule(...) ::= "..."
 You can say "optional template(args);" also.  Uses group loader to
 find interfaces.
 
-* Added CommonGroupLoader so you can reference groups/interfaces now
+o Added CommonGroupLoader so you can reference groups/interfaces now
 in group files etc...
 String tmpdir = System.getProperty("java.io.tmpdir");
 StringTemplateGroup.registerGroupLoader(new CommonGroupLoader(tmpdir,errors));
 
 The tmpdir can be "dir1:dir2:dir3" etc...
 
-* There was a bug in StringTemplateGroup.isDefined that it always
+o There was a bug in StringTemplateGroup.isDefined that it always
 returned true.
 
-* Added StringTemplate.getDependencyGraph() to get a list of n->m edges
+o Added StringTemplate.getDependencyGraph() to get a list of n->m edges
 where template n contains template m.  Also made convenient
 getDOTForDependencyGraph().  You get a template back that lets you reset
 node shape, fontsize, width, height attributes.  Use removeAttribute
 before setting so you are sure you only get one value.
 
-* Added StringTemplate.toStructureString() to help discover nested structure.
+o Added StringTemplate.toStructureString() to help discover nested structure.
 
 11-25-2005
 
@@ -516,6 +521,15 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o add i0 for 0 based iteration
+
+o new function reverse(list) like first/rest?
+
+o maps should map string to string or string to template.  Thanks to
+Andrew.Goodnough@wicourts.gov. We can also change default behavior
+such that no match returns the key.  Use default:"" to generate
+nothing upon default.
+
 o cache Method object look up for property look up; could save lots of
 time.  Find the email reference in the archive.  He got like 25% speed
 improvement.
@@ -609,6 +623,27 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+o can't use <@super.members()> in Dbg.stg subgroup.
+
+internal error: problem parsing template 'region__genericParser__members' : java.lang.StringIndexOutOfBoundsException: String index out of range: -9
+java.lang.String.substring(String.java:1444)
+org.antlr.stringtemplate.StringTemplateGroup.getUnMangledTemplateName(StringTemplateGroup.java:654)
+org.antlr.stringtemplate.language.TemplateParser.action(TemplateParser.java:227)
+org.antlr.stringtemplate.language.TemplateParser.template(TemplateParser.java:127)
+org.antlr.stringtemplate.language.TemplateParser.action(TemplateParser.java:194)
+org.antlr.stringtemplate.language.TemplateParser.template(TemplateParser.java:127)
+org.antlr.stringtemplate.StringTemplate.breakTemplateIntoChunks(StringTemplate.java:900)
+org.antlr.stringtemplate.StringTemplate.setTemplate(StringTemplate.java:511)
+org.antlr.stringtemplate.language.GroupParser.template(GroupParser.java:324)
+org.antlr.stringtemplate.language.GroupParser.group(GroupParser.java:183)
+org.antlr.stringtemplate.StringTemplateGroup.parseGroup(StringTemplateGroup.java:704)
+org.antlr.stringtemplate.StringTemplateGroup.<init>(StringTemplateGroup.java:233)
+org.antlr.codegen.CodeGenerator.loadTemplates(CodeGenerator.java:204)
+org.antlr.codegen.CodeGenerator.genRecognizer(CodeGenerator.java:278)
+org.antlr.Tool.processGrammar(Tool.java:285)
+org.antlr.Tool.process(Tool.java:222)
+org.antlr.Tool.main(Tool.java:72)
+
 
 o Can't escape in template group?
    \>> fails.  \>\> generates \>\>.
