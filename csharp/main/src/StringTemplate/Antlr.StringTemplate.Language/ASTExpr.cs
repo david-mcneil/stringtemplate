@@ -128,8 +128,11 @@ namespace Antlr.StringTemplate.Language
 			for (int a = 0; a < attributes.Count; a++)
 			{
 				object o = (object) attributes[a];
-				o = ConvertAnythingToIterator(o);
-				attributes[a] = o; // alter the list in place
+				if (o != null)
+				{
+					o = ConvertAnythingToIterator(o);
+					attributes[a] = o; // alter the list in place
+				}
 			}
 			
 			int numAttributes = attributes.Count;
@@ -164,7 +167,7 @@ namespace Antlr.StringTemplate.Language
 				for (int a = 0; a < numAttributes; a++)
 				{
 					IEnumerator it = (IEnumerator) attributes[a];
-					if (it.MoveNext())
+					if ((it != null) && it.MoveNext())
 					{
 						string argName = (string) formalArgumentNames[a];
 						object iteratedValue = it.Current;

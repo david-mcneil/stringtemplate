@@ -1,6 +1,6 @@
 /*
 [The "BSD licence"]
-Copyright (c) 2005 Kunle Odutola
+Copyright (c) 2005-2006 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -44,6 +44,8 @@ namespace Antlr.StringTemplate
 	using IOException						= System.IO.IOException;
 	using AST								= antlr.collections.AST;
 	using CharScanner						= antlr.CharScanner;
+	using CommonAST							= antlr.CommonAST;
+	using CommonToken						= antlr.CommonToken;
 	using RecognitionException				= antlr.RecognitionException;
 	using TokenStreamException				= antlr.TokenStreamException;
 	using CollectionUtils					= Antlr.StringTemplate.Collections.CollectionUtils;
@@ -58,6 +60,7 @@ namespace Antlr.StringTemplate
 	using TemplateParser					= Antlr.StringTemplate.Language.TemplateParser;
 	using ActionLexer						= Antlr.StringTemplate.Language.ActionLexer;
 	using ActionParser						= Antlr.StringTemplate.Language.ActionParser;
+	using ActionEvaluator					= Antlr.StringTemplate.Language.ActionEvaluator;
 	using ActionParserTokenTypes			= Antlr.StringTemplate.Language.ActionParserTokenTypes;
 	using NewlineRef						= Antlr.StringTemplate.Language.NewlineRef;
 	
@@ -148,7 +151,7 @@ namespace Antlr.StringTemplate
 	/// </summary>
 	public class StringTemplate
 	{
-		public const string VERSION = "2.3b4";
+		public const string VERSION = "2.3b5";
 
 		/// <summary><@r()></summary>
 		internal const int REGION_IMPLICIT = 1;
@@ -439,6 +442,35 @@ namespace Antlr.StringTemplate
 			buf.Append(TemplateID.ToString());
 			buf.Append(">");
 			return buf.ToString();
+		}
+
+		protected string GetTemplateHeaderString(bool showAttributes) 
+		{
+			if ( showAttributes ) 
+			{
+				StringBuilder buf = new StringBuilder();
+				buf.Append(Name);
+				if ( attributes != null ) 
+				{
+					buf.Append("[");
+
+					bool appendSeparator = false;
+					foreach (string attrName in attributes.Keys)
+					{
+						if (appendSeparator)
+						{
+							buf.Append(", ");
+						}
+						appendSeparator = true;
+
+						buf.Append(attrName);
+					}
+
+					buf.Append("]");
+				}
+				return buf.ToString();
+			}
+			return Name;
 		}
 
 		/// <summary>
@@ -754,9 +786,9 @@ namespace Antlr.StringTemplate
 		{
 		}
 		
-		public StringTemplate(string template, System.Type lexer):this()
+		public StringTemplate(string template, Type lexer):this()
 		{
-			Group = new StringTemplateGroup("angleBracketsGroup", lexer);
+			Group = new StringTemplateGroup("defaultGroup", lexer);
 			Template = template;
 		}
 		
@@ -772,6 +804,12 @@ namespace Antlr.StringTemplate
 			Template = template;
 		}
 		
+		public StringTemplate(StringTemplateGroup group, string template, Hashtable attributes)
+			: this(group, template)
+		{
+			Attributes = attributes;
+		}
+
 		/// <summary>
 		/// Make the 'to' template look exactly like the 'from' template
 		/// except for the attributes.  This is like creating an instance
@@ -1035,6 +1073,16 @@ namespace Antlr.StringTemplate
 			{
 				Expr a = (Expr) chunks[i];
 				int chunkN = a.Write(this, output);
+				// expr-on-first-line-with-no-output NEWLINE => NEWLINE
+				if ( chunkN==0 
+					&& i==0 
+					&& (i+1)< chunks.Count 
+					&& chunks[i+1] is NewlineRef )
+				{
+					//System.out.println("found pure first-line-blank \\n pattern");
+					i++; // skip next NEWLINE;
+					continue;
+				}
 				// NEWLINE expr-with-no-output NEWLINE => NEWLINE
 				// Indented $...$ have the indent stored with the ASTExpr
 				// so the indent does not come out as a StringRef
@@ -1439,39 +1487,6 @@ namespace Antlr.StringTemplate
 		}
 		
 		/// <summary>
-		/// Find "missing attribute" and "cardinality mismatch" errors.
-		/// Excecuted before a template writes its chunks out.
-		/// When you find a problem, throw an IllegalArgumentException.
-		/// We must check the attributes as well as the incoming arguments
-		/// in argumentContext.
-		/// protected void checkAttributesAgainstFormalArguments() {
-		/// Set args = formalArguments.keySet();
-		/// /*
-		/// if ( (attributes==null||attributes.size()==0) &&
-		/// (argumentContext==null||argumentContext.size()==0) &&
-		/// formalArguments.size()!=0 )
-		/// {
-		/// throw new IllegalArgumentException("missing argument(s): "+args+" in template "+getName());
-		/// }
-		/// Iterator iter = args.iterator();
-		/// while ( iter.hasNext() ) {
-		/// String argName = (String)iter.next();
-		/// FormalArgument arg = getFormalArgument(argName);
-		/// int expectedCardinality = arg.getCardinality();
-		/// Object value = getAttribute(argName);
-		/// int actualCardinality = getActualArgumentCardinality(value);
-		/// // if intersection of expected and actual is empty, mismatch
-		/// if ( (expectedCardinality&actualCardinality)==0 ) {
-		/// throw new IllegalArgumentException("cardinality mismatch: "+
-		/// argName+"; expected "+
-		/// FormalArgument.getCardinalityName(expectedCardinality)+
-		/// " found cardinality="+getObjectLength(value));
-		/// }
-		/// }
-		/// }
-		/// </summary>
-		
-		/// <summary>
 		/// A reference to an attribute with no value, must be compared against
 		/// the formal parameter to see if it exists; if it exists all is well,
 		/// but if not, throw an exception.
@@ -1552,6 +1567,235 @@ namespace Antlr.StringTemplate
 			return buf.ToString();
 		}
 		
+		/// <summary>
+		/// Don't print values, just report the nested structure with attribute names.
+		/// Follow (nest) attributes that are templates only.
+		/// </summary>
+		/// <returns></returns>
+		public string ToStructureString() 
+		{
+			return ToStructureString(0);
+		}
+
+		public string ToStructureString(int indent) 
+		{
+			StringBuilder buf = new StringBuilder();
+			for (int i=1; i<=indent; i++) 
+			{ // indent
+				buf.Append("  ");
+			}
+			buf.Append(Name);
+			//buf.Append(attributes.keySet());
+			if ( attributes != null ) 
+			{
+				buf.Append("[");
+
+				bool appendSeparator = false;
+				foreach (string attrName in attributes.Keys)
+				{
+					if (appendSeparator)
+					{
+						buf.Append(", ");
+					}
+					appendSeparator = true;
+
+					buf.Append(attrName);
+				}
+
+				buf.Append("]");
+			}
+			buf.Append(":\n");
+			if ( attributes!=null ) 
+			{
+				for (IEnumerator iter = attributes.Keys.GetEnumerator(); iter.MoveNext(); ) 
+				{
+					string name = (string) iter.Current;
+					object @value = attributes[name];
+					if ( @value is StringTemplate ) 
+					{ // descend
+						buf.Append(((StringTemplate) @value).ToStructureString(indent+1));
+					}
+					else 
+					{
+						if ( @value is IList ) 
+						{
+							IList alist = (IList)@value;
+							for (int i = 0; i < alist.Count; i++) 
+							{
+								object o = (object) alist[i];
+								if ( o is StringTemplate ) 
+								{ // descend
+									buf.Append(((StringTemplate)o).ToStructureString(indent+1));
+								}
+							}
+						}
+						else if ( @value is IDictionary ) 
+						{
+							IDictionary m = (IDictionary)@value;
+							ICollection mvalues = m.Values;
+							for (IEnumerator iterator = mvalues.GetEnumerator(); iterator.MoveNext(); ) 
+							{
+								object o = (object) iterator.Current;
+								if ( o is StringTemplate ) 
+								{ // descend
+									buf.Append(((StringTemplate)o).ToStructureString(indent+1));
+								}
+							}
+						}
+					}
+				}
+			}
+			return buf.ToString();
+		}
+
+		/// <summary>
+		/// Generate a DOT file for displaying the template enclosure graph; e.g.,
+		///   digraph prof {
+		///     "t1" -> "t2"
+		///     "t1" -> "t3"
+		///     "t4" -> "t5"
+		///   }
+		/// </summary>
+		/// <param name="showAttributes"></param>
+		/// <returns></returns>
+		public StringTemplate GetDOTForDependencyGraph(bool showAttributes) 
+		{
+			string structure =
+				"digraph StringTemplateDependencyGraph {\n" +
+				"node [shape=$shape$, $if(width)$width=$width$,$endif$" +
+				"      $if(height)$height=$height$,$endif$ fontsize=$fontsize$];\n" +
+				"$edges:{e|\"$e.src$\" -> \"$e.trg$\"\n}$" +
+				"}\n";
+			StringTemplate graphST = new StringTemplate(structure);
+			HashList edges = new HashList();
+			this.GetDependencyGraph(edges, showAttributes);
+
+			// for each source template
+			foreach (string sourceTemplate in edges.Keys) 
+			{
+				IList targetNodes = (IList)edges[sourceTemplate];
+				// for each target template
+				foreach (string targetTemplate in targetNodes) 
+				{
+					graphST.SetAttribute("edges.{src,trg}", sourceTemplate, targetTemplate);
+				}
+			}
+			graphST.SetAttribute("shape", "none");
+			graphST.SetAttribute("fontsize", "11");
+			graphST.SetAttribute("height", "0"); // make height
+			return graphST;
+		}
+
+		/// <summary>
+		/// Get a list of n->m edges where template n contains template m.
+		/// The map you pass in is filled with edges: key->value.  Useful
+		/// for having DOT print out an enclosing template graph.  It
+		/// finds all direct template invocations too like <foo()> but not
+		/// indirect ones like <(name)()>.
+		/// 
+		/// Ack, I just realized that this is done statically and hence
+		/// cannot see runtime arg values on statically included templates.
+		/// Hmm...someday figure out to do this dynamically as if we were
+		/// evaluating the templates.  There will be extra nodes in the tree
+		/// because we are static like method and method[...] with args.
+		/// </summary>
+		/// <param name="edges"></param>
+		/// <param name="showAttributes"></param>
+		public void GetDependencyGraph(IDictionary edges, bool showAttributes) 
+		{
+			string srcNode = this.GetTemplateHeaderString(showAttributes);
+			if ( attributes!=null ) 
+			{
+				foreach (string name in attributes.Keys) 
+				{
+					object @value = attributes[name];
+					if ( @value is StringTemplate ) 
+					{
+						string targetNode = ((StringTemplate)@value).GetTemplateHeaderString(showAttributes);
+						PutToMultiValuedMap(edges, srcNode, targetNode);
+						((StringTemplate)@value).GetDependencyGraph(edges, showAttributes); // descend
+					}
+					else 
+					{
+						if ( value is IList ) 
+						{
+							IList alist = (IList)@value;
+							for (int i = 0; i < alist.Count; i++) 
+							{
+								object o = (object) alist[i];
+								if ( o is StringTemplate ) 
+								{
+									string targetNode = ((StringTemplate)o).GetTemplateHeaderString(showAttributes);
+									PutToMultiValuedMap(edges, srcNode, targetNode);
+									((StringTemplate)o).GetDependencyGraph(edges, showAttributes); // descend
+								}
+							}
+						}
+						else if ( value is IDictionary ) 
+						{
+							IDictionary m = (IDictionary)@value;
+							ICollection mvalues = m.Values;
+							for (IEnumerator iterator = mvalues.GetEnumerator(); iterator.MoveNext();) 
+							{
+								object o = (object) iterator.Current;
+								if ( o is StringTemplate ) 
+								{
+									string targetNode = ((StringTemplate)o).GetTemplateHeaderString(showAttributes);
+									PutToMultiValuedMap(edges, srcNode, targetNode);
+									((StringTemplate)o).GetDependencyGraph(edges, showAttributes); // descend
+								}
+							}
+						}
+					}
+				}
+			}
+			// look in chunks too for template refs
+			for (int i = 0; chunks!=null && i < chunks.Count; i++) 
+			{
+				Expr expr = (Expr) chunks[i];
+				if ( expr is ASTExpr ) 
+				{
+					ASTExpr e = (ASTExpr)expr;
+					AST tree = e.AST;
+					AST includeAST = new CommonAST(new CommonToken(ActionEvaluator.INCLUDE, "include"));
+					IEnumerator it = tree.findAllPartial(includeAST);
+					while (it.MoveNext()) 
+					{
+						AST t = (AST) it.Current;
+						string templateInclude = t.getFirstChild().getText();
+						Console.Out.WriteLine("found include "+templateInclude);
+						PutToMultiValuedMap(edges, srcNode, templateInclude);
+						StringTemplateGroup group = Group;
+						if ( group!=null ) 
+						{
+							StringTemplate st = group.GetInstanceOf(templateInclude);
+							// descend into the reference template
+							st.GetDependencyGraph(edges, showAttributes);
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Manage a hash table like it has multiple unique values.  Dictionary<object,ISet>.
+		/// Simulates ISet using an IList.
+		/// </summary>
+		/// <param name="map"></param>
+		/// <param name="key"></param>
+		/// <param name="value"></param>
+		protected void PutToMultiValuedMap(IDictionary map, object key, object val) 
+		{
+			ArrayList bag = (ArrayList) map[key];
+			if ( bag==null ) 
+			{
+				bag = new ArrayList();
+				map[key] = bag;
+			}
+			if ( !bag.Contains(val) )
+				bag.Add(val);
+		}
+
 		public virtual void  PrintDebugString()
 		{
 			Console.Out.WriteLine("template-" + Name + ":");

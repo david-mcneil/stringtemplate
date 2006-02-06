@@ -31,18 +31,24 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate.Tests
 {
 	using System;
-	using ArrayList					= System.Collections.ArrayList;
-	using IList						= System.Collections.IList;
-	using IDictionary				= System.Collections.IDictionary;
-	using Hashtable					= System.Collections.Hashtable;
-	using HybridDictionary			= System.Collections.Specialized.HybridDictionary;
-	using StringBuilder				= System.Text.StringBuilder;
-	using StringReader				= System.IO.StringReader;
-	using StreamWriter				= System.IO.StreamWriter;
-	using Path						= System.IO.Path;
-	using StringTemplate			= Antlr.StringTemplate.StringTemplate;
-	using StringTemplateGroup		= Antlr.StringTemplate.StringTemplateGroup;
-	using AngleBracketTemplateLexer = Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
+	using ArrayList							= System.Collections.ArrayList;
+	using IList								= System.Collections.IList;
+	using IDictionary						= System.Collections.IDictionary;
+	using Hashtable							= System.Collections.Hashtable;
+	using HybridDictionary					= System.Collections.Specialized.HybridDictionary;
+	using StringBuilder						= System.Text.StringBuilder;
+	using StringReader						= System.IO.StringReader;
+	using StreamReader						= System.IO.StreamReader;
+	using StreamWriter						= System.IO.StreamWriter;
+	using Path								= System.IO.Path;
+	using File								= System.IO.File;
+	using Directory							= System.IO.Directory;
+	using DirectoryInfo						= System.IO.DirectoryInfo;
+	using StringTemplate					= Antlr.StringTemplate.StringTemplate;
+	using CommonGroupLoader					= Antlr.StringTemplate.CommonGroupLoader;
+	using StringTemplateGroup				= Antlr.StringTemplate.StringTemplateGroup;
+	using StringTemplateGroupInterface		= Antlr.StringTemplate.StringTemplateGroupInterface;
+	using AngleBracketTemplateLexer			= Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
 	using NUnit.Framework;
 	
 	/// <summary>
@@ -130,12 +136,18 @@ namespace Antlr.StringTemplate.Tests
 		private class ErrorBuffer : IStringTemplateErrorListener
 		{
 			private StringBuilder errorOutput = new StringBuilder(500);
+			int n = 0;
 
 			public virtual void  Error(string msg, Exception e)
 			{
+				n++;
+				if ( n>1 ) 
+				{
+					errorOutput.Append('\n');
+				}
 				if (e != null)
 				{
-					errorOutput.Append(msg + ": " + e);
+					errorOutput.Append(msg + ": " + e.StackTrace);
 				}
 				else
 				{
@@ -144,10 +156,12 @@ namespace Antlr.StringTemplate.Tests
 			}
 			public virtual void  Warning(string msg)
 			{
+				n++;
 				errorOutput.Append(msg);
 			}
 			public virtual void  Debug(string msg)
 			{
+				n++;
 				errorOutput.Append(msg);
 			}
 			public override bool Equals(object o)
@@ -275,7 +289,263 @@ namespace Antlr.StringTemplate.Tests
 		static readonly string TEMPDIR = System.IO.Path.GetTempPath();
 		static readonly string TRUE = bool.TrueString;
 		static readonly string FALSE = bool.FalseString;
+
+		private StreamReader file1;
+		private StreamReader file2;
+
+		[SetUp] public virtual void SetUp()
+		{
+			file1 = null;
+			file2 = null;
+		}
 		
+		[TearDown] public virtual void TearDown()
+		{
+			try 
+			{
+				if (file1 != null)
+					file1.Close();
+				if (file2 != null)
+					file2.Close();
+			}
+			catch
+			{
+				// ignore
+			}
+		}
+		
+		[Test] public virtual void testInterfaceFileFormat()
+		{
+			string groupIStr = ""
+				+ "interface test;" + NL
+				+ "t();" + NL
+				+ "bold(item);"+ NL
+				+ "optional duh(a,b,c);"+ NL;
+			StringTemplateGroupInterface groupI = 
+				new StringTemplateGroupInterface(new StringReader(groupIStr));
+
+			string expecting = ""
+				+ "interface test;\n" 
+				+ "t();\n" 
+				+ "bold(item);\n"
+				+ "optional duh(a, b, c);\n";
+			Assert.AreEqual(expecting, groupI.ToString());
+		}
+
+		[Test] public virtual void testNoGroupLoader()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+
+			string templates = ""
+				+ "group testG implements blort;" + NL
+				+ "t() ::= <<foo>>" + NL
+				+ "bold(item) ::= <<foo>>" + NL
+				+ "duh(a,b,c) ::= <<foo>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = "no group loader registered";
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
+		[Test] public virtual void testCannotFindInterfaceFile()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(new CommonGroupLoader(errors, TEMPDIR));
+
+			string templates = ""
+				+ "group testG implements blort;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "bold(item) ::= <<foo>>" + NL
+				+ "duh(a,b,c) ::= <<foo>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = "no such interface file 'blort.sti'";
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
+		[Test] public virtual void testMultiDirGroupLoading()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			string subdir = Path.Combine(TEMPDIR, "sub");
+			if ( !( Directory.Exists(subdir)) ) 
+			{
+				try
+				{
+					DirectoryInfo di = Directory.CreateDirectory(subdir);
+				}
+				catch
+				{
+					Console.Error.WriteLine("Couldn't create sub-dir in test");
+					return;
+				}
+			}
+			StringTemplateGroup.RegisterGroupLoader(
+				new CommonGroupLoader(errors, TEMPDIR, subdir)
+				);
+
+			string templates = ""
+				+ "group testG2;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "bold(item) ::= <<foo>>" + NL
+				+ "duh(a,b,c) ::= <<foo>>" + NL;
+
+			WriteFile(subdir, "testG2.stg", templates);
+
+			StringTemplateGroup group =
+				StringTemplateGroup.LoadGroup("testG2");
+			string expecting = ""
+				+ "group testG2;\n" 
+				+ "bold(item) ::= <<foo>>\n" 
+				+ "duh(a,b,c) ::= <<foo>>\n" 
+				+ "t() ::= <<foo>>\n";
+			Assert.AreEqual(expecting, group.ToString());
+			DeleteFile(TEMPDIR, "testG2.stg");
+		}
+
+		[Test] public virtual void testGroupSatisfiesSingleInterface()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(new CommonGroupLoader(errors, TEMPDIR));
+			string groupIStr = ""
+				+  "interface testI;" + NL 
+				+ "t();" + NL 
+				+ "bold(item);" + NL
+				+ "optional duh(a,b,c);" + NL;
+			WriteFile(TEMPDIR, "testI.sti", groupIStr);
+
+			string templates = ""
+				+ "group testG implements testI;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "bold(item) ::= <<foo>>" + NL
+				+ "duh(a,b,c) ::= <<foo>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = ""; // should be no errors
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
+		[Test] public virtual void testGroupExtendsSuperGroup()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(
+				new CommonGroupLoader(errors, TEMPDIR)
+				);
+			string superGroup = ""
+				+ "group superG;" + NL 
+				+ "bold(item) ::= <<*$item$*>>;\n" + NL;
+			WriteFile(TEMPDIR, "superG.stg", superGroup);
+
+			string templates = ""
+				+ "group testG : superG;" + NL 
+				+ "main(x) ::= <<$bold(x)$>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+			StringTemplate st = group.GetInstanceOf("main");
+			st.SetAttribute("x", "foo");
+
+			string expecting = "*foo*";
+			Assert.AreEqual(expecting, st.ToString());
+		}
+
+		[Test] public virtual void testMissingInterfaceTemplate()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(new CommonGroupLoader(errors, TEMPDIR));
+			string groupIStr = ""
+				+ "interface testI;" + NL 
+				+ "t();" + NL 
+				+ "bold(item);" + NL
+				+ "optional duh(a,b,c);" + NL;
+			WriteFile(TEMPDIR, "testI.sti", groupIStr);
+
+			string templates = ""
+				+  "group testG implements testI;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "duh(a,b,c) ::= <<foo>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = "group 'testG' does not satisfy interface 'testI': missing templates [bold]";
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
+		[Test] public virtual void testMissingOptionalInterfaceTemplate()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(new CommonGroupLoader(errors, TEMPDIR));
+			string groupIStr = ""
+				+ "interface testI;" + NL 
+				+ "t();" + NL 
+				+ "bold(item);" + NL
+				+ "optional duh(a,b,c);" + NL;
+			WriteFile(TEMPDIR, "testI.sti", groupIStr);
+
+			string templates = ""
+				+ "group testG implements testI;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "bold(item) ::= <<foo>>";
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = ""; // should be NO errors
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
+		[Test] public virtual void testMismatchedInterfaceTemplate()
+		{
+			// this also tests the group loader
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			StringTemplateGroup.RegisterGroupLoader(new CommonGroupLoader(errors, TEMPDIR));
+			string groupIStr = ""
+				+ "interface testI;" + NL 
+				+ "t();" + NL 
+				+ "bold(item);" + NL
+				+ "optional duh(a,b,c);" + NL;
+			WriteFile(TEMPDIR, "testI.sti", groupIStr);
+
+			string templates = ""
+				+ "group testG implements testI;" + NL 
+				+ "t() ::= <<foo>>" + NL 
+				+ "bold(item) ::= <<foo>>" + NL
+				+ "duh(a,c) ::= <<foo>>" + NL;
+
+			WriteFile(TEMPDIR, "testG.stg", templates);
+
+			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
+			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+
+			string expecting = "group 'testG' does not satisfy interface 'testI': mismatched template arguments [optional duh(a, b, c);]";
+			Assert.AreEqual(expecting, errors.ToString());
+		}
+
 		[Test] public virtual void  testGroupFileFormat()
 		{
 			string templates = ""
@@ -349,7 +619,7 @@ namespace Antlr.StringTemplate.Tests
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
 			string expecting = "redefinition of template: a";
-			Assert.AreEqual(errors.ToString(), expecting);
+			Assert.AreEqual(expecting, errors.ToString());
 		}
 		
 		[Test] public virtual void  testMissingInheritedAttribute()
@@ -1109,10 +1379,12 @@ namespace Antlr.StringTemplate.Tests
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			group.ErrorListener = errors;
 			StringTemplate t = new StringTemplate(group, "stuff $a then more junk etc...");
-			string expectingError = "problem parsing template 'anonymous': line 1:31: expecting '$', found '<EOF>'";
+			//string expectingError = "problem parsing template 'anonymous': line 1:31: expecting '$', found '<EOF>'";
+			// different error output from C# Antlr?
+			string expectingError = "problem parsing template 'anonymous'";
 			//System.out.println("error: '"+errors+"'");
 			//System.out.println("expecting: '"+expectingError+"'");
-			Assert.AreEqual(errors.ToString(), expectingError);
+			Assert.IsTrue(errors.ToString().StartsWith(expectingError));
 		}
 		
 		[Test] public virtual void  testSetButNotRefd()
@@ -1130,7 +1402,7 @@ namespace Antlr.StringTemplate.Tests
 			//System.out.println("result error: '"+errors+"'");
 			//System.out.println("expecting: '"+expectingError+"'");
 			StringTemplate.LintMode = false;
-			Assert.AreEqual(errors.ToString(), expectingError);
+			Assert.AreEqual(expectingError, errors.ToString());
 		}
 		
 		[Test] public virtual void  testNullTemplateApplication()
@@ -1195,7 +1467,7 @@ namespace Antlr.StringTemplate.Tests
 			members.SetAttribute("members", "Mike");
 			members.SetAttribute("members", "Ashar");
 			string expecting = "<i><b>Jim</b></i><i><b>Mike</b></i><i><b>Ashar</b></i>";
-			Assert.AreEqual(members.ToString(), expecting);
+			Assert.AreEqual(expecting, members.ToString());
 		}
 		
 		[Test] public virtual void  testAlternatingTemplateApplication()
@@ -1209,7 +1481,7 @@ namespace Antlr.StringTemplate.Tests
 			item.SetAttribute("item", "Mike");
 			item.SetAttribute("item", "Ashar");
 			string expecting = "<li><b>Jim</b></li><li><i>Mike</i></li><li><b>Ashar</b></li>";
-			Assert.AreEqual(item.ToString(), expecting);
+			Assert.AreEqual(expecting, item.ToString());
 		}
 		
 		[Test] public virtual void  testExpressionAsRHSOfAssignment()
@@ -1349,7 +1621,7 @@ namespace Antlr.StringTemplate.Tests
 			m.SetAttribute("statements", "x=i;");
 			string expecting = "public void foobar() {" + NL + "\t// start of a body" + NL + "\ti=1;" + NL + "\tx=i;" + NL + "\t// end of a body" + NL + "}";
 			//System.out.println(m);
-			Assert.AreEqual(m.ToString(), expecting);
+			Assert.AreEqual(expecting, m.ToString());
 		}
 		
 		[Test] public virtual void  testApplyTemplateToSingleValuedAttribute()
@@ -1579,7 +1851,7 @@ namespace Antlr.StringTemplate.Tests
 			root.addChild(new Tree("e"));
 			tree.SetAttribute("it", root);
 			string expecting = "( a b ( c d ) e )";
-			Assert.AreEqual(tree.ToString(), expecting);
+			Assert.AreEqual(expecting, tree.ToString());
 		}
 		
 		[Test] public virtual void  testNestedAnonymousTemplates()
@@ -1644,9 +1916,9 @@ namespace Antlr.StringTemplate.Tests
 			string expecting = "dog\"\" && ick";
 			Assert.AreEqual(expecting, t.ToString());
 			expecting = "dog\"g && ick";
-			Assert.AreEqual(u.ToString(), expecting);
+			Assert.AreEqual(expecting, u.ToString());
 			expecting = "{dog}\" && ick is cool";
-			Assert.AreEqual(v.ToString(), expecting);
+			Assert.AreEqual(expecting, v.ToString());
 		}
 		
 		[Test] public virtual void  testEscapesOutsideExpressions()
@@ -1671,9 +1943,9 @@ namespace Antlr.StringTemplate.Tests
 			string expecting = @"dog"""" && ick";
 			Assert.AreEqual(expecting, t.ToString());
 			expecting = @"dog""g && ick";
-			Assert.AreEqual(u.ToString(), expecting);
+			Assert.AreEqual(expecting, u.ToString());
 			expecting = @"{dog}"" && ick is cool";
-			Assert.AreEqual(v.ToString(), expecting);
+			Assert.AreEqual(expecting, v.ToString());
 		}
 		
 		[Test] public virtual void  testLiteralStringEscapesOutsideExpressions()
@@ -1744,14 +2016,14 @@ namespace Antlr.StringTemplate.Tests
 			main.SetAttribute("sub", sub);
 			string expecting = "begin" + NL 
 				+ "stuff";
-			Assert.AreEqual(main.ToString(), expecting);
+			Assert.AreEqual(expecting, main.ToString());
 			
 			main = new StringTemplate(group, "$sub$");
 			sub = sub.GetInstanceOf();
 			main.SetAttribute("sub", sub);
 			expecting = "begin" + NL 
 				+ "blort";
-			Assert.AreEqual(main.ToString(), expecting);
+			Assert.AreEqual(expecting, main.ToString());
 		}
 		
 		[Test] public virtual void  testSimpleIndentOfAttributeList()
@@ -2042,7 +2314,7 @@ namespace Antlr.StringTemplate.Tests
 			outputST.SetAttribute("items", bodyST2);
 			outputST.SetAttribute("items", bodyST3);
 			string expecting = "page: thatstuffthatstuffthatstuff";
-			Assert.AreEqual(outputST.ToString(), expecting);
+			Assert.AreEqual(expecting, outputST.ToString());
 		}
 		
 		[Test] public virtual void  testInheritArgumentFromRecursiveTemplateApplication()
@@ -2442,13 +2714,79 @@ namespace Antlr.StringTemplate.Tests
 			StringTemplateGroup group = new StringTemplateGroup("test");
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			group.ErrorListener = errors;
-			StringTemplate t = new StringTemplate(group, "$duh.users:{name: $it$}; separator=\", \"$");
+			StringTemplate t = new StringTemplate(group,
+				"begin\n"
+				+ "$duh.users:{name: $it$}; separator=\", \"$\n"
+				+ "end\n");
 			t.SetAttribute("duh", new Duh());
-			string expecting = "";
+			string expecting = "begin\nend\n";
 			string result = t.ToString();
 			Assert.AreEqual(expecting, result);
 		}
 		
+		[Test] public virtual void testNullListGetsNoOutput()
+		{
+			StringTemplateGroup group =
+				new StringTemplateGroup("test");
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			group.ErrorListener = errors;
+			StringTemplate t = new StringTemplate(group,
+				"begin\n" +
+				"$users:{name: $it$}; separator=\", \"$\n" +
+				"end\n");
+			//t.setAttribute("users", new Duh());
+			string expecting="begin\nend\n";
+			string result = t.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void testEmptyListGetsNoOutput()
+		{
+			StringTemplateGroup group =
+				new StringTemplateGroup("test");
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			group.ErrorListener = errors;
+			StringTemplate t = new StringTemplate(group,
+				"begin\n" +
+				"$users:{name: $it$}; separator=\", \"$\n" +
+				"end\n");
+			t.SetAttribute("users", new ArrayList());
+			string expecting = "begin\nend\n";
+			string result = t.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void testEmptyListNoIteratorGetsNoOutput()
+		{
+			StringTemplateGroup group =
+				new StringTemplateGroup("test");
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			group.ErrorListener = errors;
+			StringTemplate t = new StringTemplate(group,
+				"begin\n" +
+				"$users; separator=\", \"$\n" +
+				"end\n");
+			t.SetAttribute("users", new ArrayList());
+			string expecting = "begin\nend\n";
+			string result = t.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void testEmptyExprAsFirstLineGetsNoOutput()
+		{
+			StringTemplateGroup group =
+				new StringTemplateGroup("test");
+			IStringTemplateErrorListener errors = new ErrorBuffer();
+			group.ErrorListener = errors;
+			group.DefineTemplate("bold", "<b>$it$</b>");
+			StringTemplate t = new StringTemplate(group,
+				"$users$\n" +
+				"end\n");
+			string expecting = "end\n";
+			string result = t.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test] public virtual void  testSizeZeroOnLineByItselfGetsNoOutput()
 		{
 			StringTemplateGroup group = new StringTemplateGroup("test");
@@ -3340,5 +3678,44 @@ namespace Antlr.StringTemplate.Tests
 			string expecting = "21:"+FALSE+":Floating Lotus:"+TRUE+":34:some.label@somedomain.com:9";
 			Assert.AreEqual(expecting, st.ToString());
 		}
+
+	
+		private static void WriteFile(string dir, string fileName, string content) 
+		{
+			try 
+			{
+				try 
+				{
+					File.Delete(Path.Combine(dir, fileName));
+				}
+				catch
+				{
+					// ignore
+				}
+				StreamWriter fw = new StreamWriter(Path.Combine(dir, fileName), false, System.Text.Encoding.Default);
+				fw.Write(content);
+				fw.Close();
+			}
+			catch (Exception ex) 
+			{
+				Console.Error.WriteLine("Error creating or writing to file.");
+				Console.Error.WriteLine(ex.StackTrace);
+			}
+		}
+	
+		private static void DeleteFile(string dir, string fileName) 
+		{
+			try 
+			{
+				
+				File.Delete(Path.Combine(dir, fileName));
+			}
+			catch (Exception ex) 
+			{
+				Console.Error.WriteLine("Error deleting file.");
+				Console.Error.WriteLine(ex.StackTrace);
+			}
+		}
+
 	}
 }

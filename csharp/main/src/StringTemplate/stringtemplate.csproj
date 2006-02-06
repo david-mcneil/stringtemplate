@@ -69,37 +69,9 @@
                     AssemblyName = "System"
                 />
                 <Reference
-                    Name = "System.Data"
-                    AssemblyName = "System.Data"
-                />
-                <Reference
-                    Name = "System.Drawing"
-                    AssemblyName = "System.Drawing"
-                />
-                <Reference
-                    Name = "System.Management"
-                    AssemblyName = "System.Management"
-                />
-                <Reference
-                    Name = "System.Windows.Forms"
-                    AssemblyName = "System.Windows.Forms"
-                />
-                <Reference
-                    Name = "System.Design"
-                    AssemblyName = "System.Design"
-                />
-                <Reference
-                    Name = "System.Xml"
-                    AssemblyName = "System.Xml"
-                />
-                <Reference
-                    Name = "mscorlib"
-                    AssemblyName = "mscorlib"
-                />
-                <Reference
                     Name = "antlr.runtime"
                     AssemblyName = "antlr.runtime"
-                    HintPath = "..\..\ANTLR-2.7.5\lib\csharp\antlr.runtime\bin\antlr.runtime.dll"
+                    HintPath = "..\..\Antlr\lib\csharp\antlr.runtime\bin\antlr.runtime.dll"
                 />
             </References>
         </Build>
@@ -112,6 +84,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate\AutoIndentWriter.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\CommonGroupLoader.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -172,6 +149,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate\StringTemplateGroup.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\StringTemplateGroupInterface.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -300,6 +282,16 @@
                 <File
                     RelPath = "Antlr.StringTemplate.Language\GroupParserTokenTypes.txt"
                     BuildAction = "Content"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Language\InterfaceLexer.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Language\InterfaceParser.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
                 />
                 <File
                     RelPath = "Antlr.StringTemplate.Language\NewlineRef.cs"

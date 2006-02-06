@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringTemplateViewer", "Str
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringTemplateTreeView", "StringTemplateTreeView\StringTemplateTreeView.csproj", "{FB7F92E5-05AF-4A99-9AFC-36F85D0B9DBC}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -29,6 +33,10 @@ Global
 		{98E5081C-5CDA-4434-8D3D-0CDB6CD9EC1A}.Debug.Build.0 = Debug|.NET
 		{98E5081C-5CDA-4434-8D3D-0CDB6CD9EC1A}.Release.ActiveCfg = Release|.NET
 		{98E5081C-5CDA-4434-8D3D-0CDB6CD9EC1A}.Release.Build.0 = Release|.NET
+		{FB7F92E5-05AF-4A99-9AFC-36F85D0B9DBC}.Debug.ActiveCfg = Debug|.NET
+		{FB7F92E5-05AF-4A99-9AFC-36F85D0B9DBC}.Debug.Build.0 = Debug|.NET
+		{FB7F92E5-05AF-4A99-9AFC-36F85D0B9DBC}.Release.ActiveCfg = Release|.NET
+		{FB7F92E5-05AF-4A99-9AFC-36F85D0B9DBC}.Release.Build.0 = Release|.NET
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

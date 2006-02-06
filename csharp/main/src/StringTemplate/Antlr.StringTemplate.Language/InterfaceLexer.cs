@@ -1,4 +1,4 @@
-// $ANTLR 2.7.6 (2005-12-22): "group.g" -> "GroupLexer.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "interface.g" -> "InterfaceLexer.cs"$
 
 /*
  [The "BSD licence"]
@@ -28,6 +28,7 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 using System.Collections;
+using Antlr.StringTemplate.Collections;
 
 namespace Antlr.StringTemplate.Language
 {
@@ -59,48 +60,35 @@ namespace Antlr.StringTemplate.Language
 	using LexerSharedInputState           = antlr.LexerSharedInputState;
 	using BitSet                          = antlr.collections.impl.BitSet;
 	
-	public 	class GroupLexer : antlr.CharScanner	, TokenStream
+	public 	class InterfaceLexer : antlr.CharScanner	, TokenStream
 	 {
 		public const int EOF = 1;
 		public const int NULL_TREE_LOOKAHEAD = 3;
-		public const int LITERAL_group = 4;
+		public const int LITERAL_interface = 4;
 		public const int ID = 5;
-		public const int COLON = 6;
-		public const int LITERAL_implements = 7;
-		public const int COMMA = 8;
-		public const int SEMI = 9;
-		public const int AT = 10;
-		public const int DOT = 11;
-		public const int LPAREN = 12;
-		public const int RPAREN = 13;
-		public const int DEFINED_TO_BE = 14;
-		public const int STRING = 15;
-		public const int BIGSTRING = 16;
-		public const int ASSIGN = 17;
-		public const int ANONYMOUS_TEMPLATE = 18;
-		public const int LBRACK = 19;
-		public const int RBRACK = 20;
-		public const int LITERAL_default = 21;
-		public const int STAR = 22;
-		public const int PLUS = 23;
-		public const int OPTIONAL = 24;
-		public const int SL_COMMENT = 25;
-		public const int ML_COMMENT = 26;
-		public const int WS = 27;
+		public const int SEMI = 6;
+		public const int LITERAL_optional = 7;
+		public const int LPAREN = 8;
+		public const int RPAREN = 9;
+		public const int COMMA = 10;
+		public const int COLON = 11;
+		public const int SL_COMMENT = 12;
+		public const int ML_COMMENT = 13;
+		public const int WS = 14;
 		
-		public GroupLexer(Stream ins) : this(new ByteBuffer(ins))
+		public InterfaceLexer(Stream ins) : this(new ByteBuffer(ins))
 		{
 		}
 		
-		public GroupLexer(TextReader r) : this(new CharBuffer(r))
+		public InterfaceLexer(TextReader r) : this(new CharBuffer(r))
 		{
 		}
 		
-		public GroupLexer(InputBuffer ib)		 : this(new LexerSharedInputState(ib))
+		public InterfaceLexer(InputBuffer ib)		 : this(new LexerSharedInputState(ib))
 		{
 		}
 		
-		public GroupLexer(LexerSharedInputState state) : base(state)
+		public InterfaceLexer(LexerSharedInputState state) : base(state)
 		{
 			initialize();
 		}
@@ -109,9 +97,8 @@ namespace Antlr.StringTemplate.Language
 			caseSensitiveLiterals = true;
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
-			literals.Add("default", 21);
-			literals.Add("group", 4);
-			literals.Add("implements", 7);
+			literals.Add("interface", 4);
+			literals.Add("optional", 7);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException
@@ -147,30 +134,6 @@ tryAgain:
 							theRetToken = returnToken_;
 							break;
 						}
-						case '"':
-						{
-							mSTRING(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '<':
-						{
-							mBIGSTRING(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '{':
-						{
-							mANONYMOUS_TEMPLATE(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '@':
-						{
-							mAT(true);
-							theRetToken = returnToken_;
-							break;
-						}
 						case '(':
 						{
 							mLPAREN(true);
@@ -183,27 +146,9 @@ tryAgain:
 							theRetToken = returnToken_;
 							break;
 						}
-						case '[':
-						{
-							mLBRACK(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case ']':
-						{
-							mRBRACK(true);
-							theRetToken = returnToken_;
-							break;
-						}
 						case ',':
 						{
 							mCOMMA(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '.':
-						{
-							mDOT(true);
 							theRetToken = returnToken_;
 							break;
 						}
@@ -213,27 +158,9 @@ tryAgain:
 							theRetToken = returnToken_;
 							break;
 						}
-						case '*':
+						case ':':
 						{
-							mSTAR(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '+':
-						{
-							mPLUS(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '=':
-						{
-							mASSIGN(true);
-							theRetToken = returnToken_;
-							break;
-						}
-						case '?':
-						{
-							mOPTIONAL(true);
+							mCOLON(true);
 							theRetToken = returnToken_;
 							break;
 						}
@@ -245,21 +172,13 @@ tryAgain:
 							break;
 						}
 						default:
-							if ((cached_LA1==':') && (cached_LA2==':'))
+							if ((cached_LA1=='/') && (cached_LA2=='/'))
 							{
-								mDEFINED_TO_BE(true);
-								theRetToken = returnToken_;
-							}
-							else if ((cached_LA1=='/') && (cached_LA2=='/')) {
 								mSL_COMMENT(true);
 								theRetToken = returnToken_;
 							}
 							else if ((cached_LA1=='/') && (cached_LA2=='*')) {
 								mML_COMMENT(true);
-								theRetToken = returnToken_;
-							}
-							else if ((cached_LA1==':') && (true)) {
-								mCOLON(true);
 								theRetToken = returnToken_;
 							}
 						else
@@ -371,240 +290,12 @@ tryAgain:
 				}
 				default:
 				{
-					goto _loop25_breakloop;
+					goto _loop13_breakloop;
 				}
 				 }
 			}
-_loop25_breakloop:			;
+_loop13_breakloop:			;
 		}    // ( ... )*
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mSTRING(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = STRING;
-		
-		int _saveIndex = 0;
-		_saveIndex = text.Length;
-		match('"');
-		text.Length = _saveIndex;
-		{    // ( ... )*
-			for (;;)
-			{
-				if ((cached_LA1=='\\') && (cached_LA2=='"'))
-				{
-					_saveIndex = text.Length;
-					match('\\');
-					text.Length = _saveIndex;
-					match('"');
-				}
-				else if ((cached_LA1=='\\') && (tokenSet_0_.member(cached_LA2))) {
-					match('\\');
-					matchNot('"');
-				}
-				else if ((tokenSet_1_.member(cached_LA1))) {
-					matchNot('"');
-				}
-				else
-				{
-					goto _loop28_breakloop;
-				}
-				
-			}
-_loop28_breakloop:			;
-		}    // ( ... )*
-		_saveIndex = text.Length;
-		match('"');
-		text.Length = _saveIndex;
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mBIGSTRING(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = BIGSTRING;
-		
-		int _saveIndex = 0;
-		_saveIndex = text.Length;
-		match("<<");
-		text.Length = _saveIndex;
-		{
-			if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
-			{
-				{
-					switch ( cached_LA1 )
-					{
-					case '\r':
-					{
-						_saveIndex = text.Length;
-						match('\r');
-						text.Length = _saveIndex;
-						break;
-					}
-					case '\n':
-					{
-						break;
-					}
-					default:
-					{
-						throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
-					}
-					 }
-				}
-				_saveIndex = text.Length;
-				match('\n');
-				text.Length = _saveIndex;
-				newline();
-			}
-			else if (((cached_LA1 >= '\u0000' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
-			}
-			else
-			{
-				throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
-			}
-			
-		}
-		{    // ( ... )*
-			for (;;)
-			{
-				// nongreedy exit test
-				if ((cached_LA1=='>') && (cached_LA2=='>')) goto _loop34_breakloop;
-				if (((cached_LA1=='\r') && (cached_LA2=='\n'))&&(LA(3)=='>'&&LA(4)=='>'))
-				{
-					_saveIndex = text.Length;
-					match('\r');
-					text.Length = _saveIndex;
-					_saveIndex = text.Length;
-					match('\n');
-					text.Length = _saveIndex;
-					newline();
-				}
-				else if (((cached_LA1=='\n') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))&&(LA(2)=='>'&&LA(3)=='>')) {
-					_saveIndex = text.Length;
-					match('\n');
-					text.Length = _saveIndex;
-					newline();
-				}
-				else if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
-					{
-						switch ( cached_LA1 )
-						{
-						case '\r':
-						{
-							match('\r');
-							break;
-						}
-						case '\n':
-						{
-							break;
-						}
-						default:
-						{
-							throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
-						}
-						 }
-					}
-					match('\n');
-					newline();
-				}
-				else if (((cached_LA1 >= '\u0000' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
-					matchNot(EOF/*_CHAR*/);
-				}
-				else
-				{
-					goto _loop34_breakloop;
-				}
-				
-			}
-_loop34_breakloop:			;
-		}    // ( ... )*
-		_saveIndex = text.Length;
-		match(">>");
-		text.Length = _saveIndex;
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mANONYMOUS_TEMPLATE(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = ANONYMOUS_TEMPLATE;
-		
-		int _saveIndex = 0;
-		_saveIndex = text.Length;
-		match('{');
-		text.Length = _saveIndex;
-		{    // ( ... )*
-			for (;;)
-			{
-				// nongreedy exit test
-				if ((cached_LA1=='}') && (true)) goto _loop38_breakloop;
-				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
-				{
-					{
-						switch ( cached_LA1 )
-						{
-						case '\r':
-						{
-							match('\r');
-							break;
-						}
-						case '\n':
-						{
-							break;
-						}
-						default:
-						{
-							throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
-						}
-						 }
-					}
-					match('\n');
-					newline();
-				}
-				else if (((cached_LA1 >= '\u0000' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
-					matchNot(EOF/*_CHAR*/);
-				}
-				else
-				{
-					goto _loop38_breakloop;
-				}
-				
-			}
-_loop38_breakloop:			;
-		}    // ( ... )*
-		_saveIndex = text.Length;
-		match('}');
-		text.Length = _saveIndex;
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mAT(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = AT;
-		
-		match('@');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
 			_token = makeToken(_ttype);
@@ -641,68 +332,12 @@ _loop38_breakloop:			;
 		returnToken_ = _token;
 	}
 	
-	public void mLBRACK(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = LBRACK;
-		
-		match('[');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mRBRACK(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = RBRACK;
-		
-		match(']');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
 	public void mCOMMA(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
 {
 		int _ttype; IToken _token=null; int _begin=text.Length;
 		_ttype = COMMA;
 		
 		match(',');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mDOT(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = DOT;
-		
-		match('.');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mDEFINED_TO_BE(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = DEFINED_TO_BE;
-		
-		match("::=");
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
 			_token = makeToken(_ttype);
@@ -739,62 +374,6 @@ _loop38_breakloop:			;
 		returnToken_ = _token;
 	}
 	
-	public void mSTAR(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = STAR;
-		
-		match('*');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mPLUS(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = PLUS;
-		
-		match('+');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mASSIGN(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = ASSIGN;
-		
-		match('=');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
-	public void mOPTIONAL(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
-{
-		int _ttype; IToken _token=null; int _begin=text.Length;
-		_ttype = OPTIONAL;
-		
-		match('?');
-		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
-		{
-			_token = makeToken(_ttype);
-			_token.setText(text.ToString(_begin, text.Length-_begin));
-		}
-		returnToken_ = _token;
-	}
-	
 	public void mSL_COMMENT(bool _createToken) //throws RecognitionException, CharStreamException, TokenStreamException
 {
 		int _ttype; IToken _token=null; int _begin=text.Length;
@@ -804,19 +383,19 @@ _loop38_breakloop:			;
 		{    // ( ... )*
 			for (;;)
 			{
-				if ((tokenSet_2_.member(cached_LA1)))
+				if ((tokenSet_0_.member(cached_LA1)))
 				{
 					{
-						match(tokenSet_2_);
+						match(tokenSet_0_);
 					}
 				}
 				else
 				{
-					goto _loop56_breakloop;
+					goto _loop22_breakloop;
 				}
 				
 			}
-_loop56_breakloop:			;
+_loop22_breakloop:			;
 		}    // ( ... )*
 		{
 			if ((cached_LA1=='\n'||cached_LA1=='\r'))
@@ -864,7 +443,7 @@ _loop56_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop62_breakloop;
+				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop28_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
 				{
 					{
@@ -893,11 +472,11 @@ _loop56_breakloop:			;
 				}
 				else
 				{
-					goto _loop62_breakloop;
+					goto _loop28_breakloop;
 				}
 				
 			}
-_loop62_breakloop:			;
+_loop28_breakloop:			;
 		}    // ( ... )*
 		match("*/");
 		_ttype = Token.SKIP;
@@ -915,7 +494,7 @@ _loop62_breakloop:			;
 		_ttype = WS;
 		
 		{ // ( ... )+
-			int _cnt66=0;
+			int _cnt32=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -961,12 +540,12 @@ _loop62_breakloop:			;
 				}
 				default:
 				{
-					if (_cnt66 >= 1) { goto _loop66_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt32 >= 1) { goto _loop32_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt66++;
+				_cnt32++;
 			}
-_loop66_breakloop:			;
+_loop32_breakloop:			;
 		}    // ( ... )+
 		_ttype = Token.SKIP;
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -981,34 +560,13 @@ _loop66_breakloop:			;
 	private static long[] mk_tokenSet_0_()
 	{
 		long[] data = new long[2048];
-		data[0]=-17179869185L;
-		for (int i = 1; i<=1022; i++) { data[i]=-1L; }
-		data[1023]=9223372036854775807L;
-		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
-		return data;
-	}
-	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());
-	private static long[] mk_tokenSet_1_()
-	{
-		long[] data = new long[2048];
-		data[0]=-17179869185L;
-		data[1]=-268435457L;
-		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
-		data[1023]=9223372036854775807L;
-		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
-		return data;
-	}
-	public static readonly BitSet tokenSet_1_ = new BitSet(mk_tokenSet_1_());
-	private static long[] mk_tokenSet_2_()
-	{
-		long[] data = new long[2048];
 		data[0]=-9217L;
 		for (int i = 1; i<=1022; i++) { data[i]=-1L; }
 		data[1023]=9223372036854775807L;
 		for (int i = 1024; i<=2047; i++) { data[i]=0L; }
 		return data;
 	}
-	public static readonly BitSet tokenSet_2_ = new BitSet(mk_tokenSet_2_());
+	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());
 	
 }
 }

@@ -7,7 +7,7 @@
 
     <property name="src.dir" value="."/>
     <property name="build.dir" value="bin"/>
-    <property name="antlr.dir" value="..\..\antlr-2.7.5"/>
+    <property name="antlr.dir" value="..\..\antlr"/>
     <property name="grammar.dir" value="Antlr.StringTemplate.Language"/>
     
     <echo message="Building project: '${project.name}'"/>
@@ -32,6 +32,8 @@
         <delete file="${grammar.dir}\GroupParser.cs" failonerror="false"/>
         <delete file="${grammar.dir}\GroupParserTokenTypes.cs" failonerror="false"/>
         <delete file="${grammar.dir}\GroupParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}\InterfaceLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}\InterfaceParser.cs" failonerror="false"/>
         <delete dir="${build.dir}" failonerror="false"/>
     </target>
 
@@ -41,6 +43,7 @@
         <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\group.g" failonerror="true"/>
         <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\angle.bracket.template.g" failonerror="true"/>
         <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\eval.g" failonerror="true"/>
+        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\interface.g" failonerror="true"/>
     </target>
 
     <target name="release" depends="clean" description="build non-debug version">
@@ -53,7 +56,7 @@
     <target name="build" depends="generate" description="compiles the source code">
         <mkdir dir="${build.dir}"/>
         <!-- copy the assemblies required to build example to the build folder -->
-        <copy file="${antlr.dir}\lib\csharp\src\bin\antlr.runtime.dll" tofile="${build.dir}\antlr.runtime.dll" />
+        <copy file="${antlr.dir}\lib\csharp\antlr.runtime\bin\antlr.runtime.dll" tofile="${build.dir}\antlr.runtime.dll" />
 
         <!-- compile example's ${project.name}.exe -->
         <csc target="exe" output="${build.dir}\${project.FormalName}.exe" debug="${debug}">

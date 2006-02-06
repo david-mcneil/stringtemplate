@@ -75,7 +75,12 @@ override public void reportError(RecognitionException e) {
 }
 
 group[StringTemplateGroup g]
-	:	"group" name:ID {g.Name = name.getText();} SEMI
+	:	"group" name:ID {g.Name = name.getText();}
+		( COLON s:ID {g.SetSuperGroup(s.getText());} )?
+	    ( "implements" i:ID {g.ImplementInterface(i.getText());}
+	      (COMMA i2:ID {g.ImplementInterface(i2.getText());} )*
+	    )?
+	    SEMI
 	    ( template[g] | mapdef[g] )+
     ;
 

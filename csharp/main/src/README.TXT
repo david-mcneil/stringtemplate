@@ -1,6 +1,6 @@
 StringTemplate.NET - A C# implementation of the StringTemplate Library
 
-1 December, 2005
+6 February, 2006
 
 Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
 Micheal Jordan
@@ -8,9 +8,10 @@ Micheal Jordan
 
 1. INTRODUCTION 
 
-StringTemplate.NET is a new implementation of the StringTemplate MVC 
-templating library for the .NET platform. It was developed using the
-C# language.
+StringTemplate.NET (or ST#) is a new port of the StringTemplate MVC 
+templating library developed by Terence Parr. It is written in the C# 
+programming language and executes on C#/CLI platforms such as dotGNU, 
+Microsoft .NET and Novell Mono. 
 
 We hope you find 'StringTemplate.NET' delightful and useful even but, 
 as per the license under which you may use it, this software is not 
@@ -31,16 +32,50 @@ POSSIBILITY OF SUCH DAMAGE.
 ----------------------------------------------------------------------
 
 
-2. WHAT'S StringTemplate.NET?
+2. WHAT IS StringTemplate.NET?
 
-StringTemplate is a template engine for generating formatted text output.
-Examples of such output includes source code, web pages and emails.
+StringTemplate.NET (or ST#) is a template engine for generating formatted 
+text output. Examples of such output includes source code, web pages and 
+emails.
+
+A template engine is at it's most basic, a code generator that emits 
+text using templates. These templates are really just "documents with 
+holes". The "holes" are markers for where you can stick values. ST# 
+breaks up your templates into chunks of text and attribute expressions, 
+which are by default enclosed in dollar signs (e.g. $attribute-expression$). 
+Everthing except attribute expressions is treated as literal text and 
+copied verbatim to the output when you call the method ToString() on 
+a StringTemplate instance.
 
 StringTemplate differs from most other template engines by [more] strictly
 enforcing Model-View separation.
 
 
-3. USING StringTemplate.NET
+3. WHAT'S IN THE PACK?
+
+This distribution contains four projects and the project files needed to 
+build them with Microsoft Visual Studio 2003. The projects are:
+
+	1. StringTemplate		- the core ST# runtime library
+
+	2. StringTemplateTests		- unit tests for the ST# library above
+
+	3. StringTemplateTreeView	- a library for visualizing StringTemplates
+					[Alpha quality release - not reliable]
+
+	4. StringTemplateViewer		- a StringTemplateTreeView demo app
+	
+In addition the Lib sub-directory contains copies of the ANTLR 2.7.6 runtime 
+assemblies. ST# *needs* ANTLR version 2.7.6 or later but, you should probably 
+use your own versions of these assemblies if you already have ANTLR 2.7.6.
+
+3.1 Dependenicies
+
+All projects have a dependence on ANTLR 2.7.6 as stated above. In addition, 
+StringTemplateTests has a dependency on NUnit v2.2+.
+
+
+4. USING StringTemplate.NET
 
 If you have the binary distribution, add references to the following files 
 in your project:
@@ -51,7 +86,52 @@ If you have the source distribution, unpack the files into a directory. Open
 the StringTemplate.NET.sln solution file with Visual Studio.NET 2003.
 
 
-4. CONTRIBUTORS
+5. BUILDING StringTemplate.NET
+
+If you wish to re-build ST# for any reason, this is what you ned to know.
+
+a) This release of ST# was built with ANTLR 2.7.6. If you change any of the 
+ANTLR grammar files supplied with ST#, you will need to use the ANTLR tool to 
+regenerate the corresponding C# source files for the Lexer/Parser/TreeParsers. 
+The grammar files - all named <something>.g - are in:
+	%ST_DIR%\StringTemplate\Antlr.StringTemplate.Language\
+
+b) Then, just use the supplied VS.NET project files to build the projects. 
+
+NOTE: Some of the ANTLR grammar files above trigger a curious bug in ANTLR 2.x 
+that can only by fixed by hand. The errors are related to the redefinition of 
+a variable. There are about 4-6 such manual fixes required although the number 
+of error/warning messages you get may be more than that. Errors are:
+
+	CS0128: A local variable named 'variable' is already defined in this scope
+	CS0136: A local variable named 'var' cannot be declared in this scope because 
+	        it would give a different meaning to 'var', which is already used in 
+	        a 'parent or current' scope to denote something else
+
+
+6. StringTemplate.NET STATUS
+
+This release of StringTemplate.NET is a beta release (ST# TreeView visualizer 
+is an Alpha release). StringTemplate.NET itself is mostly feature complete 
+for the upcoming 2.3 release but expect a few rough edges. 
+
+There are currently about 2-3 failures in the unit test suite out of about 
+190 cases.
+
+
+Don't forget to visit the www.stringtemplate.org for further info. The mailing 
+list is (currently) very low volume but has a very high Signal-to-Noise ratio. 
+We'd like to hear about how you're using ST#.
+
+
+7. CONTRIBUTORS
 
 Kunle Odutola		-- primary developer
 Micheal Jordan		-- template loader abstraction, unit tests
+
+
+
+Enjoy!
+
+Kunle Odutola
+

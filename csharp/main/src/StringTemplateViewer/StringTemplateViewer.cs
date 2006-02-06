@@ -1,5 +1,5 @@
 /*
-[The "BSD licence"]
+[Adapted from BSD licence]
 Copyright (c) 2005-2006 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
@@ -28,28 +28,34 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-namespace Antlr.StringTemplate
+namespace ViewerTest
 {
 	using System;
-
-	/// <summary>
-	/// When group files derive from another group, we have to know how to
-	/// load that group, its supergroups and any group interfaces.
-	/// </summary>
-	public interface IStringTemplateGroupLoader 
+	using System.Windows.Forms;
+	using StringTemplate			= Antlr.StringTemplate.StringTemplate;
+	using StringTemplateGroup		= Antlr.StringTemplate.StringTemplateGroup;
+	using StringTemplateTreeView	= Antlr.StringTemplate.Viewer.StringTemplateTreeView;
+	
+	public class StringTemplateViewer
 	{
-		/// <summary>
-		/// Loads the named StringTemplateGroup instance from somewhere.
-		/// </summary>
-		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
-		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
-		StringTemplateGroup LoadGroup(string groupName);
+		public static void Main(string[] args)
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy");
+			StringTemplate bold = group.DefineTemplate("bold", "<b>$attr$</b>");
+			StringTemplate banner = group.DefineTemplate("banner", "the banner");
+			StringTemplate st = new StringTemplate(group, 
+				"<html>\n" +
+				"$banner(a=b)$" +
+				"<p><b>$name$:$email$</b>" +
+				"$if(member)$<i>$fontTag$member</font></i>$endif$");
+			st.SetAttribute("name", "Terence");
+			st.SetAttribute("name", "Tom");
+			st.SetAttribute("email", "parrt@cs.usfca.edu");
+			st.SetAttribute("templateAttr", bold);
 
-		/// <summary>
-		/// Loads the named StringTemplateGroupInterface instance from somewhere.
-		/// </summary>
-		/// <param name="groupName">Name of the StringTemplateGroupInterface to load</param>
-		/// <returns>A StringTemplateGroupInterface instance or null if no group is found</returns>
-		StringTemplateGroupInterface LoadInterface(string interfaceName);
+			StringTemplateTreeView frame = 
+				new StringTemplateTreeView("StringTemplateTreeView Example", st);
+			Application.Run(frame);
+		}
 	}
 }

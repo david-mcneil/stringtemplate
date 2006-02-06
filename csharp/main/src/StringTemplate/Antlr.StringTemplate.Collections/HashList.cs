@@ -213,6 +213,31 @@ namespace Antlr.StringTemplate.Collections
 				return result.ToString();
 			}
 
+			public override bool Equals(object o)
+			{
+				if (o is KeyCollection)
+				{
+					KeyCollection other = (KeyCollection) o;
+					if ((Count == 0) && (other.Count == 0))
+						return true;
+					else if (Count == other.Count)
+					{
+						for (int i = 0; i < Count; i++)
+						{
+							if ((_hashList._insertionOrderList[i] == other._hashList._insertionOrderList[i]) ||
+								(_hashList._insertionOrderList[i].Equals(other._hashList._insertionOrderList[i])))
+								return true;
+						}
+					}
+				}
+				return false;
+			}
+
+			public override int GetHashCode()
+			{
+				return _hashList._insertionOrderList.GetHashCode();
+			}
+
 			#region ICollection Members
 
 			public bool IsSynchronized

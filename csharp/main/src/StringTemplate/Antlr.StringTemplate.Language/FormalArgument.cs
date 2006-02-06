@@ -108,6 +108,31 @@ namespace Antlr.StringTemplate.Language
 			}
 		}
 		
+		public override int GetHashCode()
+		{
+			return base.GetHashCode();
+		}
+
+		public override bool Equals(object o) 
+		{
+			if ( o==null || !(o is FormalArgument) ) 
+			{
+				return false;
+			}
+			FormalArgument other = (FormalArgument)o;
+			if ( !this.name.Equals(other.name) ) 
+			{
+				return false;
+			}
+			// only check if there is a default value; that's all
+			if ( (this.defaultValueST!=null && other.defaultValueST==null) ||
+				(this.defaultValueST==null && other.defaultValueST!=null) ) 
+			{
+				return false;
+			}
+			return true;
+		}
+
 		public override string ToString()
 		{
 			if (defaultValueST != null)

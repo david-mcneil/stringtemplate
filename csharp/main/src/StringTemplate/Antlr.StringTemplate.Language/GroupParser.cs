@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): "group.g" -> "GroupParser.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "group.g" -> "GroupParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -76,27 +76,28 @@ namespace Antlr.StringTemplate.Language
 		public const int NULL_TREE_LOOKAHEAD = 3;
 		public const int LITERAL_group = 4;
 		public const int ID = 5;
-		public const int SEMI = 6;
-		public const int AT = 7;
-		public const int DOT = 8;
-		public const int LPAREN = 9;
-		public const int RPAREN = 10;
-		public const int DEFINED_TO_BE = 11;
-		public const int STRING = 12;
-		public const int BIGSTRING = 13;
-		public const int COMMA = 14;
-		public const int ASSIGN = 15;
-		public const int ANONYMOUS_TEMPLATE = 16;
-		public const int LBRACK = 17;
-		public const int RBRACK = 18;
-		public const int COLON = 19;
-		public const int LITERAL_default = 20;
-		public const int STAR = 21;
-		public const int PLUS = 22;
-		public const int OPTIONAL = 23;
-		public const int SL_COMMENT = 24;
-		public const int ML_COMMENT = 25;
-		public const int WS = 26;
+		public const int COLON = 6;
+		public const int LITERAL_implements = 7;
+		public const int COMMA = 8;
+		public const int SEMI = 9;
+		public const int AT = 10;
+		public const int DOT = 11;
+		public const int LPAREN = 12;
+		public const int RPAREN = 13;
+		public const int DEFINED_TO_BE = 14;
+		public const int STRING = 15;
+		public const int BIGSTRING = 16;
+		public const int ASSIGN = 17;
+		public const int ANONYMOUS_TEMPLATE = 18;
+		public const int LBRACK = 19;
+		public const int RBRACK = 20;
+		public const int LITERAL_default = 21;
+		public const int STAR = 22;
+		public const int PLUS = 23;
+		public const int OPTIONAL = 24;
+		public const int SL_COMMENT = 25;
+		public const int ML_COMMENT = 26;
+		public const int WS = 27;
 		
 		
 protected StringTemplateGroup _group;
@@ -145,15 +146,79 @@ override public void reportError(RecognitionException e) {
 {
 		
 		IToken  name = null;
+		IToken  s = null;
+		IToken  i = null;
+		IToken  i2 = null;
 		
 		try {      // for error handling
 			match(LITERAL_group);
 			name = LT(1);
 			match(ID);
 			g.Name = name.getText();
+			{
+				switch ( LA(1) )
+				{
+				case COLON:
+				{
+					match(COLON);
+					s = LT(1);
+					match(ID);
+					g.SetSuperGroup(s.getText());
+					break;
+				}
+				case LITERAL_implements:
+				case SEMI:
+				{
+					break;
+				}
+				default:
+				{
+					throw new NoViableAltException(LT(1), getFilename());
+				}
+				 }
+			}
+			{
+				switch ( LA(1) )
+				{
+				case LITERAL_implements:
+				{
+					match(LITERAL_implements);
+					i = LT(1);
+					match(ID);
+					g.ImplementInterface(i.getText());
+					{    // ( ... )*
+						for (;;)
+						{
+							if ((LA(1)==COMMA))
+							{
+								match(COMMA);
+								i2 = LT(1);
+								match(ID);
+								g.ImplementInterface(i2.getText());
+							}
+							else
+							{
+								goto _loop5_breakloop;
+							}
+							
+						}
+_loop5_breakloop:						;
+					}    // ( ... )*
+					break;
+				}
+				case SEMI:
+				{
+					break;
+				}
+				default:
+				{
+					throw new NoViableAltException(LT(1), getFilename());
+				}
+				 }
+			}
 			match(SEMI);
 			{ // ( ... )+
-				int _cnt3=0;
+				int _cnt7=0;
 				for (;;)
 				{
 					if ((LA(1)==ID||LA(1)==AT) && (LA(2)==ID||LA(2)==LPAREN||LA(2)==DEFINED_TO_BE) && (LA(3)==ID||LA(3)==DOT||LA(3)==RPAREN))
@@ -165,12 +230,12 @@ override public void reportError(RecognitionException e) {
 					}
 					else
 					{
-						if (_cnt3 >= 1) { goto _loop3_breakloop; } else { throw new NoViableAltException(LT(1), getFilename());; }
+						if (_cnt7 >= 1) { goto _loop7_breakloop; } else { throw new NoViableAltException(LT(1), getFilename());; }
 					}
 					
-					_cnt3++;
+					_cnt7++;
 				}
-_loop3_breakloop:				;
+_loop7_breakloop:				;
 			}    // ( ... )+
 		}
 		catch (RecognitionException ex)
@@ -388,11 +453,11 @@ _loop3_breakloop:				;
 					}
 					else
 					{
-						goto _loop10_breakloop;
+						goto _loop14_breakloop;
 					}
 					
 				}
-_loop10_breakloop:				;
+_loop14_breakloop:				;
 			}    // ( ... )*
 		}
 		catch (RecognitionException ex)
@@ -439,7 +504,7 @@ _loop10_breakloop:				;
 								defaultValue.Name = "<"+st.Name+"'s arg "+name.getText()+" default value subtemplate>";
 								
 				}
-				else if ((LA(1)==RPAREN||LA(1)==COMMA)) {
+				else if ((LA(1)==COMMA||LA(1)==RPAREN)) {
 				}
 				else
 				{
@@ -474,11 +539,11 @@ _loop10_breakloop:				;
 					}
 					else
 					{
-						goto _loop16_breakloop;
+						goto _loop20_breakloop;
 					}
 					
 				}
-_loop16_breakloop:				;
+_loop20_breakloop:				;
 			}    // ( ... )*
 			match(RBRACK);
 		}
@@ -558,6 +623,9 @@ _loop16_breakloop:				;
 		@"""NULL_TREE_LOOKAHEAD""",
 		@"""group""",
 		@"""ID""",
+		@"""COLON""",
+		@"""implements""",
+		@"""COMMA""",
 		@"""SEMI""",
 		@"""AT""",
 		@"""DOT""",
@@ -566,12 +634,10 @@ _loop16_breakloop:				;
 		@"""DEFINED_TO_BE""",
 		@"""STRING""",
 		@"""BIGSTRING""",
-		@"""COMMA""",
 		@"""ASSIGN""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""LBRACK""",
 		@"""RBRACK""",
-		@"""COLON""",
 		@"""default""",
 		@"""STAR""",
 		@"""PLUS""",
@@ -589,25 +655,25 @@ _loop16_breakloop:				;
 	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());
 	private static long[] mk_tokenSet_1_()
 	{
-		long[] data = { 162L, 0L};
+		long[] data = { 1058L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_1_ = new BitSet(mk_tokenSet_1_());
 	private static long[] mk_tokenSet_2_()
 	{
-		long[] data = { 1024L, 0L};
+		long[] data = { 8192L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_2_ = new BitSet(mk_tokenSet_2_());
 	private static long[] mk_tokenSet_3_()
 	{
-		long[] data = { 17408L, 0L};
+		long[] data = { 8448L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_3_ = new BitSet(mk_tokenSet_3_());
 	private static long[] mk_tokenSet_4_()
 	{
-		long[] data = { 278528L, 0L};
+		long[] data = { 1048832L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());
