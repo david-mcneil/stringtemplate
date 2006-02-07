@@ -8,28 +8,15 @@ Micheal Jordan
 
 1. INTRODUCTION 
 
-StringTemplate.NET (or ST#) is a new port of the StringTemplate MVC 
-templating library developed by Terence Parr. It is written in the C# 
-programming language and executes on C#/CLI platforms such as dotGNU, 
-Microsoft .NET and Novell Mono. 
+StringTemplate.NET (or ST#) is an idiomatic port of the StringTemplate 
+MVC templating library developed by Terence Parr. It is written in 
+the C# programming language and executes on C#/CLI platforms such as 
+Microsoft .NET, Novell Mono and dotGNU. 
 
-We hope you find 'StringTemplate.NET' delightful and useful even but, 
+We hope you find StringTemplate.NET delightful and useful even but, 
 as per the license under which you may use it, this software is not 
-guaranteed to work. See LICENSE.TXT for the full text of the license.
-
-----------------------------------------------------------------------
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-----------------------------------------------------------------------
+guaranteed to work. See LICENSE.TXT for the full text of the license 
+and NOTICE.TXT for attribution notices.
 
 
 2. WHAT IS StringTemplate.NET?
