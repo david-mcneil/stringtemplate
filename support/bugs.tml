@@ -14,6 +14,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+02-11-2006
+
+o You couldn't have '=' in a string if preceded by '+' like foo+"ick=".
+
 01-27-2006
 
 o Added default lexer mechanism for groups so you can set once
@@ -623,6 +627,110 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o Tom says: simple example:
+
+        $link(title=user.name,url=module.attributes.select_url+"&id="+user.ID)$
+
+causes the same exception as the last one
+
+        $link(title=user.name,url=module.attributes.select_url)$
+
+before he said: I get an exception with this fragment:
+
+        $if(!import.isCurrentDataSet)$
+            <br>$link(title="Make Current Data Set",url="/school/view?event=set_import&id="+import.ID+"&return_url="+return_url)$<br>
+        $endif$
+
+this also does not work (removed +return_url at the end):
+
+but not with this (I removed the +return_url at the end):
+
+        $if(!import.isCurrentDataSet)$
+            <br>$link(title="Make Current Data Set",url="/school/view?event=set_import&id="+import.ID+"&return_url=")$<br>
+        $endif$
+
+this, however does (I removed the last =)
+
+        $if(!import.isCurrentDataSet)$
+            <br>$link(title="Make Current Data Set",url="/school/view?event=set_import&id="+import.ID+"&return_url")$<br>
+        $endif$
+
+this works:
+
+
+
+ST generates this exception:
+
+08_18.50.59 Error: PDLog SID:avvjqkRvpnN7 Page:god//school/view Request:/school/view Q:school_id=1093916245066 for:Burns, Thomas tombu@schoolloop.com 1093916245035 god Sch:live.schoolloop.com IP:127.0.0.1 Exception:null Stack:java.lang.NullPointerException
+        at org.antlr.stringtemplate.language.ConditionalExpr.write(ConditionalExpr.java:88)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:499)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.StringTemplate.toString(StringTemplate.java:1695)
+        at org.pageforge.Page.generatePage(Page.java:364)
+        at org.pageforge.Page.generate(Page.java:224)
+        at org.pageforge.PageDispatcher.serviceMachinePage(PageDispatcher.java:361)
+        at org.pageforge.PageDispatcher.serviceURI(PageDispatcher.java:264)
+        at org.pageforge.PageDispatcher.rawDo(PageDispatcher.java:165)
+        at org.pageforge.PageDispatcher.doGet(PageDispatcher.java:133)
+        at javax.servlet.http.HttpServlet.service(HttpServlet.java:126)
+        at javax.servlet.http.HttpServlet.service(HttpServlet.java:103)
+        at com.caucho.server.http.FilterChainServlet.doFilter(FilterChainServlet.java:96)
+        at com.caucho.server.http.Invocation.service(Invocation.java:315)
+        at com.caucho.server.http.HttpRequest.handleRequest(HttpRequest.java:246)
+        at com.caucho.server.http.HttpRequest.handleConnection(HttpRequest.java:163)
+        at com.caucho.server.TcpConnection.run(TcpConnection.java:139)
+        at java.lang.Thread.run(Thread.java:552)
+Exception Message:null Stack:java.lang.NullPointerException
+        at org.antlr.stringtemplate.language.ConditionalExpr.write(ConditionalExpr.java:88)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:499)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:485)
+        at org.antlr.stringtemplate.language.ASTExpr.writeAttribute(ASTExpr.java:450)
+        at org.antlr.stringtemplate.language.ActionEvaluator.action(ActionEvaluator.java:86)
+        at org.antlr.stringtemplate.language.ASTExpr.write(ASTExpr.java:82)
+        at org.antlr.stringtemplate.StringTemplate.write(StringTemplate.java:764)
+        at org.antlr.stringtemplate.StringTemplate.toString(StringTemplate.java:1695)
+        at org.pageforge.Page.generatePage(Page.java:364)
+        at org.pageforge.Page.generate(Page.java:224)
+        at org.pageforge.PageDispatcher.serviceMachinePage(PageDispatcher.java:361)
+        at org.pageforge.PageDispatcher.serviceURI(PageDispatcher.java:264)
+        at org.pageforge.PageDispatcher.rawDo(PageDispatcher.java:165)
+        at org.pageforge.PageDispatcher.doGet(PageDispatcher.java:133)
+        at javax.servlet.http.HttpServlet.service(HttpServlet.java:126)
+        at javax.servlet.http.HttpServlet.service(HttpServlet.java:103)
+        at com.caucho.server.http.FilterChainServlet.doFilter(FilterChainServlet.java:96)
+        at com.caucho.server.http.Invocation.service(Invocation.java:315)
+        at com.caucho.server.http.HttpRequest.handleRequest(HttpRequest.java:246)
+        at com.caucho.server.http.HttpRequest.handleConnection(HttpRequest.java:163)
+        at com.caucho.server.TcpConnection.run(TcpConnection.java:139)
+        at java.lang.Thread.run(Thread.java:552)
+
 o can't use <@super.members()> in Dbg.stg subgroup.
 
 internal error: problem parsing template 'region__genericParser__members' : java.lang.StringIndexOutOfBoundsException: String index out of range: -9
