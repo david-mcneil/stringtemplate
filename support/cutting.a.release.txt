@@ -24,6 +24,12 @@ jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/str
 find org -name '*.class' -exec rm {} \;
 popd
 
+find . -name '*~' -exec rm {} \;
+
+chmod -R +w *
+
+# remove *.iml !
+
 # make tarball (next time name release stringtemplate-2.2b5 dir)
 cd ~/antlr/code/stringtemplate/java
 cp -r release-2.2 /tmp/stringtemplate-2.2b5
