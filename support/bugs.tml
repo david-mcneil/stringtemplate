@@ -16,6 +16,8 @@ StringTemplate Bugs, Requests, Changes
 
 03-4-2006
 
+o added cache for all obj.prop lookups
+
 o added PathGroupLoader/CommonGroupLoader (which uses CLASSPATH)
 
 03-1-2006
