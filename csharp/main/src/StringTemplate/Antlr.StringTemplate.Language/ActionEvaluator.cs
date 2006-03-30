@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): "eval.g" -> "ActionEvaluator.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "eval.g" -> "ActionEvaluator.cs"$
 
 /*
  [The "BSD licence"]
@@ -72,16 +72,16 @@ namespace Antlr.StringTemplate.Language
 		public const int RPAREN = 16;
 		public const int LITERAL_separator = 17;
 		public const int ASSIGN = 18;
-		public const int COLON = 19;
-		public const int COMMA = 20;
+		public const int COMMA = 19;
+		public const int COLON = 20;
 		public const int NOT = 21;
 		public const int PLUS = 22;
-		public const int DOT = 23;
-		public const int ID = 24;
-		public const int LITERAL_first = 25;
-		public const int LITERAL_rest = 26;
-		public const int LITERAL_last = 27;
-		public const int LITERAL_super = 28;
+		public const int ID = 23;
+		public const int LITERAL_super = 24;
+		public const int DOT = 25;
+		public const int LITERAL_first = 26;
+		public const int LITERAL_rest = 27;
+		public const int LITERAL_last = 28;
 		public const int ANONYMOUS_TEMPLATE = 29;
 		public const int STRING = 30;
 		public const int INT = 31;
@@ -181,8 +181,8 @@ namespace Antlr.StringTemplate.Language
 				_t = retTree_;
 				break;
 			}
-			case DOT:
 			case ID:
+			case DOT:
 			case ANONYMOUS_TEMPLATE:
 			case STRING:
 			case INT:
@@ -394,7 +394,7 @@ _loop19_breakloop:					;
 			{
 			case DOT:
 			{
-				AST __t33 = _t;
+				AST __t32 = _t;
 				Antlr.StringTemplate.Language.StringTemplateAST tmp6_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,DOT);
 				_t = _t.getFirstChild();
@@ -415,13 +415,13 @@ _loop19_breakloop:					;
 					}
 					case VALUE:
 					{
-						AST __t35 = _t;
+						AST __t34 = _t;
 						Antlr.StringTemplate.Language.StringTemplateAST tmp7_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 						match((AST)_t,VALUE);
 						_t = _t.getFirstChild();
 						e=expr(_t);
 						_t = retTree_;
-						_t = __t35;
+						_t = __t34;
 						_t = _t.getNextSibling();
 						if (e!=null) {propName=e.ToString();}
 						break;
@@ -432,7 +432,7 @@ _loop19_breakloop:					;
 					}
 					 }
 				}
-				_t = __t33;
+				_t = __t32;
 				_t = _t.getNextSibling();
 				value = chunk.GetObjectProperty(self,obj,propName);
 				break;
@@ -854,13 +854,13 @@ _loop8_breakloop:				;
 			case FUNCTION:
 			case LIST:
 			case PLUS:
-			case DOT:
 			case ID:
+			case DOT:
 			case ANONYMOUS_TEMPLATE:
 			case STRING:
 			case INT:
 			{
-				a=ifAtom(_t);
+				a=expr(_t);
 				_t = retTree_;
 				value = chunk.TestAttributeTrue(a);
 				break;
@@ -871,7 +871,7 @@ _loop8_breakloop:				;
 				Antlr.StringTemplate.Language.StringTemplateAST tmp18_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,NOT);
 				_t = _t.getFirstChild();
-				a=ifAtom(_t);
+				a=expr(_t);
 				_t = retTree_;
 				_t = __t30;
 				_t = _t.getNextSibling();
@@ -883,28 +883,6 @@ _loop8_breakloop:				;
 				throw new NoViableAltException(_t);
 			}
 			 }
-		}
-		catch (RecognitionException ex)
-		{
-			reportError(ex);
-			if (null != _t)
-			{
-				_t = _t.getNextSibling();
-			}
-		}
-		retTree_ = _t;
-		return value;
-	}
-	
-	public object  ifAtom(AST _t) //throws RecognitionException
-{
-		object value=null;
-		
-		Antlr.StringTemplate.Language.StringTemplateAST ifAtom_AST_in = (Antlr.StringTemplate.Language.StringTemplateAST)_t;
-		
-		try {      // for error handling
-			value=expr(_t);
-			_t = retTree_;
 		}
 		catch (RecognitionException ex)
 		{
@@ -944,7 +922,7 @@ _loop8_breakloop:				;
 			{
 			case ARGS:
 			{
-				AST __t37 = _t;
+				AST __t36 = _t;
 				Antlr.StringTemplate.Language.StringTemplateAST tmp19_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ARGS);
 				_t = _t.getFirstChild();
@@ -960,13 +938,13 @@ _loop8_breakloop:				;
 						}
 						else
 						{
-							goto _loop39_breakloop;
+							goto _loop38_breakloop;
 						}
 						
 					}
-_loop39_breakloop:					;
+_loop38_breakloop:					;
 				}    // ( ... )*
-				_t = __t37;
+				_t = __t36;
 				_t = _t.getNextSibling();
 				break;
 			}
@@ -1012,7 +990,7 @@ _loop39_breakloop:					;
 			{
 			case ASSIGN:
 			{
-				AST __t43 = _t;
+				AST __t42 = _t;
 				Antlr.StringTemplate.Language.StringTemplateAST tmp20_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ASSIGN);
 				_t = _t.getFirstChild();
@@ -1021,7 +999,7 @@ _loop39_breakloop:					;
 				_t = _t.getNextSibling();
 				e=expr(_t);
 				_t = retTree_;
-				_t = __t43;
+				_t = __t42;
 				_t = _t.getNextSibling();
 				
 					    if ( e!=null ) {
@@ -1066,13 +1044,13 @@ _loop39_breakloop:					;
 		
 		
 		try {      // for error handling
-			AST __t41 = _t;
+			AST __t40 = _t;
 			Antlr.StringTemplate.Language.StringTemplateAST tmp22_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,SINGLEVALUEARG);
 			_t = _t.getFirstChild();
 			e=expr(_t);
 			_t = retTree_;
-			_t = __t41;
+			_t = __t40;
 			_t = _t.getNextSibling();
 			
 				    if ( e!=null ) {
@@ -1143,16 +1121,16 @@ _loop39_breakloop:					;
 		@"""RPAREN""",
 		@"""separator""",
 		@"""ASSIGN""",
-		@"""COLON""",
 		@"""COMMA""",
+		@"""COLON""",
 		@"""NOT""",
 		@"""PLUS""",
-		@"""DOT""",
 		@"""ID""",
+		@"""super""",
+		@"""DOT""",
 		@"""first""",
 		@"""rest""",
 		@"""last""",
-		@"""super""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""STRING""",
 		@"""INT""",
@@ -1168,7 +1146,7 @@ _loop39_breakloop:					;
 	
 	private static long[] mk_tokenSet_0_()
 	{
-		long[] data = { 3787467440L, 0L};
+		long[] data = { 3804244656L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());

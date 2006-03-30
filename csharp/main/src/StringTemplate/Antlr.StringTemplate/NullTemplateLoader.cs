@@ -36,7 +36,7 @@ namespace Antlr.StringTemplate
 	/// <summary>
 	/// A StringTemplateLoader that does nothing.
 	/// </summary>
-	internal class NullTemplateLoader : StringTemplateLoader
+	internal sealed class NullTemplateLoader : StringTemplateLoader
 	{
 		public NullTemplateLoader() : base(null, false)
 		{

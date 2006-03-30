@@ -18,7 +18,7 @@
                 OutputType = "Library"
                 PreBuildEvent = ""
                 PostBuildEvent = ""
-                RootNamespace = "StringTemplate"
+                RootNamespace = "Antlr.StringTemplate"
                 RunPostBuildEvent = "OnBuildSuccess"
                 StartupObject = ""
             >
@@ -36,7 +36,7 @@
                     NoStdLib = "false"
                     NoWarn = ""
                     Optimize = "false"
-                    OutputPath = "bin\"
+                    OutputPath = "bin\Debug\net-1.1\"
                     RegisterForComInterop = "false"
                     RemoveIntegerChecks = "false"
                     TreatWarningsAsErrors = "false"
@@ -50,13 +50,13 @@
                     ConfigurationOverrideFile = ""
                     DefineConstants = ""
                     DocumentationFile = ""
-                    DebugSymbols = "true"
+                    DebugSymbols = "false"
                     FileAlignment = "4096"
                     IncrementalBuild = "true"
                     NoStdLib = "false"
                     NoWarn = ""
                     Optimize = "true"
-                    OutputPath = "bin\"
+                    OutputPath = "bin\Release\net-1.1\"
                     RegisterForComInterop = "false"
                     RemoveIntegerChecks = "false"
                     TreatWarningsAsErrors = "false"
@@ -71,7 +71,7 @@
                 <Reference
                     Name = "antlr.runtime"
                     AssemblyName = "antlr.runtime"
-                    HintPath = "..\..\Antlr\lib\csharp\antlr.runtime\bin\antlr.runtime.dll"
+                    HintPath = "..\Lib\net-1.1\antlr.runtime.dll"
                 />
             </References>
         </Build>
@@ -295,6 +295,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate.Language\NewlineRef.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Language\RestCollection.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

@@ -1,6 +1,6 @@
 StringTemplate.NET - A C# implementation of the StringTemplate Library
 
-6 February, 2006
+30 March, 2006
 
 Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
 Micheal Jordan
@@ -40,8 +40,8 @@ enforcing Model-View separation.
 
 3. WHAT'S IN THE PACK?
 
-This distribution contains four projects and the project files needed to 
-build them with Microsoft Visual Studio 2003. The projects are:
+This distribution contains five projects and the project files needed to 
+build them with Microsoft Visual Studio 2003 and 2005. The projects are:
 
 	1. StringTemplate		- the core ST# runtime library
 
@@ -51,6 +51,9 @@ build them with Microsoft Visual Studio 2003. The projects are:
 					[Alpha quality release - not reliable]
 
 	4. StringTemplateViewer		- a StringTemplateTreeView demo app
+	
+	5. StringTemplate.Benchmark	- embryonic effort to provide ST# benchmarks
+					[Currently empty]
 	
 In addition the Lib sub-directory contains copies of the ANTLR 2.7.6 runtime 
 assemblies. ST# *needs* ANTLR version 2.7.6 or later but, you should probably 
@@ -70,7 +73,8 @@ in your project:
   - antlr.runtime.dll
   
 If you have the source distribution, unpack the files into a directory. Open 
-the StringTemplate.NET.sln solution file with Visual Studio.NET 2003.
+the StringTemplate.NET (VS2003).sln solution file with Visual Studio.NET 2003
+or, StringTemplate.NET (VS2005).sln if you have Visual Studio.NET 2005.
 
 
 5. BUILDING StringTemplate.NET
@@ -102,8 +106,7 @@ This release of StringTemplate.NET is a beta release (ST# TreeView visualizer
 is an Alpha release). StringTemplate.NET itself is mostly feature complete 
 for the upcoming 2.3 release but expect a few rough edges. 
 
-There are currently about 2-3 failures in the unit test suite out of about 
-190 cases.
+There are currently 0 failures in the unit test suite.
 
 
 Don't forget to visit the www.stringtemplate.org for further info. The mailing 

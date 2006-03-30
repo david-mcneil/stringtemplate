@@ -284,6 +284,8 @@ namespace Antlr.StringTemplate.Tests
 		
 		#endregion
 
+		private static readonly object lockObject = new object();
+
 		//static readonly string NL = System.Environment.NewLine;
 		static readonly string NL = "\n";
 		static readonly string TEMPDIR = System.IO.Path.GetTempPath();
@@ -304,9 +306,15 @@ namespace Antlr.StringTemplate.Tests
 			try 
 			{
 				if (file1 != null)
+				{
 					file1.Close();
+					file1 = null;
+				}
 				if (file2 != null)
+				{
 					file2.Close();
+					file2 = null;
+				}
 			}
 			catch
 			{
@@ -334,6 +342,11 @@ namespace Antlr.StringTemplate.Tests
 
 		[Test] public virtual void testNoGroupLoader()
 		{
+			// Next line needed to avoid test failure in NUnit due to an
+			// earlier test (all tests are run in the same AppDomain) having
+			// already set a default GroupLoader.
+			StringTemplateGroup.RegisterGroupLoader(null);
+
 			// this also tests the group loader
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 
@@ -542,7 +555,7 @@ namespace Antlr.StringTemplate.Tests
 			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
 			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
 
-			string expecting = "group 'testG' does not satisfy interface 'testI': mismatched template arguments [optional duh(a, b, c);]";
+			string expecting = "group 'testG' does not satisfy interface 'testI': mismatched arguments on these templates [optional duh(a, b, c)]";
 			Assert.AreEqual(expecting, errors.ToString());
 		}
 
@@ -1551,6 +1564,36 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, b.ToString());
 		}
 		
+		[Test] public void testStringCatenationOpOnArg()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("test");
+			StringTemplate bold = group.DefineTemplate("bold", "<b>$it$</b>");
+			StringTemplate b = new StringTemplate(group, "$bold(it=name+\" Parr\")$");
+			b.SetAttribute("name", "Terence");
+			string expecting = "<b>Terence Parr</b>";
+			Assert.AreEqual(expecting, b.ToString());
+		}
+
+		[Test] public void testStringCatenationOpOnArgWithEqualsInString()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("test");
+			StringTemplate bold = group.DefineTemplate("bold", "<b>$it$</b>");
+			StringTemplate b = new StringTemplate(group, "$bold(it=name+\" Parr=\")$");
+			b.SetAttribute("name", "Terence");
+			string expecting = "<b>Terence Parr=</b>";
+			Assert.AreEqual(expecting, b.ToString());
+		}
+
+		[Test] public void testStringCatenationOpOnArgWithEqualsInStringAngleBrackets()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("test", typeof(AngleBracketTemplateLexer));
+			StringTemplate bold = group.DefineTemplate("bold", "#b#<it>#/b#");
+			StringTemplate b = new StringTemplate(group, "<bold(it=name+\" Parr=\")>");
+			b.SetAttribute("name", "Terence");
+			string expecting = "#b#Terence Parr=#/b#";
+			Assert.AreEqual(expecting, b.ToString());
+		}
+
 		[Test] public virtual void  testApplyingTemplateFromDiskWithPrecompiledIF()
 		{
 			// First write the template files to the TEMPDIR
@@ -3600,7 +3643,7 @@ namespace Antlr.StringTemplate.Tests
 			string expecting = "Ter@1, Tom@2";
 			Assert.AreEqual(expecting, e.ToString());
 			string errorExpecting = "number of arguments [n, p] mismatch between attribute list and anonymous template in context [anonymous]";
-			Assert.AreEqual(errors.ToString(), errorExpecting);
+			Assert.AreEqual(errorExpecting, errors.ToString());
 		}
 		
 		[Test] public virtual void  testParallelAttributeIterationWithMissingArgs()
@@ -3614,7 +3657,7 @@ namespace Antlr.StringTemplate.Tests
 			e.SetAttribute("salaries", "big");
 			e.ToString(); // generate the error
 			string errorExpecting = "missing arguments in anonymous template in context [anonymous]";
-			Assert.AreEqual(errors.ToString(), errorExpecting);
+			Assert.AreEqual(errorExpecting, errors.ToString());
 		}
 		
 		[Test] public virtual void  testParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo()
@@ -3679,22 +3722,138 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, st.ToString());
 		}
 
+		[Test] public void testIndexVar()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = new StringTemplate(
+				group,
+				"$A:{$i$. $it$}; separator=\"\\n\"$"
+				);
+			t.SetAttribute("A", "parrt");
+			t.SetAttribute("A", "tombu");
+			string expecting =
+				"1. parrt" + NL +
+				"2. tombu";
+			Assert.AreEqual(expecting, t.ToString());
+		}
+
+		[Test] public void testIndex0Var()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = new StringTemplate(
+				group,
+				"$A:{$i0$. $it$}; separator=\"\\n\"$"
+				);
+			t.SetAttribute("A", "parrt");
+			t.SetAttribute("A", "tombu");
+			string expecting =
+				"0. parrt" + NL +
+				"1. tombu";
+			Assert.AreEqual(expecting, t.ToString());
+		}
+
+		[Test] public void testIndexVarWithMultipleExprs()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = new StringTemplate(
+				group,
+				"$A,B:{a,b|$i$. $a$@$b$}; separator=\"\\n\"$"
+				);
+			t.SetAttribute("A", "parrt");
+			t.SetAttribute("A", "tombu");
+			t.SetAttribute("B", "x5707");
+			t.SetAttribute("B", "x5000");
+			string expecting =
+				"1. parrt@x5707" + NL +
+				"2. tombu@x5000";
+			Assert.AreEqual(expecting, t.ToString());
+		}
+
+		[Test] public void testIndex0VarWithMultipleExprs()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = new StringTemplate(
+				group,
+				"$A,B:{a,b|$i0$. $a$@$b$}; separator=\"\\n\"$"
+				);
+			t.SetAttribute("A", "parrt");
+			t.SetAttribute("A", "tombu");
+			t.SetAttribute("B", "x5707");
+			t.SetAttribute("B", "x5000");
+			string expecting =
+				"0. parrt@x5707" + NL +
+				"1. tombu@x5000";
+			Assert.AreEqual(expecting, t.ToString());
+		}
+
+		#region Tests for Issues reported by Users
+
+		/// <summary>
+		/// Used to give error message: "action parse error in group General line 3"
+		/// Reported by: Vlad Chistiakov (20060313_04.28.34)
+		/// </summary>
+		[Test] public virtual void  testSubTemplateWithTwoParameters()
+		{
+			string templates = ""
+				+ "group General;" + NL 
+				+ "CreateTable(name) ::= <<" + NL
+				+ "$Tset(a=name, b=name)$" + NL
+				+ ">>" + NL
+				+"Tset(a , b) ::= <<" + NL
+				+ "  $a$" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates));
+			StringTemplate createTableTemplate = group.GetInstanceOf("CreateTable");
+			createTableTemplate.SetAttribute("name", "A");
+			string expecting = "  A";
+			string result = createTableTemplate.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void  testSubTemplateWithTwoParametersAngleBrackets()
+		{
+			string templates = ""
+				+ "group General;" + NL 
+				+ "CreateTable(name) ::= <<" + NL
+				+ "<Tset(a=name, b=name)>" + NL
+				+ ">>" + NL
+				+"Tset(a , b) ::= <<" + NL
+				+ "  <a>" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate createTableTemplate = group.GetInstanceOf("CreateTable");
+			createTableTemplate.SetAttribute("name", "A");
+			string expecting = "  A";
+			string result = createTableTemplate.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		#endregion
+
 	
 		private static void WriteFile(string dir, string fileName, string content) 
 		{
 			try 
 			{
-				try 
+				lock(lockObject)
 				{
-					File.Delete(Path.Combine(dir, fileName));
+					try 
+					{
+						File.Delete(Path.Combine(dir, fileName));
+					}
+					catch
+					{
+						// ignore
+					}
+					using (StreamWriter fw = new StreamWriter(Path.Combine(dir, fileName), false, System.Text.Encoding.Default))
+					{
+						fw.Write(content);
+					}
 				}
-				catch
-				{
-					// ignore
-				}
-				StreamWriter fw = new StreamWriter(Path.Combine(dir, fileName), false, System.Text.Encoding.Default);
-				fw.Write(content);
-				fw.Close();
 			}
 			catch (Exception ex) 
 			{
@@ -3707,8 +3866,11 @@ namespace Antlr.StringTemplate.Tests
 		{
 			try 
 			{
+				lock(lockObject)
+				{
 				
-				File.Delete(Path.Combine(dir, fileName));
+					File.Delete(Path.Combine(dir, fileName));
+				}
 			}
 			catch (Exception ex) 
 			{

@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): "action.g" -> "ActionParser.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "action.g" -> "ActionParser.cs"$
 
 /*
  [The "BSD licence"]
@@ -50,16 +50,16 @@ namespace Antlr.StringTemplate.Language
 		public const int RPAREN = 16;
 		public const int LITERAL_separator = 17;
 		public const int ASSIGN = 18;
-		public const int COLON = 19;
-		public const int COMMA = 20;
+		public const int COMMA = 19;
+		public const int COLON = 20;
 		public const int NOT = 21;
 		public const int PLUS = 22;
-		public const int DOT = 23;
-		public const int ID = 24;
-		public const int LITERAL_first = 25;
-		public const int LITERAL_rest = 26;
-		public const int LITERAL_last = 27;
-		public const int LITERAL_super = 28;
+		public const int ID = 23;
+		public const int LITERAL_super = 24;
+		public const int DOT = 25;
+		public const int LITERAL_first = 26;
+		public const int LITERAL_rest = 27;
+		public const int LITERAL_last = 28;
 		public const int ANONYMOUS_TEMPLATE = 29;
 		public const int STRING = 30;
 		public const int INT = 31;

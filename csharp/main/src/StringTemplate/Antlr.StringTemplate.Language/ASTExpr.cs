@@ -33,6 +33,8 @@ namespace Antlr.StringTemplate.Language
 	using System;
 	using Antlr.StringTemplate;
 	using StringWriter				= System.IO.StringWriter;
+	using TextWriter				= System.IO.TextWriter;
+	using IOException				= System.IO.IOException;
 	using ArrayList					= System.Collections.ArrayList;
 	using IList						= System.Collections.IList;
 	using ICollection				= System.Collections.ICollection;
@@ -45,6 +47,7 @@ namespace Antlr.StringTemplate.Language
 	using FieldInfo					= System.Reflection.FieldInfo;
 	using MethodInfo				= System.Reflection.MethodInfo;
 	using BindingFlags				= System.Reflection.BindingFlags;
+	using ConstructorInfo			= System.Reflection.ConstructorInfo;
 	using AST						= antlr.collections.AST;
 	using RecognitionException		= antlr.RecognitionException;
 	using HashList					= Antlr.StringTemplate.Collections.HashList;
@@ -56,10 +59,37 @@ namespace Antlr.StringTemplate.Language
 	/// </summary>
 	public class ASTExpr : Expr
 	{
+		internal sealed class PropertyLookupParams
+		{
+			public PropertyLookupParams(StringTemplate s, Type p, object i, string pn, string l)
+			{
+				SetParams(s, p, i, pn, l);
+			}
+			public void SetParams(StringTemplate s, Type p, object i, string pn, string l)
+			{
+				self = s;
+				prototype = p;
+				instance = i;
+				propertyName = pn;
+				lookupName = l;
+			}
+
+			public StringTemplate self;
+			public Type prototype;
+			public object instance;
+			public string propertyName;
+			public string lookupName;
+		}
+
 		public const string DEFAULT_ATTRIBUTE_NAME = "it";
 		public const string DEFAULT_ATTRIBUTE_NAME_DEPRECATED = "attr";
 		public const string DEFAULT_INDEX_VARIABLE_NAME = "i";
+		public const string DEFAULT_INDEX0_VARIABLE_NAME = "i0";
 		public const string DEFAULT_MAP_VALUE_NAME = "_default_";
+
+		// used temporarily for checking obj.prop cache
+		public static int totalObjPropRefs = 0;
+		public static int totalReflectionLookups = 0;
 
 		public ASTExpr(StringTemplate enclosingTemplate, AST exprTree, IDictionary options)
 			: base(enclosingTemplate)
@@ -150,7 +180,7 @@ namespace Antlr.StringTemplate.Language
 			{
 				self.Error("number of arguments " + formalArguments.Keys.ToString() + " mismatch between attribute list and anonymous" + " template in context " + self.GetEnclosingInstanceStackString());
 				// truncate arg list to match smaller size
-				int shorterSize = System.Math.Min(formalArgumentNames.Length, numAttributes);
+				int shorterSize = Math.Min(formalArgumentNames.Length, numAttributes);
 				numAttributes = shorterSize;
 				object[] newFormalArgumentNames = new object[shorterSize];
 				Array.Copy(formalArgumentNames, 0, newFormalArgumentNames, 0, shorterSize);
@@ -158,6 +188,7 @@ namespace Antlr.StringTemplate.Language
 			}
 			
 			// keep walking while at least one attribute has values
+			int i = 0;		// iteration number from 0
 			while (true)
 			{
 				argumentContext = new Hashtable();
@@ -182,10 +213,13 @@ namespace Antlr.StringTemplate.Language
 				{
 					break;
 				}
+				argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = i+1;
+				argumentContext[DEFAULT_INDEX0_VARIABLE_NAME] = i;
 				StringTemplate embedded = templateToApply.GetInstanceOf();
 				embedded.EnclosingInstance = self;
 				embedded.ArgumentContext = argumentContext;
 				results.Add(embedded);
+				i++;
 			}
 			
 			return results;
@@ -232,7 +266,8 @@ namespace Antlr.StringTemplate.Language
 					SetSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue);
 					argumentContext[DEFAULT_ATTRIBUTE_NAME] = ithValue;
 					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue;
-					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = (System.Int32) (i + 1);
+					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = (i + 1);
+					argumentContext[DEFAULT_INDEX0_VARIABLE_NAME] = i;
 					embedded.ArgumentContext = argumentContext;
 					EvaluateArguments(embedded);
 					/*
@@ -297,15 +332,26 @@ namespace Antlr.StringTemplate.Language
 		/// Return o.getPropertyName() given o and propertyName.  If o is
 		/// a stringtemplate then access it's attributes looking for propertyName
 		/// instead (don't check any of the enclosing scopes; look directly into
-		/// that object).  Also try isXXX() for booleans.  Allow HashMap,
-		/// Hashtable as special case (grab value for key).
+		/// that object).  Also try isXXX() for booleans.  Allow IDictionary as
+		/// special case (grab value for key).
+		/// 
+		/// Cache repeated requests for obj.prop within same group.
 		/// </summary>
 		public virtual object GetObjectProperty(StringTemplate self, object o, string propertyName)
 		{
-			if (o == null || propertyName == null)
+			if ( o==null || propertyName==null ) 
 			{
 				return null;
 			}
+			totalObjPropRefs++;
+			object @value = rawGetObjectProperty(self, o, propertyName);
+			// take care of array properties...convert to a List so we can
+			// apply templates to the elements etc...
+			return @value;
+		}
+
+		protected object rawGetObjectProperty(StringTemplate self, object o, string propertyName) 
+		{
 			Type c = o.GetType();
 			object val = null;
 			
@@ -314,6 +360,7 @@ namespace Antlr.StringTemplate.Language
 			if (c == typeof(StringTemplate.Aggregate))
 			{
 				val = ((StringTemplate.Aggregate) o).Get(propertyName);
+				return val;
 			}
 				// Special case: if it's a template, pull property from
 				// it's attribute table.
@@ -324,12 +371,17 @@ namespace Antlr.StringTemplate.Language
 				if (attributes != null)
 				{
 					val = attributes[propertyName];
+					return val;
 				}
 			}
-				// Special case: if it's a HashMap, Hashtable then pull using
-				// key not the property method.  Do NOT allow general Map interface
-				// as people could pass in their database masquerading as a Map.
-			else if (typeof(IDictionary).IsAssignableFrom(c))
+
+			// Special case: if it's an IDictionary then pull using
+			// key not the property method.  
+			//
+			// Original intent was to DISALLOW general IDictionary interface
+			// as people could pass in their database masquerading as a IDictionary.
+			// Pragmatism won out ;-)
+			if (typeof(IDictionary).IsAssignableFrom(c))
 			{
 				IDictionary map = (IDictionary) o;
 				val = map[propertyName];
@@ -339,45 +391,91 @@ namespace Antlr.StringTemplate.Language
 					// then there may be a default value
 					val = map[DEFAULT_MAP_VALUE_NAME];
 				}
+				return val;
 			}
-			else
-			{
-				// Search for propertyName as: 
-				//   Property (non-indexed), Method(get_XXX, GetXXX, IsXXX, getXXX, isXXX), Field, this[string]
-				string methodSuffix = System.Char.ToUpper(propertyName[0]) + propertyName.Substring(1);
-				if (!GetPropertyValueByName(self, c, o, methodSuffix, ref val))
-				{
-					bool found = false;
-					foreach (string prefix in new string[] { "get_", "Get", "Is", "get", "is" })
-					{
-						if (found = GetMethodValueByName(self, c, o, prefix + methodSuffix, ref val))
-							break;
-					}
+			
+			// try getXXX and isXXX properties
 
-					if (!found)
+			// check cache
+			PropertyLookupParams paramBag;
+			MemberInfo cachedMember = self.Group.GetCachedClassProperty(c, propertyName);
+			if ( cachedMember != null ) 
+			{
+				try 
+				{
+					paramBag = new PropertyLookupParams(self, c, o, propertyName, null);
+					if ( cachedMember is PropertyInfo ) 
 					{
-						if (!GetFieldValueByName(self, c, o, methodSuffix, ref val))
+						// non-indexed property (since we don't cache indexers)
+						PropertyInfo pi = (PropertyInfo)cachedMember;
+						GetPropertyValue(pi, paramBag, ref val);
+					}
+					else if ( cachedMember is MethodInfo ) 
+					{
+						MethodInfo mi = (MethodInfo)cachedMember;
+						GetMethodValue(mi, paramBag, ref val);
+					}
+					else if ( cachedMember is FieldInfo ) 
+					{
+						// must be a field
+						FieldInfo fi = (FieldInfo)cachedMember;
+						GetFieldValue(fi, paramBag, ref val);
+					}
+				}
+				catch (Exception e) 
+				{
+					self.Error("Can't get property '" + propertyName +
+						"' from '" + c.FullName + "' instance", e);
+				}
+				return val;
+			}
+
+			// must look up using reflection
+			// Search for propertyName as: 
+			//   Property (non-indexed), Method(get_XXX, GetXXX, IsXXX, getXXX, isXXX), Field, this[string]
+			string methodSuffix = Char.ToUpper(propertyName[0]) + propertyName.Substring(1);
+			paramBag = new PropertyLookupParams(self, c, o, propertyName, methodSuffix);
+			totalReflectionLookups++;
+			if (!GetPropertyValueByName(paramBag, ref val))
+			{
+				bool found = false;
+				foreach (string prefix in new string[] { "get_", "Get", "Is", "get", "is" })
+				{
+					paramBag.lookupName = prefix + methodSuffix;
+					totalReflectionLookups++;
+					if (found = GetMethodValueByName(paramBag, ref val))
+						break;
+				}
+
+				if (!found)
+				{
+					paramBag.lookupName = methodSuffix;
+					totalReflectionLookups++;
+					if (!GetFieldValueByName(paramBag, ref val))
+					{
+						totalReflectionLookups++;
+						PropertyInfo pi = c.GetProperty("Item", new Type[] { typeof(string) });
+						if (pi != null)
 						{
-							PropertyInfo pi = c.GetProperty("Item", new Type[] { typeof(string) });
-							if (pi != null)
+							// TODO: we don't cache indexer PropertyInfo objects (yet?)
+							// it would have complicated getting values from cached property objects
+							try
 							{
-								try
-								{
-									val = pi.GetValue(o, new object[] { propertyName });
-								}
-								catch(Exception ex)
-								{
-									self.Error("Can't get property " + propertyName + " via C# string indexer from " + c.FullName + " instance", ex);
-								}
+								val = pi.GetValue(o, new object[] { propertyName });
 							}
-							else
+							catch(Exception ex)
 							{
-								self.Error("Class " + c.FullName + " has no such attribute: " + propertyName + " in template context " + self.GetEnclosingInstanceStackString());
+								self.Error("Can't get property " + propertyName + " via C# string indexer from " + c.FullName + " instance", ex);
 							}
+						}
+						else
+						{
+							self.Error("Class " + c.FullName + " has no such attribute: " + propertyName + " in template context " + self.GetEnclosingInstanceStackString());
 						}
 					}
 				}
 			}
+			
 			return val;
 		}
 		
@@ -404,13 +502,13 @@ namespace Antlr.StringTemplate.Language
 			{
 				return false;
 			}
-			if (a is System.Boolean)
+			if (a is bool)
 			{
-				return ((System.Boolean) a);
+				return ((bool) a);
 			}
-			if (a is System.Collections.ICollection)
+			if (a is ICollection)
 			{
-				return ((System.Collections.ICollection) a).Count > 0;
+				return ((ICollection) a).Count > 0;
 			}
 			if (a is IDictionary)
 			{
@@ -505,7 +603,7 @@ namespace Antlr.StringTemplate.Language
 					{
 						// throw exception since sometimes eval keeps going
 						// even after I ignore this write of o.
-						throw new System.SystemException("infinite recursion to " + stToWrite.GetTemplateDeclaratorString() + " referenced in " + stToWrite.EnclosingInstance.GetTemplateDeclaratorString() + "; stack trace:\n" + stToWrite.GetEnclosingInstanceStackTrace());
+						throw new SystemException("infinite recursion to " + stToWrite.GetTemplateDeclaratorString() + " referenced in " + stToWrite.EnclosingInstance.GetTemplateDeclaratorString() + "; stack trace:\n" + stToWrite.GetEnclosingInstanceStackTrace());
 					}
 					else
 					{
@@ -563,7 +661,7 @@ namespace Antlr.StringTemplate.Language
 					return n;
 				}
 			}
-			catch (System.IO.IOException io)
+			catch (IOException io)
 			{
 				self.Error("problem writing object: " + o, io);
 			}
@@ -591,14 +689,13 @@ namespace Antlr.StringTemplate.Language
 				// Defalut behavior is to indent but without
 				// any prior indents surrounding this attribute expression
 				IStringTemplateWriter sw = null;
-				System.Type writerClass = output.GetType();
+				Type writerClass = output.GetType();
 				try
 				{
-					//UPGRADE_ISSUE: Class hierarchy differences between 'java.io.Writer' and 'System.IO.StreamWriter' may cause compilation errors. 'ms-help://MS.VSCC.2003/commoner/redir/redirect.htm?keyword="jlca1186_3"'
-					System.Reflection.ConstructorInfo ctor = writerClass.GetConstructor(new System.Type[]{typeof(System.IO.StreamWriter)});
+					ConstructorInfo ctor = writerClass.GetConstructor(new Type[]{typeof(TextWriter)});
 					sw = (IStringTemplateWriter) ctor.Invoke(new object[]{buf});
 				}
-				catch (System.Exception exc)
+				catch (Exception exc)
 				{
 					// default new AutoIndentWriter(buf)
 					self.Error("cannot make implementation of IStringTemplateWriter", exc);
@@ -609,7 +706,7 @@ namespace Antlr.StringTemplate.Language
 				{
 					e.Write(self, sw);
 				}
-				catch (System.IO.IOException ioe)
+				catch (IOException ioe)
 				{
 					self.Error("can't evaluate separator expression", ioe);
 				}
@@ -747,26 +844,36 @@ namespace Antlr.StringTemplate.Language
 			{
 				return null;
 			}
-			object theRest = attribute;
-			attribute = ConvertAnythingIteratableToIterator(attribute);
-			if (attribute is IEnumerator)
-			{
-				IEnumerator it = (IEnumerator) attribute;
-				if (!it.MoveNext())
-				{
-					return null; // if not even one value return null
-				}
-				theRest = it; // return suitably altered iterator
-				//				theRest = new ArrayList();
-				//				while (it.MoveNext())
-				//					((ArrayList) theRest).Add(it.Current);
-			}
-			else
-			{
-				theRest = null; // rest of single-valued attribute is null
-			}
+//			object theRest = attribute;
+//			attribute = ConvertAnythingIteratableToIterator(attribute);
+//			if (attribute is IEnumerator)
+//			{
+//				IEnumerator it = (IEnumerator) attribute;
+//				if (!it.MoveNext())
+//				{
+//					return null; // if not even one value return null
+//				}
+//				theRest = it; // return suitably altered iterator
+//				//				theRest = new ArrayList();
+//				//				while (it.MoveNext())
+//				//					((ArrayList) theRest).Add(it.Current);
+//			}
+//			else
+//			{
+//				theRest = null; // rest of single-valued attribute is null
+//			}
 			
-			return theRest;
+			if (attribute is ICollection)
+			{
+				if ( ((ICollection) attribute).Count > 1 )
+					return new RestCollection((ICollection) attribute);
+			}
+			else if (attribute is IEnumerator)
+			{
+				return new RestCollection((IEnumerator) attribute);
+			}
+			return null; // rest of single-valued (i.e. all non-ICollection object) attribute is null
+//			return theRest;
 		}
 		
 		/// <summary>Return the last attribute if multiple valued or the attribute
@@ -800,13 +907,13 @@ namespace Antlr.StringTemplate.Language
 
 		#region Private Helper Methods
 
-		private bool GetMethodValueByName(StringTemplate self, Type prototype, object instance, string methodName, ref object val)
+		private bool GetMethodValueByName(PropertyLookupParams paramBag, ref object val)
 		{
 			MethodInfo mi = null;
 			try 
 			{
-				mi = prototype.GetMethod(
-					methodName,
+				mi = paramBag.prototype.GetMethod(
+					paramBag.lookupName,
 					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase,
 					null,
 					Type.EmptyTypes,
@@ -815,15 +922,9 @@ namespace Antlr.StringTemplate.Language
 
 				if (mi != null)
 				{
-					try
-					{
-						val = mi.Invoke(instance, (object[]) null);
-						return true;
-					}
-					catch(Exception ex)
-					{
-						self.Error("Can't get property " + methodName + " using method get_/Get/Is/get/is" + methodName + " from " + prototype.FullName + " instance", ex);
-					}
+					// save to avoid [another expensive] lookup later
+					paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, mi);
+					return GetMethodValue(mi, paramBag, ref val);
 				}
 			}
 			catch(Exception)
@@ -833,13 +934,29 @@ namespace Antlr.StringTemplate.Language
 			return false;
 		}
 
-		private bool GetPropertyValueByName(StringTemplate self, Type prototype, object instance, string propertyName, ref object val)
+		private bool GetMethodValue(MethodInfo mi, PropertyLookupParams paramBag, ref object @value)
+		{
+			try 
+			{
+				@value = mi.Invoke(paramBag.instance, (object[]) null);
+				return true;
+			}
+			catch (Exception ex) 
+			{
+				paramBag.self.Error("Can't get property " + paramBag.lookupName 
+					+ " using method get_/Get/Is/get/is as " + mi.Name + " from " 
+					+ paramBag.prototype.FullName + " instance", ex);
+			}
+			return false;
+		}
+
+		private bool GetPropertyValueByName(PropertyLookupParams paramBag, ref object val)
 		{
 			PropertyInfo pi = null;
 			try 
 			{
-				pi = prototype.GetProperty(
-					propertyName,
+				pi = paramBag.prototype.GetProperty(
+					paramBag.lookupName,
 					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase,
 					null,
 					null,
@@ -851,19 +968,15 @@ namespace Antlr.StringTemplate.Language
 				{
 					if (pi.CanRead)
 					{
-						try
-						{
-							val = pi.GetValue(instance, (object[]) null);
-							return true;
-						}
-						catch(Exception ex)
-						{
-							self.Error("Can't get property " + propertyName + " as CLR property " + propertyName + " from " + prototype.FullName + " instance", ex);
-						}
+						// save to avoid [another expensive] lookup later
+						paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, pi);
+						return GetPropertyValue(pi, paramBag, ref val);
 					}
 					else
 					{
-						self.Error("Class " + prototype.FullName + " property: " + propertyName + " is write-only in template context " + self.GetEnclosingInstanceStackString());
+						paramBag.self.Error("Class " + paramBag.prototype.FullName + " property: " 
+							+ paramBag.lookupName + " is write-only in template context " 
+							+ paramBag.self.GetEnclosingInstanceStackString());
 					}
 				}
 			}
@@ -874,32 +987,59 @@ namespace Antlr.StringTemplate.Language
 			return false;
 		}
 
-		private bool GetFieldValueByName(StringTemplate self, Type prototype, object instance, string fieldName, ref object val)
+		private bool GetPropertyValue(PropertyInfo pi, PropertyLookupParams paramBag, ref object @value)
+		{
+			try
+			{
+				@value = pi.GetValue(paramBag.instance, (object[]) null);
+				return true;
+			}
+			catch(Exception ex)
+			{
+				paramBag.self.Error("Can't get property " + paramBag.propertyName 
+					+ " as CLR property " + pi.Name + " from " 
+					+ paramBag.prototype.FullName + " instance", ex);
+			}
+			return false;
+		}
+
+		private bool GetFieldValueByName(PropertyLookupParams paramBag, ref object val)
 		{
 			FieldInfo fi = null;
 			try 
 			{
-				fi = prototype.GetField(
-					fieldName,
+				fi = paramBag.prototype.GetField(
+					paramBag.lookupName,
 					BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.IgnoreCase
 					);
 
 				if (fi != null)
 				{
-					try
-					{
-						val = fi.GetValue(instance);
-						return true;
-					}
-					catch(Exception ex)
-					{
-						self.Error("Can't get property " + fieldName + " using direct field access from " + prototype.FullName + " instance", ex);
-					}
+					// save to avoid [another expensive] lookup later
+					paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, fi);
+					return GetFieldValue(fi, paramBag, ref val);
 				}
 			}
 			catch(Exception)
 			{
 				;
+			}
+			return false;
+		}
+
+		private bool GetFieldValue(FieldInfo fi, PropertyLookupParams paramBag, ref object @value)
+		{
+			try
+			{
+				@value = fi.GetValue(paramBag.instance);
+				return true;
+			}
+			catch(Exception ex)
+			{
+				paramBag.self.Error("Can't get property " + fi.Name
+					+ " using direct field access from " + paramBag.prototype.FullName 
+					+ " instance", ex
+					);
 			}
 			return false;
 		}

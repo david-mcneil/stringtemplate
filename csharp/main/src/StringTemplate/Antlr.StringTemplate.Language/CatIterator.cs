@@ -8,7 +8,7 @@ namespace Antlr.StringTemplate.Language
 	/// <summary>
 	/// Given a list of iterators, return the combined elements one by one.
 	/// </summary>
-	public class CatIterator : IEnumerator
+	public sealed class CatIterator : IEnumerator
 	{
 		/// <summary>List of iterators to cat together </summary>
 		private IList iterators;
@@ -21,7 +21,7 @@ namespace Antlr.StringTemplate.Language
 			this.iterators = iterators;
 		}
 		
-		public virtual object Current
+		public object Current
 		{
 			get 
 			{

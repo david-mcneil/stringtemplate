@@ -233,13 +233,9 @@ ifCondition returns [bool value=false]
 {
     object a=null;
 }
-    :   a=ifAtom {value = chunk.TestAttributeTrue(a);}
-    |   #(NOT a=ifAtom) {value = !chunk.TestAttributeTrue(a);}
+    :   a=expr {value = chunk.TestAttributeTrue(a);}
+    |   #(NOT a=expr) {value = !chunk.TestAttributeTrue(a);}
 	;
-
-ifAtom returns [object value=null]
-    :   value=expr
-    ;
 
 attribute returns [object value=null]
 {

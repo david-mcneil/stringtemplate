@@ -73,6 +73,10 @@ tokens {
 	}
 }
 
+dummyTopRule returns [object dummy = null]
+	:	dummy=action EOF
+	;
+	
 action returns [IDictionary opts=null]
 	:	templatesExpr (SEMI! opts=optionList)?
 	|	"if"^ LPAREN! ifCondition RPAREN!
@@ -83,32 +87,34 @@ optionList! returns [IDictionary opts=new Hashtable()]
     ;
     
 templatesExpr
-    :   (parallelArrayTemplateApplication)=> parallelArrayTemplateApplication
-    |	expr
-    	(	c:COLON^ {#c.setType(APPLY);} template (COMMA! template)*
-    	)*
+    :	expr
+    	(	// parallelArrayTemplateApplication
+    		//(expr COMMA) => expr (COMMA! expr)+ COLON anonymousTemplate
+    		( COMMA ) => (COMMA! expr)+ COLON anonymousTemplate
+	        {#templatesExpr =
+	        	#(#[MULTI_APPLY,"MULTI_APPLY"],#templatesExpr);}
+	    |	( 	c:COLON^ {#c.setType(APPLY);} template (COMMA! template)*
+	    	)*
+	    )
     ;
-
-parallelArrayTemplateApplication
-	:	expr (COMMA! expr)+ c:COLON anonymousTemplate
-        {#parallelArrayTemplateApplication =
-        	#(#[MULTI_APPLY,"MULTI_APPLY"],parallelArrayTemplateApplication);}
-	;    
 
 ifCondition
-	:   ifAtom
-	|   NOT^ ifAtom
+	:   expr
+	|   NOT^ expr
 	;
-
-ifAtom
-    :   expr
-    ;
 
 expr:   primaryExpr (PLUS^ primaryExpr)*
     ;
 
 primaryExpr
-    :	(templateInclude)=>templateInclude  // (see past parens to arglist)
+		// templateInclude
+	:	ID argList
+        {#primaryExpr = #(#[INCLUDE,"include"], #primaryExpr);}
+        
+	|   // templateInclude
+		"super"! DOT! qid:ID {#qid.setText("super."+#qid.getText());} argList
+        {#primaryExpr = #(#[INCLUDE,"include"], #primaryExpr);}
+
     |	atom
     	( DOT^ // ignore warning on DOT ID
      	  ( ID
@@ -116,8 +122,12 @@ primaryExpr
           )
      	)*
     |	function
-    |   valueExpr
     |	list
+    
+    |   // templateInclude  // (see past parens to arglist)
+    	( indirectTemplate )=> indirectTemplate
+        {#primaryExpr = #(#[INCLUDE,"include"], #primaryExpr);}
+    |   valueExpr
     ;
 
 valueExpr
@@ -172,14 +182,6 @@ atom:   ID
 list:	lb:LBRACK^ {#lb.setType(LIST); #lb.setText("value");}
           expr (COMMA! expr)*
         RBRACK!
-    ;
-
-templateInclude
-	:	(   ID argList
-	    |   "super"! DOT! qid:ID {#qid.setText("super."+#qid.getText());} argList
-        |   indirectTemplate
-	    )
-        {#templateInclude = #(#[INCLUDE,"include"], templateInclude);}
     ;
 
 /** Match (foo)() and (foo+".terse")() */

@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): "template.g" -> "TemplateParser.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "template.g" -> "TemplateParser.cs"$
 
 /*
  [The "BSD licence"]

@@ -31,38 +31,93 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
+	using Encoding				= System.Text.Encoding;
 	using ArrayList				= System.Collections.ArrayList;
 	using TextReader			= System.IO.TextReader;
 	using StreamReader			= System.IO.StreamReader;
 	using File					= System.IO.File;
+	using Path					= System.IO.Path;
+	using Directory				= System.IO.Directory;
 	using IOException			= System.IO.IOException;
 	
 	/// <summary>
 	/// A brain dead group loader that looks only in the directory(ies) specified 
 	/// in it's constructor.
+	/// 
+	/// If a specified directory is an absolute path, the full path is used to 
+	/// locate the StringTemplate group or interface file.
+	/// 
+	/// If a specified directory is a relative path, the path is taken to be
+	/// relative to the location of the StringTemplate assembly itself.
+	/// 
+	/// TODO: Check shadow-copying doesn't knock this outta whack.
 	/// </summary>
 	public class CommonGroupLoader : IStringTemplateGroupLoader
 	{
-		protected ArrayList directories = null;
-		protected IStringTemplateErrorListener errorListener = null;
+		protected ArrayList directories;
+		protected Encoding encoding;
+		protected IStringTemplateErrorListener errorListener;
 
-		public CommonGroupLoader(IStringTemplateErrorListener errorListener) 
+		protected CommonGroupLoader() 
 		{
-			this.errorListener = errorListener;
 		}
 
 		/// <summary>
 		/// Construct an instance that loads groups/interfaces from the single dir or 
 		/// multiple dirs specified.
 		/// </summary>
+		/// <remarks>
+		/// If a specified directory is an absolute path, the full path is used to 
+		/// locate the template group or interface file.
+		/// 
+		/// If a specified directory is a relative path, the path is taken to be
+		/// relative to the location of the stringtemplate assembly itself.
+		/// 
+		/// TODO: Check shadow-copying doesn't knock this outta whack.
+		/// </remarks>
 		public CommonGroupLoader(IStringTemplateErrorListener errorListener, params string[] directoryNames) 
+			: this(errorListener, Encoding.Default, directoryNames)
+		{
+		}
+
+		/// <summary>
+		/// Construct an instance that loads groups/interfaces from the single dir or 
+		/// multiple dirs specified and uses the specified encoding.
+		/// </summary>
+		/// <remarks>
+		/// If a specified directory is an absolute path, the full path is used to 
+		/// locate the template group or interface file.
+		/// 
+		/// If a specified directory is a relative path, the path is taken to be
+		/// relative to the location of the stringtemplate assembly itself.
+		/// 
+		/// TODO: Check shadow-copying doesn't knock this outta whack.
+		/// </remarks>
+		public CommonGroupLoader(
+			IStringTemplateErrorListener errorListener, 
+			Encoding encoding, 
+			params string[] directoryNames) 
 		{
 			this.errorListener = errorListener;
+			this.encoding = encoding;
 			foreach (string directoryName in directoryNames)
 			{
-				if ( File.Exists(directoryName) )
+				string fullpath;
+				if (Path.IsPathRooted(directoryName))
 				{
-					Error("group loader: no such dir "+directoryName);
+					fullpath = directoryName;
+				}
+				else
+				{
+					fullpath = Path.Combine(
+						//System.Reflection.Assembly.GetExecutingAssembly().Location, 
+						AppDomain.CurrentDomain.BaseDirectory, 
+						directoryName
+						);
+				}
+				if ( File.Exists(fullpath) || !Directory.Exists(fullpath) )
+				{
+					Error("group loader: no such dir " + fullpath);
 				}
 				else 
 				{
@@ -70,12 +125,33 @@ namespace Antlr.StringTemplate
 					{
 						directories = new ArrayList();
 					}
-					directories.Add(directoryName);
+					directories.Add(fullpath);
 				}
 			}
 		}
 
+		/// <summary>
+		/// Loads the named StringTemplateGroup instance from somewhere.
+		/// </summary>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
 		public StringTemplateGroup LoadGroup(string groupName) 
+		{
+			return LoadGroup(groupName, null);
+		}
+
+		/// <summary>
+		/// Loads the named StringTemplateGroup instance with the specified super 
+		/// group from somewhere. 
+		/// </summary>
+		/// <remarks>
+		/// Groups with region definitions must know their supergroup to find 
+		/// templates during parsing.
+		/// </remarks>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <param name="superGroup">Super group</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup) 
 		{
 			StringTemplateGroup group = null;
 			string fileName = LocateFile(groupName + ".stg");
@@ -85,18 +161,20 @@ namespace Antlr.StringTemplate
 			}
 			else
 			{
-
-				try 
+				using (StreamReader reader = new StreamReader(fileName, encoding))
 				{
-					group = new StringTemplateGroup(new StreamReader(fileName), errorListener);
-				}
-				catch (ArgumentException argx) 
-				{
-					Error("Path Error: can't load group '" +groupName+ "'", argx);
-				}
-				catch (IOException iox) 
-				{
-					Error("IO Error: can't load group '" +groupName+ "'", iox);
+					try 
+					{
+						group = new StringTemplateGroup(reader, errorListener, superGroup);
+					}
+					catch (ArgumentException argx) 
+					{
+						Error("Path Error: can't load group '" +groupName+ "'", argx);
+					}
+					catch (IOException iox) 
+					{
+						Error("IO Error: can't load group '" +groupName+ "'", iox);
+					}
 				}
 			}
 			return group;
@@ -112,18 +190,20 @@ namespace Antlr.StringTemplate
 			}
 			else
 			{
-
-				try 
+				using (StreamReader reader = new StreamReader(fileName, encoding))
 				{
-					groupInterface = new StringTemplateGroupInterface(new StreamReader(fileName), errorListener);
-				}
-				catch (ArgumentException argx) 
-				{
-					Error("Path Error: can't load interface '" +interfaceName+ "'", argx);
-				}
-				catch (IOException iox) 
-				{
-					Error("IO Error: can't load interface '" +interfaceName+ "'", iox);
+					try 
+					{
+						groupInterface = new StringTemplateGroupInterface(reader, errorListener);
+					}
+					catch (ArgumentException argx) 
+					{
+						Error("Path Error: can't load interface '" +interfaceName+ "'", argx);
+					}
+					catch (IOException iox) 
+					{
+						Error("IO Error: can't load interface '" +interfaceName+ "'", iox);
+					}
 				}
 			}
 			return groupInterface;
@@ -140,7 +220,7 @@ namespace Antlr.StringTemplate
 			for (int i = 0; i < directories.Count; i++) 
 			{
 				string directoryName = (string) directories[i];
-				string fullname = System.IO.Path.Combine(directoryName, filename);
+				string fullname = Path.Combine(directoryName, filename);
 				if ( File.Exists(fullname) ) 
 				{
 					return fullname;

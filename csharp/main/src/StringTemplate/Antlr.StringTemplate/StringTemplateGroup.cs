@@ -38,18 +38,12 @@ namespace Antlr.StringTemplate
 	using DictionaryEntry		= System.Collections.DictionaryEntry;
 	using ArrayList				= System.Collections.ArrayList;
 	using Hashtable				= System.Collections.Hashtable;
-	using Encoding				= System.Text.Encoding;
-	using Stream				= System.IO.Stream;
-	using StreamReader			= System.IO.StreamReader;
+	using SortedList			= System.Collections.SortedList;
 	using TextReader			= System.IO.TextReader;
 	using TextWriter			= System.IO.TextWriter;
-	using IOException			= System.IO.IOException;
-	using Path					= System.IO.Path;
-	using FileMode				= System.IO.FileMode;
-	using FileAccess			= System.IO.FileAccess;
-	using FileStream			= System.IO.FileStream;
 	using StringBuilder			= System.Text.StringBuilder;
 	using ConstructorInfo		= System.Reflection.ConstructorInfo;
+	using MemberInfo			= System.Reflection.MemberInfo;
 	using DefaultTemplateLexer	= Antlr.StringTemplate.Language.DefaultTemplateLexer;
 	using GroupLexer			= Antlr.StringTemplate.Language.GroupLexer;
 	using GroupParser			= Antlr.StringTemplate.Language.GroupParser;
@@ -80,141 +74,8 @@ namespace Antlr.StringTemplate
 	/// </summary>
 	public class StringTemplateGroup
 	{
-		/// <summary>
-		/// What lexer class to use to break up templates.  If no lexer class
-		/// is set for this group, use the static default.
-		/// </summary>
-		virtual public Type TemplateLexerClass
-		{
-			get 
-			{
-				if (templateLexerClass != null)
-				{
-					return templateLexerClass;
-				}
-				return DEFAULT_TEMPLATE_LEXER_TYPE; 
-			}
-		}
+		#region Constructors
 
-		virtual public string Name
-		{
-			get { return name; }
-			set { this.name = value; }
-		}
-
-		virtual public IStringTemplateErrorListener ErrorListener
-		{
-			get { return errorListener; }
-			set { this.errorListener = value; }
-		}
-
-		/// <summary>
-		/// Specify a complete map of what object classes should map to which
-		/// renderer objects for every template in this group (that doesn't
-		/// override it per template).
-		/// </summary>
-		virtual public IDictionary AttributeRenderers
-		{
-			set { this.attributeRenderers = value; }
-		}
-		/// <summary>What is the group name </summary>
-		protected string name;
-		
-		/// <summary>Maps template name to StringTemplate object </summary>
-		protected IDictionary templates = new HashList();
-		
-		/// <summary>
-		/// Maps map names to HashMap objects.  This is the list of maps
-		/// defined by the user like typeInitMap ::= ["int":"0"]
-		/// </summary>
-		protected IDictionary maps = new Hashtable();
-		
-		/// <summary>How to pull apart a template into chunks? </summary>
-		protected Type templateLexerClass = null;
-		
-		/// <summary>
-		/// You can set the lexer once if you know all of your groups use the
-		/// same separator.  If the instance has templateLexerClass set
-		/// then it is used as an override.
-		/// </summary>
-		protected static Type DEFAULT_TEMPLATE_LEXER_TYPE = typeof(DefaultTemplateLexer);
-
-																					/// <summary>
-		/// Encapsulates the logic for finding and loading [external] templates.
-		/// </summary>
-		protected StringTemplateLoader templateLoader;
-		
-		/// <summary>Track all groups by name; maps name to StringTemplateGroup </summary>
-		protected static IDictionary nameToGroupMap = new Hashtable();
-		
-		/// <summary>Track all interfaces by name; maps name to StringTemplateGroupInterface</summary>
-		protected static IDictionary nameToInterfaceMap = new Hashtable();
-
-		/// <summary>Are we derived from another group?  Templates not found in this group
-		/// will be searched for in the superGroup recursively.
-		/// </summary>
-		protected StringTemplateGroup superGroup = null;
-		
-		/// <summary>Keep track of all interfaces implemented by this group.</summary>
-		protected IList interfaces = null;
-
-		/// <summary>
-		/// When templates are files on the disk, the refresh interval is used
-		/// to know when to reload.  When a Reader is passed to the ctor,
-		/// it is a stream full of template definitions.  The former is used
-		/// for web development, but the latter is most likely used for source
-		/// code generation for translators; a refresh is unlikely.  Anyway,
-		/// I decided to track the source of templates in case such info is useful
-		/// in other situations than just turning off refresh interval.  I just
-		/// found another: don't ever look on the disk for individual templates
-		/// if this group is a group file...immediately look into any super group.
-		/// If not in the super group, report no such template.
-		/// </summary>
-		protected bool templatesDefinedInGroupFile = false;
-		
-		/// <summary>
-		/// Normally AutoIndentWriter is used to filter output, but user can
-		/// specify a new one.
-		/// </summary>
-		protected Type userSpecifiedWriter;
-		
-		/// <summary>
-		/// A Map<Class,Object> that allows people to register a renderer for
-		/// a particular kind of object to be displayed for any template in this
-		/// group.  For example, a date should be formatted differently depending
-		/// on the locale.  You can set Date.class to an object whose
-		/// toString(Object) method properly formats a Date attribute
-		/// according to locale.  Or you can have a different renderer object
-		/// for each locale.
-		/// 
-		/// These render objects are used way down in the evaluation chain
-		/// right before an attribute's toString() method would normally be
-		/// called in ASTExpr.write().
-		/// </summary>
-		protected IDictionary attributeRenderers;
-		
-		/// <summary>
-		/// If a group file indicates it derives from a supergroup, how do we
-		/// find it?  Shall we make it so the initial StringTemplateGroup file
-		/// can be loaded via this loader?  Right now we pass a Reader to ctor
-		/// to distinguish from the other variety.
-		/// </summary>
-		private static IStringTemplateGroupLoader groupLoader = null;
-
-		/// <summary>
-		/// Where to report errors.  All string templates in this group
-		/// use this error handler by default.
-		/// </summary>
-		protected IStringTemplateErrorListener errorListener = DEFAULT_ERROR_LISTENER;
-		
-		public static IStringTemplateErrorListener DEFAULT_ERROR_LISTENER = ConsoleErrorListener.DefaultConsoleListener;
-		
-		/// <summary>
-		/// Used to indicate that the template doesn't exist.
-		/// We don't have to check disk for it; we know it's not there.
-		/// </summary>
-		protected static readonly StringTemplate NOT_FOUND_ST = new StringTemplate();
-		
 		/// <summary>
 		/// Create a group manager for some templates, all of which are
 		/// at or below the indicated directory.
@@ -296,6 +157,11 @@ namespace Antlr.StringTemplate
 		{
 		}
 		
+		public StringTemplateGroup(TextReader r, IStringTemplateErrorListener errorListener, StringTemplateGroup superGroup)
+			: this(r, null, errorListener, superGroup)
+		{
+		}
+		
 		/// <summary>
 		/// Create a group from the input stream, but use a nondefault lexer
 		/// to break the templates up into chunks.  This is usefor changing
@@ -319,6 +185,84 @@ namespace Antlr.StringTemplate
 			VerifyInterfaceImplementations();
 		}
 		
+		#endregion
+
+		#region Static Public API
+
+		public static void RegisterDefaultLexer(Type lexerClass) 
+		{
+			DEFAULT_TEMPLATE_LEXER_TYPE = lexerClass;
+		}
+
+		public static void RegisterGroupLoader(IStringTemplateGroupLoader loader) 
+		{
+			groupLoader = loader;
+		}
+
+		public static StringTemplateGroup LoadGroup(string name) 
+		{
+			return LoadGroup(name, null);
+		}
+
+		public static StringTemplateGroup LoadGroup(string name, StringTemplateGroup superGroup) 
+		{
+			if ( groupLoader!=null ) 
+			{
+				return groupLoader.LoadGroup(name, superGroup);
+			}
+			return null;
+		}
+
+		public static StringTemplateGroupInterface LoadInterface(string name) 
+		{
+			if ( groupLoader!=null ) 
+			{
+				return groupLoader.LoadInterface(name);
+			}
+			return null;
+		}
+
+		#endregion
+
+		#region Public API
+		/// <summary>
+		/// What lexer class to use to break up templates.  If no lexer class
+		/// is set for this group, use the static default.
+		/// </summary>
+		virtual public Type TemplateLexerClass
+		{
+			get 
+			{
+				if (templateLexerClass != null)
+				{
+					return templateLexerClass;
+				}
+				return DEFAULT_TEMPLATE_LEXER_TYPE; 
+			}
+		}
+
+		virtual public string Name
+		{
+			get { return name; }
+			set { this.name = value; }
+		}
+
+		virtual public IStringTemplateErrorListener ErrorListener
+		{
+			get { return errorListener; }
+			set { this.errorListener = value; }
+		}
+
+		/// <summary>
+		/// Specify a complete map of what object classes should map to which
+		/// renderer objects for every template in this group (that doesn't
+		/// override it per template).
+		/// </summary>
+		virtual public IDictionary AttributeRenderers
+		{
+			set { this.attributeRenderers = value; }
+		}
+
 		public virtual void  SetSuperGroup(string groupName)
 		{
 			StringTemplateGroup group = (StringTemplateGroup) nameToGroupMap[groupName];
@@ -405,8 +349,12 @@ namespace Antlr.StringTemplate
 		public virtual StringTemplate GetInstanceOf(StringTemplate enclosingInstance, string name)
 		{
 			StringTemplate st = LookupTemplate(enclosingInstance, name);
-			StringTemplate instanceST = st.GetInstanceOf();
-			return instanceST;
+			if (st != null)
+			{
+				StringTemplate instanceST = st.GetInstanceOf();
+				return instanceST;
+			}
+			return null;
 		}
 
 		/// <summary>
@@ -696,48 +644,6 @@ namespace Antlr.StringTemplate
 			}
 		}
 		
-		protected internal virtual void  ParseGroup(TextReader r)
-		{
-			try
-			{
-				GroupLexer lexer = new GroupLexer(r);
-				GroupParser parser = new GroupParser(lexer);
-				parser.group(this);
-			}
-			catch (System.Exception e)
-			{
-				string name = "<unknown>";
-				if (Name != null)
-				{
-					name = Name;
-				}
-				Error("problem parsing group '" + name + "': "+e, e);
-			}
-		}
-		
-		/// <summary>
-		/// Verify that this group satisfies its interfaces
-		/// </summary>
-		protected void VerifyInterfaceImplementations() 
-		{
-			for (int i = 0; interfaces!=null && i < interfaces.Count; i++) 
-			{
-				StringTemplateGroupInterface iface = (StringTemplateGroupInterface)interfaces[i];
-				IList missing = iface.GetMissingTemplates(this);
-				IList mismatched = iface.GetMismatchedTemplates(this);
-				if ( missing!=null ) 
-				{
-					Error("group '" +Name+ "' does not satisfy interface '" +
-						iface.Name+ "': missing templates " +CollectionUtils.ListToString(missing));
-				}
-				if ( mismatched!=null ) 
-				{
-					Error("group '" +Name+ "' does not satisfy interface '" +
-						iface.Name+ "': mismatched template arguments " +CollectionUtils.ListToString(mismatched));
-				}
-			}
-		}
-
 		/// <summary>
 		/// Specify a IStringTemplateWriter implementing class to use for
 		/// filtering output
@@ -761,7 +667,7 @@ namespace Antlr.StringTemplate
 					ConstructorInfo ctor = userSpecifiedWriter.GetConstructor(new Type[]{typeof(TextWriter)});
 					stw = (IStringTemplateWriter) ctor.Invoke(new object[]{w});
 				}
-				catch (System.Exception e)
+				catch (Exception e)
 				{
 					Error("problems getting IStringTemplateWriter", e);
 				}
@@ -812,6 +718,18 @@ namespace Antlr.StringTemplate
 			return renderer;
 		}
 		
+		public void CacheClassProperty(Type t, string propertyName, MemberInfo member) 
+		{
+			object key = new ClassPropCacheKey(t, propertyName);
+			classPropertyCache[key] = member;
+		}
+
+		public MemberInfo GetCachedClassProperty(Type t, string propertyName) 
+		{
+			object key = new ClassPropCacheKey(t, propertyName);
+			return (MemberInfo)classPropertyCache[key];
+		}
+
 		public virtual IDictionary GetMap(string name)
 		{
 			if (maps == null)
@@ -835,34 +753,6 @@ namespace Antlr.StringTemplate
 			maps[name] = mapping;
 		}
 		
-		public static void RegisterDefaultLexer(Type lexerClass) 
-		{
-			DEFAULT_TEMPLATE_LEXER_TYPE = lexerClass;
-		}
-
-		public static void RegisterGroupLoader(IStringTemplateGroupLoader loader) 
-		{
-			groupLoader = loader;
-		}
-
-		public static StringTemplateGroup LoadGroup(String name) 
-		{
-			if ( groupLoader!=null ) 
-			{
-				return groupLoader.LoadGroup(name);
-			}
-			return null;
-		}
-
-		public static StringTemplateGroupInterface LoadInterface(String name) 
-		{
-			if ( groupLoader!=null ) 
-			{
-				return groupLoader.LoadInterface(name);
-			}
-			return null;
-		}
-
 		public virtual void  Error(string msg)
 		{
 			errorListener.Error(msg, null);
@@ -888,7 +778,7 @@ namespace Antlr.StringTemplate
 			StringBuilder buf = new StringBuilder();
 			buf.Append("group " + Name + ";\n");
 			StringTemplate formalArgs = new StringTemplate("$args;separator=\",\"$");
-			foreach (DictionaryEntry e in new System.Collections.SortedList(templates))
+			foreach (DictionaryEntry e in new SortedList(templates))
 			{
 				string tname = (string) e.Key;
 				StringTemplate st = (StringTemplate) templates[tname];
@@ -912,5 +802,194 @@ namespace Antlr.StringTemplate
 			}
 			return buf.ToString();
 		}
+
+		#endregion
+
+		#region Static Data Members
+
+		/// <summary>
+		/// You can set the lexer once if you know all of your groups use the
+		/// same separator.  If the instance has templateLexerClass set
+		/// then it is used as an override.
+		/// </summary>
+		protected static Type DEFAULT_TEMPLATE_LEXER_TYPE = typeof(DefaultTemplateLexer);
+
+		/// <summary>Track all groups by name; maps name to StringTemplateGroup </summary>
+		protected static IDictionary nameToGroupMap = new Hashtable();
+		
+		/// <summary>Track all interfaces by name; maps name to StringTemplateGroupInterface</summary>
+		protected static IDictionary nameToInterfaceMap = new Hashtable();
+
+		/// <summary>
+		/// Maps obj.prop to a value to avoid reflection costs; track one
+		/// set of all class.property -> Member mappings for all ST usage in 
+		/// AppDomain 
+		/// TODO: Threading implications?
+		/// </summary>
+		protected static IDictionary classPropertyCache = new Hashtable();
+
+		/// <summary>
+		/// If a group file indicates it derives from a supergroup, how do we
+		/// find it?  Shall we make it so the initial StringTemplateGroup file
+		/// can be loaded via this loader?  Right now we pass a Reader to ctor
+		/// to distinguish from the other variety.
+		/// </summary>
+		private static IStringTemplateGroupLoader groupLoader = null;
+
+		public static IStringTemplateErrorListener DEFAULT_ERROR_LISTENER = ConsoleErrorListener.DefaultConsoleListener;
+		
+		/// <summary>
+		/// Used to indicate that the template doesn't exist.
+		/// We don't have to check disk for it; we know it's not there.
+		/// </summary>
+		protected static readonly StringTemplate NOT_FOUND_ST = new StringTemplate();
+		
+		#endregion
+
+		#region Data Members
+
+		/// <summary>What is the group name </summary>
+		protected string name;
+		
+		/// <summary>Maps template name to StringTemplate object </summary>
+		protected IDictionary templates = new HashList();
+		
+		/// <summary>
+		/// Maps map names to HashMap objects.  This is the list of maps
+		/// defined by the user like typeInitMap ::= ["int":"0"]
+		/// </summary>
+		protected IDictionary maps = new Hashtable();
+		
+		/// <summary>How to pull apart a template into chunks? </summary>
+		protected Type templateLexerClass = null;
+		
+		/// <summary>
+		/// Encapsulates the logic for finding and loading [external] templates.
+		/// </summary>
+		protected StringTemplateLoader templateLoader;
+		
+		/// <summary>Are we derived from another group?  Templates not found in this group
+		/// will be searched for in the superGroup recursively.
+		/// </summary>
+		protected StringTemplateGroup superGroup = null;
+		
+		/// <summary>Keep track of all interfaces implemented by this group.</summary>
+		protected IList interfaces = null;
+
+		/// <summary>
+		/// When templates are files on the disk, the refresh interval is used
+		/// to know when to reload.  When a Reader is passed to the ctor,
+		/// it is a stream full of template definitions.  The former is used
+		/// for web development, but the latter is most likely used for source
+		/// code generation for translators; a refresh is unlikely.  Anyway,
+		/// I decided to track the source of templates in case such info is useful
+		/// in other situations than just turning off refresh interval.  I just
+		/// found another: don't ever look on the disk for individual templates
+		/// if this group is a group file...immediately look into any super group.
+		/// If not in the super group, report no such template.
+		/// </summary>
+		protected bool templatesDefinedInGroupFile = false;
+		
+		/// <summary>
+		/// Normally AutoIndentWriter is used to filter output, but user can
+		/// specify a new one.
+		/// </summary>
+		protected Type userSpecifiedWriter;
+		
+		/// <summary>
+		/// A Map<Class,Object> that allows people to register a renderer for
+		/// a particular kind of object to be displayed for any template in this
+		/// group.  For example, a date should be formatted differently depending
+		/// on the locale.  You can set Date.class to an object whose
+		/// toString(Object) method properly formats a Date attribute
+		/// according to locale.  Or you can have a different renderer object
+		/// for each locale.
+		/// 
+		/// These render objects are used way down in the evaluation chain
+		/// right before an attribute's toString() method would normally be
+		/// called in ASTExpr.write().
+		/// </summary>
+		protected IDictionary attributeRenderers;
+		
+		/// <summary>
+		/// Where to report errors.  All string templates in this group
+		/// use this error handler by default.
+		/// </summary>
+		protected IStringTemplateErrorListener errorListener = DEFAULT_ERROR_LISTENER;
+		
+		#endregion
+
+		#region Non-Public Helpers
+
+		protected internal virtual void  ParseGroup(TextReader r)
+		{
+			try
+			{
+				GroupLexer lexer = new GroupLexer(r);
+				GroupParser parser = new GroupParser(lexer);
+				parser.group(this);
+			}
+			catch (Exception e)
+			{
+				string name = "<unknown>";
+				if (Name != null)
+				{
+					name = Name;
+				}
+				Error("problem parsing group '" + name + "': "+e, e);
+			}
+		}
+		
+		/// <summary>
+		/// Verify that this group satisfies its interfaces
+		/// </summary>
+		protected void VerifyInterfaceImplementations() 
+		{
+			for (int i = 0; interfaces!=null && i < interfaces.Count; i++) 
+			{
+				StringTemplateGroupInterface iface = (StringTemplateGroupInterface)interfaces[i];
+				IList missing = iface.GetMissingTemplates(this);
+				IList mismatched = iface.GetMismatchedTemplates(this);
+				if ( missing!=null ) 
+				{
+					Error("group '" +Name+ "' does not satisfy interface '" +
+						iface.Name+ "': missing templates " +CollectionUtils.ListToString(missing));
+				}
+				if ( mismatched!=null ) 
+				{
+					Error("group '" +Name+ "' does not satisfy interface '" +
+						iface.Name+ "': mismatched arguments on these templates " +CollectionUtils.ListToString(mismatched));
+				}
+			}
+		}
+
+		#endregion
+
+		#region Helper classes
+
+		internal sealed class ClassPropCacheKey 
+		{
+			Type t;
+			string propertyName;
+			public ClassPropCacheKey(Type t, string propertyName) 
+			{
+				this.t = t;
+				this.propertyName = propertyName;
+			}
+
+			override public bool Equals(object other) 
+			{
+				ClassPropCacheKey otherKey = (ClassPropCacheKey)other;
+				return t.Equals(otherKey.t) &&
+					propertyName.Equals(otherKey.propertyName);
+			}
+
+			override public int GetHashCode() 
+			{
+				return t.GetHashCode() + propertyName.GetHashCode();
+			}
+		}
+
+		#endregion
 	}
 }

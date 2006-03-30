@@ -7,8 +7,8 @@ using System.Runtime.CompilerServices;
 
 // TODO: Review the values of the assembly attributes
 
-[assembly: AssemblyTitle("StringTemplate.NET")]
-[assembly: AssemblyDescription("Strict MVC Templating Library")]
+[assembly: AssemblyTitle("StringTemplate.Benchmark")]
+[assembly: AssemblyDescription("Benchmarks for StringTemplate.NET Library")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("")]
 [assembly: AssemblyCopyright("")]
@@ -26,7 +26,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("2.3.0.5")]
+[assembly: AssemblyVersion("0.1.0.0")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
@@ -55,12 +55,8 @@ using System.Runtime.CompilerServices;
 //
 
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyKeyName("")]
-#if STRONG_NAME
-[assembly: AssemblyDelaySign(true)]
-[assembly: AssemblyKeyFile(@"..\..\StringTemplate_KeyPair.snk")]
-#else
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
-#endif
+[assembly: AssemblyKeyName("")]
+
 

@@ -46,6 +46,19 @@ namespace Antlr.StringTemplate
 		StringTemplateGroup LoadGroup(string groupName);
 
 		/// <summary>
+		/// Loads the named StringTemplateGroup instance with the specified super 
+		/// group from somewhere. 
+		/// </summary>
+		/// <remarks>
+		/// Groups with region definitions must know their supergroup to find 
+		/// templates during parsing.
+		/// </remarks>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <param name="superGroup">Super group</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
+		StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup);
+
+		/// <summary>
 		/// Loads the named StringTemplateGroupInterface instance from somewhere.
 		/// </summary>
 		/// <param name="groupName">Name of the StringTemplateGroupInterface to load</param>

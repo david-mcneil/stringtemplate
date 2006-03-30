@@ -31,17 +31,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
+	using StringWriter						= System.IO.StringWriter;
+	using StringReader						= System.IO.StringReader;
+	using TextReader						= System.IO.TextReader;
+	using IOException						= System.IO.IOException;
+	using StringBuilder						= System.Text.StringBuilder;
 	using Hashtable							= System.Collections.Hashtable;
 	using ArrayList							= System.Collections.ArrayList;
 	using ICollection						= System.Collections.ICollection;
 	using IList								= System.Collections.IList;
 	using IDictionary						= System.Collections.IDictionary;
 	using IEnumerator						= System.Collections.IEnumerator;
-	using StringBuilder						= System.Text.StringBuilder;
-	using StringWriter						= System.IO.StringWriter;
-	using StringReader						= System.IO.StringReader;
-	using TextReader						= System.IO.TextReader;
-	using IOException						= System.IO.IOException;
+	using ConstructorInfo					= System.Reflection.ConstructorInfo;
 	using AST								= antlr.collections.AST;
 	using CharScanner						= antlr.CharScanner;
 	using CommonAST							= antlr.CommonAST;
@@ -72,10 +73,10 @@ namespace Antlr.StringTemplate
 	/// ignores everything outside of attribute expressions, treating it as just text to spit
 	/// out when you call <TT>StringTemplate.toString()</TT>.
 	/// 
-	/// <P><TT>StringTemplate</TT> is not a "system" or "engine" or "server"; it's a lib
-	/// rary with two classes of interest: <TT>StringTemplate</TT> and <TT>StringTemplat
-	/// eGroup</TT>.  You can directly create a <TT>StringTemplate</TT> in Java code or
-	/// you can load a template from a file.
+	/// <P><TT>StringTemplate</TT> is not a "system" or "engine" or "server"; 
+	/// it's a library with two classes of interest: <TT>StringTemplate</TT> and 
+	/// <TT>StringTemplateGroup</TT>.  You can directly create a <TT>StringTemplate</TT> 
+	/// in Java code or you can load a template from a file.
 	/// <P>
 	/// A StringTemplate describes an output pattern/language like an exemplar.
 	/// <p>
@@ -151,7 +152,7 @@ namespace Antlr.StringTemplate
 	/// </summary>
 	public class StringTemplate
 	{
-		public const string VERSION = "2.3b5";
+		public const string VERSION = "2.3b6";
 
 		/// <summary><@r()></summary>
 		internal const int REGION_IMPLICIT = 1;
@@ -193,7 +194,7 @@ namespace Antlr.StringTemplate
 			{
 				if (this == value)
 				{
-					throw new System.ArgumentException("cannot embed template " + Name + " in itself");
+					throw new ArgumentException("cannot embed template " + Name + " in itself");
 				}
 				// set the parent for this template
 				this.enclosingInstance = value;
@@ -974,11 +975,11 @@ namespace Antlr.StringTemplate
 			string aggrName = ParseAggregateAttributeSpec(aggrSpec, properties);
 			if (values == null || properties.Count == 0)
 			{
-				throw new System.ArgumentException("missing properties or values for '" + aggrSpec + "'");
+				throw new ArgumentException("missing properties or values for '" + aggrSpec + "'");
 			}
 			if (values.Length != properties.Count)
 			{
-				throw new System.ArgumentException("number of properties in '" + aggrSpec + "' != number of values");
+				throw new ArgumentException("number of properties in '" + aggrSpec + "' != number of values");
 			}
 			Aggregate aggr = new Aggregate();
 			for (int i = 0; i < values.Length; i++)
@@ -999,10 +1000,10 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		protected virtual string ParseAggregateAttributeSpec(string aggrSpec, IList properties)
 		{
-			int dot = aggrSpec.IndexOf((System.Char) '.');
+			int dot = aggrSpec.IndexOf((char) '.');
 			if (dot <= 0)
 			{
-				throw new System.ArgumentException("invalid aggregate attribute format: " + aggrSpec);
+				throw new ArgumentException("invalid aggregate attribute format: " + aggrSpec);
 			}
 			string aggrName = aggrSpec.Substring(0, (dot) - (0));
 			string propString = aggrSpec.Substring(dot + 2, (aggrSpec.Length) - (dot + 3));
@@ -1209,14 +1210,14 @@ namespace Antlr.StringTemplate
 				// The default is DefaultTemplateLexer.
 				// The only constraint is that you use an ANTLR lexer
 				// so I can use the special ChunkToken.
-				System.Type lexerClass = group.TemplateLexerClass;
-				System.Reflection.ConstructorInfo ctor = lexerClass.GetConstructor(new System.Type[]{typeof(StringTemplate), typeof(TextReader)});
-				CharScanner chunkStream = (CharScanner) ctor.Invoke(new object[]{this, new System.IO.StringReader(pattern)});
+				Type lexerClass = group.TemplateLexerClass;
+				ConstructorInfo ctor = lexerClass.GetConstructor(new Type[]{typeof(StringTemplate), typeof(TextReader)});
+				CharScanner chunkStream = (CharScanner) ctor.Invoke(new object[]{this, new StringReader(pattern)});
 				chunkStream.setTokenCreator(ChunkToken.Creator);
 				TemplateParser chunkifier = new TemplateParser(chunkStream);
 				chunkifier.template(this);
 			}
-			catch (System.Exception e)
+			catch (Exception e)
 			{
 				string name = "<unknown>";
 				string outerName = OutermostName;
@@ -1454,7 +1455,7 @@ namespace Antlr.StringTemplate
 		{
 			if (referencedAttributes == null)
 			{
-				referencedAttributes = new System.Collections.ArrayList();
+				referencedAttributes = new ArrayList();
 			}
 			referencedAttributes.Add(name);
 		}

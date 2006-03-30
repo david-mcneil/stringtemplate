@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): "template.g" -> "DefaultTemplateLexer.cs"$
+// $ANTLR 2.7.6 (2005-12-22): "template.g" -> "DefaultTemplateLexer.cs"$
 
 /*
  [The "BSD licence"]
@@ -267,7 +267,7 @@ _loop9_breakloop:			;
 		_ttype = INDENT;
 		
 		{ // ( ... )+
-			int _cnt64=0;
+			int _cnt67=0;
 			for (;;)
 			{
 				if ((cached_LA1==' ') && (true) && (true) && (true) && (true) && (true) && (true))
@@ -279,12 +279,12 @@ _loop9_breakloop:			;
 				}
 				else
 				{
-					if (_cnt64 >= 1) { goto _loop64_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt67 >= 1) { goto _loop67_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				
-				_cnt64++;
+				_cnt67++;
 			}
-_loop64_breakloop:			;
+_loop67_breakloop:			;
 		}    // ( ... )+
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -798,7 +798,7 @@ _loop31_breakloop:								;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='!') && (cached_LA2=='$') && (true) && (true) && (true) && (true) && (true)) goto _loop68_breakloop;
+				if ((cached_LA1=='!') && (cached_LA2=='$') && (true) && (true) && (true) && (true) && (true)) goto _loop71_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0001' && cached_LA2 <= '\ufffe')) && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true))
 				{
 					{
@@ -827,11 +827,11 @@ _loop31_breakloop:								;
 				}
 				else
 				{
-					goto _loop68_breakloop;
+					goto _loop71_breakloop;
 				}
 				
 			}
-_loop68_breakloop:			;
+_loop71_breakloop:			;
 		}    // ( ... )*
 		match("!$");
 		{
@@ -876,7 +876,7 @@ _loop68_breakloop:			;
 		_ttype = IF_EXPR;
 		
 		{ // ( ... )+
-			int _cnt53=0;
+			int _cnt56=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -927,12 +927,12 @@ _loop68_breakloop:			;
 					}
 				else
 				{
-					if (_cnt53 >= 1) { goto _loop53_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt56 >= 1) { goto _loop56_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt53++;
+				_cnt56++;
 			}
-_loop53_breakloop:			;
+_loop56_breakloop:			;
 		}    // ( ... )+
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -948,7 +948,7 @@ _loop53_breakloop:			;
 		_ttype = EXPR;
 		
 		{ // ( ... )+
-			int _cnt41=0;
+			int _cnt44=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -988,17 +988,71 @@ _loop53_breakloop:			;
 					break;
 				}
 				default:
-					if ((cached_LA1=='=') && (cached_LA2=='"'||cached_LA2=='<'))
+					if ((cached_LA1=='+'||cached_LA1=='=') && (cached_LA2=='"'||cached_LA2=='<'))
 					{
-						match('=');
+						{
+							switch ( cached_LA1 )
+							{
+							case '=':
+							{
+								match('=');
+								break;
+							}
+							case '+':
+							{
+								match('+');
+								break;
+							}
+							default:
+							{
+								throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+							}
+							 }
+						}
 						mTEMPLATE(false);
 					}
-					else if ((cached_LA1=='=') && (cached_LA2=='{')) {
-						match('=');
+					else if ((cached_LA1=='+'||cached_LA1=='=') && (cached_LA2=='{')) {
+						{
+							switch ( cached_LA1 )
+							{
+							case '=':
+							{
+								match('=');
+								break;
+							}
+							case '+':
+							{
+								match('+');
+								break;
+							}
+							default:
+							{
+								throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+							}
+							 }
+						}
 						mSUBTEMPLATE(false);
 					}
-					else if ((cached_LA1=='=') && (tokenSet_5_.member(cached_LA2))) {
-						match('=');
+					else if ((cached_LA1=='+'||cached_LA1=='=') && (tokenSet_5_.member(cached_LA2))) {
+						{
+							switch ( cached_LA1 )
+							{
+							case '=':
+							{
+								match('=');
+								break;
+							}
+							case '+':
+							{
+								match('+');
+								break;
+							}
+							default:
+							{
+								throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());
+							}
+							 }
+						}
 						{
 							match(tokenSet_5_);
 						}
@@ -1008,12 +1062,12 @@ _loop53_breakloop:			;
 					}
 				else
 				{
-					if (_cnt41 >= 1) { goto _loop41_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt44 >= 1) { goto _loop44_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt41++;
+				_cnt44++;
 			}
-_loop41_breakloop:			;
+_loop44_breakloop:			;
 		}    // ( ... )+
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -1103,7 +1157,7 @@ _loop41_breakloop:			;
 		
 		match('{');
 		{ // ( ... )+
-			int _cnt58=0;
+			int _cnt61=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -1125,12 +1179,12 @@ _loop41_breakloop:			;
 					}
 				else
 				{
-					if (_cnt58 >= 1) { goto _loop58_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt61 >= 1) { goto _loop61_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt58++;
+				_cnt61++;
 			}
-_loop58_breakloop:			;
+_loop61_breakloop:			;
 		}    // ( ... )+
 		match('}');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -1152,7 +1206,7 @@ _loop58_breakloop:			;
 		{
 			match('"');
 			{ // ( ... )+
-				int _cnt44=0;
+				int _cnt47=0;
 				for (;;)
 				{
 					if ((cached_LA1=='\\'))
@@ -1164,12 +1218,12 @@ _loop58_breakloop:			;
 					}
 					else
 					{
-						if (_cnt44 >= 1) { goto _loop44_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+						if (_cnt47 >= 1) { goto _loop47_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 					}
 					
-					_cnt44++;
+					_cnt47++;
 				}
-_loop44_breakloop:				;
+_loop47_breakloop:				;
 			}    // ( ... )+
 			match('"');
 			break;
@@ -1218,7 +1272,7 @@ _loop44_breakloop:				;
 				for (;;)
 				{
 					// nongreedy exit test
-					if ((cached_LA1=='>') && (cached_LA2=='>') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true)) goto _loop49_breakloop;
+					if ((cached_LA1=='>') && (cached_LA2=='>') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && (true) && (true) && (true) && (true)) goto _loop52_breakloop;
 					if (((cached_LA1=='\r') && (cached_LA2=='\n') && ((LA(3) >= '\u0001' && LA(3) <= '\ufffe')) && ((LA(4) >= '\u0001' && LA(4) <= '\ufffe')) && ((LA(5) >= '\u0001' && LA(5) <= '\ufffe')) && (true) && (true))&&(LA(3)=='>'&&LA(4)=='>'))
 					{
 						int _saveIndex = 0;
@@ -1264,11 +1318,11 @@ _loop44_breakloop:				;
 					}
 					else
 					{
-						goto _loop49_breakloop;
+						goto _loop52_breakloop;
 					}
 					
 				}
-_loop49_breakloop:				;
+_loop52_breakloop:				;
 			}    // ( ... )*
 			match(">>");
 			break;
@@ -1293,7 +1347,7 @@ _loop49_breakloop:				;
 		
 		match('(');
 		{ // ( ... )+
-			int _cnt61=0;
+			int _cnt64=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -1315,12 +1369,12 @@ _loop49_breakloop:				;
 					}
 				else
 				{
-					if (_cnt61 >= 1) { goto _loop61_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt64 >= 1) { goto _loop64_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt61++;
+				_cnt64++;
 			}
-_loop61_breakloop:			;
+_loop64_breakloop:			;
 		}    // ( ... )+
 		match(')');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -1397,7 +1451,7 @@ _loop61_breakloop:			;
 	private static long[] mk_tokenSet_6_()
 	{
 		long[] data = new long[2048];
-		data[0]=-2305843077933179906L;
+		data[0]=-2305851874026202114L;
 		data[1]=-576460752571858945L;
 		for (int i = 2; i<=1022; i++) { data[i]=-1L; }
 		data[1023]=9223372036854775807L;

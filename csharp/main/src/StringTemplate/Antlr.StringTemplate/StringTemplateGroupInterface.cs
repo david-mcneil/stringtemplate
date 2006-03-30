@@ -39,6 +39,7 @@ namespace Antlr.StringTemplate
 	using InterfaceLexer		= Antlr.StringTemplate.Language.InterfaceLexer;
 	using InterfaceParser		= Antlr.StringTemplate.Language.InterfaceParser;
 	using HashList				= Antlr.StringTemplate.Collections.HashList;
+	using CollectionUtils		= Antlr.StringTemplate.Collections.CollectionUtils;
 	
 	/// <summary>
 	/// A group interface is like a group without the template implementations.
@@ -193,10 +194,28 @@ namespace Antlr.StringTemplate
 				{
 					StringTemplate defST = group.GetTemplateDefinition(tdef.name);
 					IDictionary formalArgs = defST.FormalArguments;
+					bool ack = false;
 					if ( (tdef.formalArgs!=null && formalArgs==null) ||
 						(tdef.formalArgs==null && formalArgs!=null) ||
-						(tdef.formalArgs!=null && !tdef.formalArgs.Keys.Equals(formalArgs.Keys)) )
+						(tdef.formalArgs.Count != formalArgs.Count) )
 					{
+						ack = true;
+					}
+					if ( !ack ) 
+					{
+						foreach (string argName in formalArgs.Keys)
+						{
+							if ( tdef.formalArgs[argName] == null ) 
+							{
+								ack=true;
+								break;
+							}
+						}
+					}
+					if ( ack ) 
+					{
+						// Console.Out.WriteLine(CollectionUtils.DictionaryToString(tdef.formalArgs) 
+						//	+ "!=" + CollectionUtils.DictionaryToString(formalArgs));
 						if (mismatched == null)
 						{
 							mismatched = new ArrayList();
@@ -228,7 +247,7 @@ namespace Antlr.StringTemplate
 			{
 				TemplateDefinition tdef = (TemplateDefinition) templates[name];
 				buf.Append( GetTemplateSignature(tdef) );
-				buf.Append("\n");
+				buf.Append(";\n");
 			}
 			return buf.ToString();
 		}
@@ -260,7 +279,6 @@ namespace Antlr.StringTemplate
 			{
 				buf.Append("()");
 			}
-			buf.Append(";");
 			return buf.ToString();
 		}
 	}

@@ -1,4 +1,4 @@
-// $ANTLR 2.7.5rc2 (2005-01-08): action.g -> ActionParserTokenTypes.txt$
+// $ANTLR 2.7.6 (2005-12-22): action.g -> ActionParserTokenTypes.txt$
 ActionParser    // output token vocab name
 APPLY=4
 MULTI_APPLY=5
@@ -15,16 +15,16 @@ LPAREN=15
 RPAREN=16
 LITERAL_separator="separator"=17
 ASSIGN=18
-COLON=19
-COMMA=20
+COMMA=19
+COLON=20
 NOT=21
 PLUS=22
-DOT=23
-ID=24
-LITERAL_first="first"=25
-LITERAL_rest="rest"=26
-LITERAL_last="last"=27
-LITERAL_super="super"=28
+ID=23
+LITERAL_super="super"=24
+DOT=25
+LITERAL_first="first"=26
+LITERAL_rest="rest"=27
+LITERAL_last="last"=28
 ANONYMOUS_TEMPLATE=29
 STRING=30
 INT=31

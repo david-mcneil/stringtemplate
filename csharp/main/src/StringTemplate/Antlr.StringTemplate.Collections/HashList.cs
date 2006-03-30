@@ -35,6 +35,7 @@ namespace Antlr.StringTemplate.Collections
 	using IDictionaryEnumerator		= System.Collections.IDictionaryEnumerator;
 	using ICollection				= System.Collections.ICollection;
 	using IEnumerator				= System.Collections.IEnumerator;
+	using IEnumerable				= System.Collections.IEnumerable;
 	using Hashtable					= System.Collections.Hashtable;
 	using ArrayList					= System.Collections.ArrayList;
 	using DictionaryEntry			= System.Collections.DictionaryEntry;
@@ -468,7 +469,7 @@ namespace Antlr.StringTemplate.Collections
 
 		#region IEnumerable Members
 
-		IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return new HashListEnumerator(this, HashListEnumerator.EnumerationMode.Entry);
 		}
