@@ -803,6 +803,15 @@ namespace Antlr.StringTemplate
 			return buf.ToString();
 		}
 
+        /// <summary>
+        /// Property to get / set IAttributeStrategy.
+        /// </summary>
+        public IAttributeStrategy AttributeStrategy
+        {
+            get { return attributeStrategy; }
+            set { attributeStrategy = value; }
+        }
+
 		#endregion
 
 		#region Static Data Members
@@ -916,6 +925,11 @@ namespace Antlr.StringTemplate
 		/// use this error handler by default.
 		/// </summary>
 		protected IStringTemplateErrorListener errorListener = DEFAULT_ERROR_LISTENER;
+
+        /// <summary>
+        /// Hold reference to AttributeStrategy, if any.
+        /// </summary>
+        protected IAttributeStrategy attributeStrategy = null;
 		
 		#endregion
 

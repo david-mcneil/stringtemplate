@@ -108,6 +108,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Antlr.StringTemplate\IAttributeStrategy.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Antlr.StringTemplate\IStringTemplateErrorListener.cs"
                     SubType = "Code"
                     BuildAction = "Compile"

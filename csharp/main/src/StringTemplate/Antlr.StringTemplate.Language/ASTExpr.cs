@@ -344,7 +344,13 @@ namespace Antlr.StringTemplate.Language
 				return null;
 			}
 			totalObjPropRefs++;
-			object @value = rawGetObjectProperty(self, o, propertyName);
+
+            object @value = null;
+            IAttributeStrategy strategy = enclosingTemplate.Group.AttributeStrategy;
+            if (strategy != null && strategy.UseCustomGetObjectProperty)
+                @value = strategy.GetObjectProperty(self, o, propertyName);
+            else
+                @value = rawGetObjectProperty(self, o, propertyName);
 			// take care of array properties...convert to a List so we can
 			// apply templates to the elements etc...
 			return @value;
@@ -498,27 +504,33 @@ namespace Antlr.StringTemplate.Language
 		/// </summary>
 		public virtual bool TestAttributeTrue(object a)
 		{
-			if (a == null)
-			{
-				return false;
-			}
-			if (a is bool)
-			{
-				return ((bool) a);
-			}
-			if (a is ICollection)
-			{
-				return ((ICollection) a).Count > 0;
-			}
-			if (a is IDictionary)
-			{
-				return ((IDictionary) a).Count > 0;
-			}
-			if (a is IEnumerator)
-			{
-				return ((IEnumerator) a).MoveNext();
-			}
-			return true; // any other non-null object, return true--it's present
+            IAttributeStrategy strategy = enclosingTemplate.Group.AttributeStrategy;
+            if (strategy != null && strategy.UseCustomTestAttributeTrue)
+                return strategy.TestAttributeTrue(a);
+            else
+            {
+                if (a == null)
+                {
+                    return false;
+                }
+                if (a is bool)
+                {
+                    return ((bool)a);
+                }
+                if (a is ICollection)
+                {
+                    return ((ICollection)a).Count > 0;
+                }
+                if (a is IDictionary)
+                {
+                    return ((IDictionary)a).Count > 0;
+                }
+                if (a is IEnumerator)
+                {
+                    return ((IEnumerator)a).MoveNext();
+                }
+                return true; // any other non-null object, return true--it's present
+            }
 		}
 		
 		/// <summary>For now, we can only add two objects as strings; convert objects to
