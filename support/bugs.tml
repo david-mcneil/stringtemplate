@@ -16,6 +16,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+04-07-2005
+
+o <...> is now default delimiter for group files.  BREAKS BACKWARD COMPAT!
+
 04-01-2005
 
 o note in doc that map strings are now templates and that <<...>> works too.
@@ -549,6 +553,15 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
+o Sriram: It might be worth it to spit out usage & coverage analysis of the templates and template fragments (at the "basic block" level). I'd also like a warning if an object is using Object's toString ("Foo@ad34fe"), instead of defining its own.
+
+o Jeremy Gray: Under normal operations this would
+continue to be an empty string. Under automated testing, for example,
+this could be changed to something arbitrary that would never otherwise
+appear in normal output (eg. !!!MISSING_ATTRIBUTE!!!). A testing
+process, human or otherwise, could then detect such output with relative
+ease.
+
 o new function reverse(list) like first/rest?
 
 o maps should map string to string or string to template.  Thanks to
@@ -649,6 +662,94 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o doc add: 2. API and encodings
+
+To my mind, API is not very clear when dealing with encodings: there are constructors, which take Readers and there is a method setFileCharEncoding.
+
+
+TJP: True...yeah, that is for reading actual template files as opposed to group files.
+
+This is a bit confusing. Now I figered that out (by looking at the source): fileCharEncoding is used when templates are loaded from files. In case of .stg file, this property is not used. Maybe a bit of javadoc would help to make things clearer :-)
+
+o 	From: 	  sanderhahn@gmail.com
+	Date: 	April 5, 2006 10:29:45 AM PDT
+	Subject: 	ANTLR feedback
+	To: 	  parrt@antlr.org
+
+timestamp=20060405_10.29.45
+email=sanderhahn@gmail.com
+name=Sander Hahn
+ANTLRVersion=antlr-2.7.5.jar
+ANTLRWorksVersion=
+StringTemplateVersion=stringtemplate-2.3b6.jar
+OS=Windows XP Pro SP2
+JavaVersion=1.5.0_06-b05
+software=StringTemplate
+RemoteHost=aesklepios.xs4all.nl
+uploadedFile=false
+feedback=Very nice product, my compliments!
+
+Best regards,
+Sander Hahn
+
+I ran into this bug:
+
+NullPointer exception occurs with template inheritance:
+
+-- File stringtemplate/mysql.stg
+group mysql : sql;
+
+quote(id) ::= "\"$id$\""
+
+-- File stringtemplate/sql.stg
+
+group sql;
+
+quote(id) ::= "[$id$]"
+
+select(column, table) ::= <<
+SELECT $column:quote(); separator=","$ FROM $table:quote()$
+
+
+-- example bug
+loader = new org.antlr.stringtemplate.PathGroupLoader("g:\stringtemplate", null)
+// this works with the sql group, but fails with the mysql group
+loader.loadGroup('mysql')
+
+-- thrown exception
+
+StringTemplate: problem parsing group mysql: java.lang.NullPointerException
+java.lang.NullPointerException
+        at org.antlr.stringtemplate.StringTemplateGroup.setSuperGroup(StringTemplateGroup.java:304)
+        at org.antlr.stringtemplate.language.GroupParser.group(GroupParser.java:128)
+        at org.antlr.stringtemplate.StringTemplateGroup.parseGroup(StringTemplateGroup.java:754)
+        at org.antlr.stringtemplate.StringTemplateGroup.<init>(StringTemplateGroup.java:264)
+        at org.antlr.stringtemplate.PathGroupLoader.loadGroup(PathGroupLoader.java:61)
+        at org.antlr.stringtemplate.PathGroupLoader.loadGroup(PathGroupLoader.java:74)
+
+-- workaround
+change "group mysql : sql;" into "group mysql;"
+and load using:
+
+loader = new org.antlr.stringtemplate.PathGroupLoader("g:\stringtemplate", null)
+// this works with the sql group, but fails with the mysql group
+sql = loader.loadGroup('sql')
+mysql = loader.loadGroup('mysql')
+mysql.setSuperGroup(sql)
+
+o I tried 2.3b again and it definitely is not calling my renderers on the
+anonymous templates. I would expect anon to check enclosing then group.
+		Thanks,
+		Galen		
+
+o When creating an aggregate list, can't have a space after the comma between attributes.  folders.{a, b}.
+
+o pars.type is a stringtemplate but only sometimes there is a basetype (also
+being a stringtemplate) present. When it is not present then the produced
+output is correct, except for the error reporting.  TJP: don't gen error when loadding attr from st.  even if(pars.type.foo) fails when foo not there.
+
+o no error generated when keyword like group used as arg name
 
 o map elements should be templates not strings.
 
