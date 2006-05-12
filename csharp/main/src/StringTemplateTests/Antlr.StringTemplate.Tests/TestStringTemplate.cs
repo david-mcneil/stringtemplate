@@ -1605,12 +1605,12 @@ namespace Antlr.StringTemplate.Tests
 			fw.Write("<body>" + NL);
 			fw.Write("$if(member)$User: $member:terse()$$endif$" + NL);
 			fw.Write("</body>" + NL);
-			fw.Write("</head>" + NL);
+			fw.Write("</head>");
 			fw.Close();
 			
 			string terseTemplateFileName = Path.Combine(TEMPDIR, "terse.st");
 			fw = new StreamWriter(terseTemplateFileName, false, System.Text.Encoding.Default);
-			fw.Write("$it.firstName$ $it.lastName$ (<tt>$it.email$</tt>)" + NL);
+			fw.Write("$it.firstName$ $it.lastName$ (<tt>$it.email$</tt>)");
 			fw.Close();
 			
 			// specify a template to apply to an attribute
@@ -1651,20 +1651,25 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, t.ToString());
 		}
 		
-		public virtual void  testFindTemplateInCLASSPATH()
+		[Test]
+		public virtual void  testFindTemplateInCLASSPATH_Nope_JustRelativeToAssemblyLocation()
 		{
 			// Look for templates in CLASSPATH as resources
 			StringTemplateGroup mgroup = new StringTemplateGroup("method stuff", typeof(AngleBracketTemplateLexer));
-			StringTemplate m = mgroup.GetInstanceOf("org/antlr/stringtemplate/test/method");
+			StringTemplate m = mgroup.GetInstanceOf("tests/method");
 			// "method.st" references body() so "body.st" will be loaded too
 			m.SetAttribute("visibility", "public");
 			m.SetAttribute("name", "foobar");
 			m.SetAttribute("returnType", "void");
 			m.SetAttribute("statements", "i=1;"); // body inherits these from method
 			m.SetAttribute("statements", "x=i;");
-			string expecting = "public void foobar() {" + NL + "\t// start of a body" + NL + "\ti=1;" + NL + "\tx=i;" + NL + "\t// end of a body" + NL + "}";
-			//System.out.println(m);
-			Assert.AreEqual(expecting, m.ToString());
+			string expecting = "public void foobar() {" + NL
+				+ "\t// start of a body" + NL
+				+ "\ti=1;" + NL + "\tx=i;" + NL
+				+ "\t// end of a body" + NL
+				+ "}";
+			//.Replace(Environment.NewLine, "\n") below mitigates against failure due to line-ending differences
+			Assert.AreEqual(expecting, m.ToString().Replace(Environment.NewLine, "\n"));
 		}
 		
 		[Test] public virtual void  testApplyTemplateToSingleValuedAttribute()
@@ -2734,11 +2739,11 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, result);
 		}
 		
-		public virtual void  testWhiteSpaceAtEndOfTemplate()
+		[Test] public virtual void  testWhiteSpaceAtEndOfTemplate()
 		{
 			StringTemplateGroup group = new StringTemplateGroup("group");
-			StringTemplate pageST = group.GetInstanceOf("org/antlr/stringtemplate/test/page");
-			StringTemplate listST = group.GetInstanceOf("org/antlr/stringtemplate/test/users.list");
+			StringTemplate pageST = group.GetInstanceOf("tests/page");
+			StringTemplate listST = group.GetInstanceOf("tests/users.list");
 			// users.list references row.st which has a single blank line at the end.
 			// I.e., there are 2 \n in a row at the end
 			// ST should eat all whitespace at end
@@ -2748,8 +2753,8 @@ namespace Antlr.StringTemplate.Tests
 			pageST.SetAttribute("body", listST);
 			string expecting = "some title" + NL + "Terence parrt@jguru.comTom tombu@jguru.com";
 			string result = pageST.ToString();
-			//System.out.println("'"+result+"'");
-			Assert.AreEqual(expecting, result);
+			//.Replace(Environment.NewLine, "\n") below mitigates against failure due to line-ending differences
+			Assert.AreEqual(expecting, result.Replace(Environment.NewLine, "\n"));
 		}
 		
 		[Test] public virtual void  testSizeZeroButNonNullListGetsNoOutput()
@@ -3130,7 +3135,39 @@ namespace Antlr.StringTemplate.Tests
 			string result = st.ToString();
 			Assert.AreEqual(expecting, result);
 		}
-		
+
+		[Test] public void testMapValuesAreTemplates()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "typeInit ::= [\"int\":\"0<w>\", \"float\":\"0.0<w>\"] " + NL
+				+ "var(type,w,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("w", "L");
+			st.SetAttribute("type", "int");
+			st.SetAttribute("name", "x");
+			string expecting = "int x = 0L;";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public void testMapMissingDefaultValueIsEmpty()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] " + NL
+				+ "var(type,w,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("w", "L");
+			st.SetAttribute("type", "double"); // double not in typeInit map
+			st.SetAttribute("name", "x");
+			string expecting = "double x = ;"; // weird, but tests default value is key
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test] public virtual void  testMapHiddenByFormalArg()
 		{
 			string templates = ""
@@ -3145,7 +3182,22 @@ namespace Antlr.StringTemplate.Tests
 			string result = st.ToString();
 			Assert.AreEqual(expecting, result);
 		}
-		
+
+		[Test] public void testMapEmptyValueAndAngleBracketStrings()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "typeInit ::= [\"int\":\"0\", \"float\":, \"double\":<<0.0L>>] " + NL
+				+ "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("type", "float");
+			st.SetAttribute("name", "x");
+			string expecting = "float x = ;";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test] public virtual void  testMapDefaultValue()
 		{
 			string templates = ""
@@ -3160,7 +3212,37 @@ namespace Antlr.StringTemplate.Tests
 			string result = st.ToString();
 			Assert.AreEqual(expecting, result);
 		}
-		
+
+		[Test] public void testMapEmptyDefaultValue()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "typeInit ::= [\"int\":\"0\", \"default\":] " + NL
+				+ "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("type", "UserRecord");
+			st.SetAttribute("name", "x");
+			String expecting = "UserRecord x = ;";
+			String result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public void testMapEmptyDefaultValueIsKey()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "typeInit ::= [\"int\":\"0\", \"default\":key] " + NL
+				+ "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("type", "UserRecord");
+			st.SetAttribute("name", "x");
+			string expecting = "UserRecord x = UserRecord;";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test] public virtual void  testMapViaEnclosingTemplates()
 		{
 			string templates = ""

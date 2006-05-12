@@ -146,7 +146,7 @@ variations):
 
 </UL>
 
-<P>where template references can be recursive.  
+<P>where template references can be recursive.
 
 <P>Language theory supports my premise that even a minimal StringTemplate
 engine with only these features is very powerful--such an engine can
@@ -371,13 +371,13 @@ end of the file to get an extra carriage return.
 <H3>Loading Templates relative to the Assembly's location</H3>
 
 
-<P>When deploying applications or providing a library for use by other programmers, 
-you will not know where your templates files live specifically on the disk.  You might, 
-however, know relative to the assembly's location where your templates reside.  
-For example, if your code is in an assembly named <TT>com.mycompany.server.dll</TT> you 
+<P>When deploying applications or providing a library for use by other programmers,
+you will not know where your templates files live specifically on the disk.  You might,
+however, know relative to the assembly's location where your templates reside.
+For example, if your code is in an assembly named <TT>com.mycompany.server.dll</TT> you
 might put your templates in a <TT>templates</TT> subdirectory of the directory containing
-your assembly.  If you do not specify an absolute directory with the <TT>StringTemplateGroup</TT> 
-constructor, future loads via that group will happen relative to the assembly's location.  
+your assembly.  If you do not specify an absolute directory with the <TT>StringTemplateGroup</TT>
+constructor, future loads via that group will happen relative to the assembly's location.
 For example, to load template file <TT>page.st</TT> you would do the following:
 
 <PRE>
@@ -641,7 +641,7 @@ Your email: $email$
 <H4>Property references</H4>
 
 
-<P>If a named attribute is an aggregate with a property 
+<P>If a named attribute is an aggregate with a property
 or a simple data field, you may reference that property using
 <em>attribute</em>.<em>property</em>.  For example:
 
@@ -661,7 +661,7 @@ reflection.  As a special case, StringTemplate tries <TT>x.Isfoo()</TT> for
 attempts to find a getter method (e.g. <TT>get_name</TT>/<TT>Getname</TT>/<TT>getname</TT>) or field with the property name.  In the above
 example, <TT>StringTemplate</TT> would look for fields <TT>name</TT> and <TT>email</TT>.
 
-<P>Because the type is ignored, you can pass in whatever existing C# 
+<P>Because the type is ignored, you can pass in whatever existing C#
 aggregate (class) you have such as <TT>User</TT> or <TT>Person</TT>:
 
 <PRE>
@@ -736,12 +736,12 @@ attribute name.
 <H5>Map key/value pair access</H5>
 
 
-<P>You may pass in instances of type <TT>ListDictionary</TT>, <TT>Hashtable</TT>  
+<P>You may pass in instances of type <TT>ListDictionary</TT>, <TT>Hashtable</TT>
 and <TT>Hashtable</TT> but cannot pass in objects implementing the <TT>IDictionary</TT> because that would allow all
 sorts of wacky stuff like database access.   Rather than creating an
 aggregate object (though I make it easier for you with the automatic
 aggregate creation in the next section) you can pass in a <TT>Hashtable</TT>
-that has keys referencable within templates.  For example, 
+that has keys referencable within templates.  For example,
 
 <PRE>
 StringTemplate a = new StringTemplate("$user.name$, $user.phone$");
@@ -783,7 +783,7 @@ items.{first,last}
 
 
 
-<P>You are telling <TT>StringTemplate</TT> to take the following two arguments as properties <TT>first</TT> and <TT>last</TT>.  
+<P>You are telling <TT>StringTemplate</TT> to take the following two arguments as properties <TT>first</TT> and <TT>last</TT>.
 
 <P>I have created variants of the <TT>SetAttribute()</TT> method to handle from
 2 to 5 properties.  This is really handy, at least for Java. :)
@@ -874,7 +874,7 @@ it avoids an unnecessary initialization to 0) is the following:
 
 <P>where <TT>first(numbers)</TT> results in the first value of attribute
 <TT>numbers</TT> if any and <TT>rest(numbers)</TT> results all values in <TT>numbers</TT>
-but the first value.  
+but the first value.
 
 <P>The other operator available to you is <TT>last</TT>, which naturally results
 in the last value of a multi-valued attribute.
@@ -1229,7 +1229,7 @@ numberedListItem(item) ::= "$i$. $item$&lt;br&gt;"
 $names:bold():listItem()$
 </PRE>
 
- 
+
 
 <P>If you actually want to apply a template to the combined (string) result of a previous template application, enclose the previous application in parenthesis.  The parenthesis will force immediate evaluation of the template application, resulting in a string.  For example,
 
@@ -1237,7 +1237,7 @@ $names:bold():listItem()$
 $(names:bold()):listItem()$
 </PRE>
 
- 
+
 
 <P>results in a single list item full of a bunch of bolded names.  Without the parenthesis, you get a list of items that are bolded.
 <H4>Applying Alternating Templates To Multi-Valued Attributes</H4>
@@ -1430,7 +1430,7 @@ $endif$
 &lt;/html&gt;
 </PRE>
 
- 
+
 
 <P>where template <TT>top_gutter_logged_in</TT> is located in the <TT>gutter</TT> subdirectory of my <TT>StringTemplateGroup</TT>.
 
@@ -1493,7 +1493,7 @@ Application.Run(viz);
 box, the first <TT>&lt;html&gt;</TT> text chunk is missing in the display.) :( The
 display is associated with the fill-a-table example below.
 
-<P> <img src="page.treeview.jpg"  > 
+<P> <img src="page.treeview.jpg"  >
 
 <P>If you turn on "lint mode" via <TT>StringTemplate.SetLintMode(true)</TT> then
 you may access attribute <TT>attributes</TT>, which is a text string that
@@ -1539,7 +1539,7 @@ Evaluates to the empty string if no such property is found.
 <TR>
 <TD>
 &lt;<em>multi-valued-attribute</em>; separator=<em>expr</em>&gt;
-</TD><TD> Concatenation of <TT>ToString()</TT> invoked on each element separated by <em>expr</em>. 
+</TD><TD> Concatenation of <TT>ToString()</TT> invoked on each element separated by <em>expr</em>.
 </TD>
 </TR>
 <TR>
@@ -1574,7 +1574,7 @@ number of values in <em>attribute</em>.  Example: <TT>$name:bold()</TT> applies
 &lt;<em>attribute</em>:<em>(expr)</em>(<em>argument-list</em>)&gt;
 </TD><TD> Apply a template, whose name is computed from <em>expr</em>, to
 each value of <em>attribute</em>.  Example <TT>$data:(name)()$</TT> looks up
-<TT>name</TT>'s value and uses that as template name to apply to <TT>data</TT>. 
+<TT>name</TT>'s value and uses that as template name to apply to <TT>data</TT>.
 </TD>
 </TR>
 <TR>
@@ -1982,9 +1982,9 @@ public interface StringTemplateWriter {
 
 <PRE>
 /** Just pass through the text */
-public class NoIndentWriter : AutoIndentWriter 
+public class NoIndentWriter : AutoIndentWriter
 {
-    public NoIndentWriter(Writer outw) :base(outw) 
+    public NoIndentWriter(Writer outw) :base(outw)
     {
     }
 
@@ -2032,7 +2032,7 @@ use <TT>NoIndentWriter</TT> rather than (the default) <TT>AutoIndentWriter</TT>.
 <P>At the simplest level, the indentation looks like a simple column count:
 
 <PRE>
-My dogs' names 
+My dogs' names
   $names; separator="\n"$
 The last, unindented line
 </PRE>
@@ -2246,7 +2246,7 @@ attributes in the view.  The view only formats data and does no
 interpretation.
 
 <PRE>
-public class UserListPage : SamplePage 
+public class UserListPage : SamplePage
 {
     /** This "controller" pulls from "model" and pushes to "view" */
     public void GenerateBody(StringTemplate bodyST)
@@ -2318,7 +2318,7 @@ This article not only illustrates how to make a pages change text
 depending on locale, it shows how the same site may easily have two
 different <em>skins</em> (site "looks").
 
-<P>This technique works well in practice for real sites.  
+<P>This technique works well in practice for real sites.
 <A HREF="http://demo.schoolloop.com/""><B> Schoolloop.com</B></A> is a case
 in point.  Click on the link that says "<em>en espanol</em>" to flip the
 site into Spanish mode.  The exam same templates are used; all strings
@@ -2431,8 +2431,8 @@ used for all text that could change per locale.
 which strings are displayed.  The templates clearly have attribute
 references pulling from a strings table (a hash table).  For this
 example, I'm assuming that I have a few different strings and that I'm
-storing them in resource files called <TT>Content.Strings.resx</TT>. The 
-langauge specific alternatives are named Content.Strings<em>[<language-code>]</em>.resx
+storing them in resource files called <TT>Content.Strings.resx</TT>. The
+langauge specific alternatives are named Content.Strings<em>[&lt;language-code&gt;]</em>.resx
 where <em>language-code</em> is the two-letter language code.
 Here are the name/value entries stored in <TT>Content.Strings.resx</TT>:
 
@@ -2481,7 +2481,7 @@ class ResourceWrapper
 {
 	ResourceManager mgr;
 	public ResourceWrapper(ResourceManager mgr) { this.mgr	= mgr; }
-	
+
 	public string intro           { get { return mgr.GetString("intro"); } }
 	.......
 	.......
@@ -2659,7 +2659,7 @@ specification of <TT>StringTemplate</TT>'s various components.
 
 
 <P>Why have a template like:
- 
+
 
 <PRE>
 Check this faq entry: $link(url="/faq/view?ID="+id, title="A FAQ")$.
@@ -2667,7 +2667,7 @@ Check this faq entry: $link(url="/faq/view?ID="+id, title="A FAQ")$.
 
 
 
-<P>instead of 
+<P>instead of
 
 <PRE>
 Check this faq entry: $link(url="/faq/view?ID="+$id$, title="A FAQ")$.
