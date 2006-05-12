@@ -1,1 +1,2 @@
 1. Optimize parseAggregateAttributeSpec() - use a hand-written parser rather than string.Split()?
+2. Include other projects in CI/Nant builds

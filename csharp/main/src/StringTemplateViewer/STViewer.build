@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<project name="StringTemplate.NET StringTemplateViewer" default="build">
+    <tstamp/>
+	<property name="base.dir" value="${path::get-full-path( project::get-base-directory() )}" />
+	<property name="bin.dir" value="${base.dir}/../bin" />
+
+	<include buildfile="../stringtemplate.net.common.inc" />
+
+	<property name="version" value="0.1 ALPHA" />
+
+	<property name="name" value="StringTemplateViewer" />
+	<property name="assembly.name" value="${name}.exe" />
+	<property name="src.dir" value="${base.dir}/" />
+
+    <property name="debug" value="true" unless="${property::exists('debug')}" />
+
+    <echo message="Building project: '${name}' version ${version} ==> '${assembly.name}'"/>
+
+    <target name="release" depends="clean" description="build non-debug version">
+        <!-- build a clean release distribution for release -->
+        <property name="debug" value="false"/>
+        <echo message="Debug = ${debug}"/>
+        <call target="build"/>
+    </target>
+    
+    <target name="build" depends="init, compile" description="compiles the source code">
+    </target>
+
+	<target name="init" depends="clean">
+	</target>
+
+    <target name="clean" description="cleans up compiled output">
+    </target>
+
+	<target name="compile" depends="init">
+		<csc 
+			define="${dotnet_define}"
+			target="winexe" 
+			debug="${debug}"
+			optimize="${optimize}"
+			output="${bin.dir}/${assembly.name}" 
+			doc="${bin.dir}/${name}.xml">
+			
+			<nowarn>
+				<warning number="1591" />
+				<warning number="1572" />
+			</nowarn>
+			
+			<sources basedir="${src.dir}" defaultexcludes="true">
+				<include name="**/*.cs" />
+			</sources>
+
+			<references>
+				<include name="${bin.dir}/StringTemplate.Viewer.dll" />
+				<include name="${bin.dir}/StringTemplate.dll" />
+				<include name="${bin.dir}/antlr.runtime.dll" />
+			</references>
+		</csc>
+	</target>
+
+	<target name="docs">
+	</target>
+			
+	<target name="dist" depends="docs">
+	</target>
+
+</project>

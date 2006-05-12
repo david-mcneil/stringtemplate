@@ -84,6 +84,11 @@
                     AssemblyName = "antlr.runtime"
                     HintPath = "..\Lib\net-1.1\antlr.runtime.dll"
                 />
+                <Reference
+                    Name = "Castle.DynamicProxy"
+                    AssemblyName = "Castle.DynamicProxy"
+                    HintPath = "..\Lib\net-1.1\Castle.DynamicProxy.dll"
+                />
             </References>
         </Build>
         <Files>
@@ -95,6 +100,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate.Tests\FailedAssertionException.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Tests\ProxyTests.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

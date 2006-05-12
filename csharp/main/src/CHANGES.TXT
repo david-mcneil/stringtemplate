@@ -1,0 +1,82 @@
+StringTemplate.NET - A C# implementation of the StringTemplate Library
+
+Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
+Micheal Jordan
+Anthony Oguntimehin
+
+
+===========================================================================
+
+
+11 May, 2006 (v2.3 beta 7)
+
+- Added this file ;-)
+
+- Added Nant build files for all projects and tests.
+
+  Also added ANTLR 2.7.6 executables (created with the excellent IKVM tool) 
+  to the source distribution. This ensures the Nant build always has all it 
+  needs to (re)build the project.
+
+- FileSystemTemplateLoader now detects changes to watched files. This issue
+  was triggered by the ST view engine for the excellent Castle.MonoRail 
+  project.
+  
+- StringTemplate.dll assembly is now strong named
+
+  For your own source builds, you will need to generate a key pair in a file
+  named 'StringTemplate_KeyPair.snk' in the root of the ST# source tree.
+
+- Added IAttributeStrategy {Luis Leal}
+
+- Added HTML documentation (also available on the wiki) and a new i18n sample
+  demonstrating an easy way of supporting site skinning and Localization with
+  ST#.
+
+- A StringTemplate's native group is now responsible for creating copies of 
+  StringTemplate instances for GetInstanceOf().
+  
+- Introduced IStringTemplateGroupFactory to separate the concept of finding and 
+  loading StringTemplateGroups and StringTemplateGroupInterfaces from that of 
+  creating them. 
+  
+  Existing IStringTemplateGroupLoader implementation have been updated and can 
+  now locate and create custom Group and GroupInterfaces classes.
+
+- StringTemplateGroups and StringTemplateGroupInterfaces can now be loaded 
+  from embedded *.stg/*.sti resources. See EmbeddedResourceGroupLoader.cs
+  
+- StringTemplates can now be loader from embedded *.st resources. 
+  See EmbeddedResourceTemplateLoader.cs
+
+- Added CompositeGroupLoader for using multiple IStringTemplateGroupLoaders.
+
+- NullErrorListener is now a sealed class
+
+- RemoveAttribute() no longers throws an exception if no attributes have 
+  been defined.
+  
+- Removed overly eager whitespace trimming.
+
+- Added more new useful constructors to StringTemplateGroup. 
+
+  ***BREAKING*** StringTemplateGroup(string name) now loads templates 
+  relative to the Application's BasePath (usually the location of the 
+  assembly).
+  
+  ***BREAKING*** Most StringTemplateGroup constuctors now configure their 
+  loader not to raise exceptions if a template isn't found. The logic used
+  to locate/load templates in StringTemplateGroup itself may still raise 
+  exceptions of course.
+  
+- StringTemplateGroup now checks that a cached template hasn't changed 
+  before reusing it. If it has, it is reloaded. Checking may be expensive
+  for some StringTemplateLoader implementations.
+  
+  Introduced StringTemplateGroup.TemplateHasChanged() to support the
+  behaviour described above.
+  
+- Added basic DateTimeFormatter and NumberFormatter classes. Useful for 
+  wrapping attributes.
+
+

@@ -75,6 +75,9 @@ override public void reportError(RecognitionException e) {
 }
 
 group[StringTemplateGroup g]
+{
+	this._group = g;
+}
 	:	"group" name:ID {g.Name = name.getText();}
 		( COLON s:ID {g.SetSuperGroup(s.getText());} )?
 	    ( "implements" i:ID {g.ImplementInterface(i.getText());}
@@ -200,17 +203,31 @@ IDictionary m=null;
 	;
 
 map returns [IDictionary mapping=new Hashtable()]
-	:   LBRACK keyValuePair[mapping] (COMMA keyValuePair[mapping])* RBRACK
+{
+	StringTemplate v = null;
+}
+	:   LBRACK 
+			keyValuePair[mapping] (COMMA keyValuePair[mapping])* 
+			(	COMMA "default" COLON v=keyValue
+	   	 		{mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;}
+			)?
+		RBRACK
 	;
 
 keyValuePair[IDictionary mapping]
-	:	key1:STRING COLON s1:STRING 	{mapping[key1.getText()]=s1.getText();}
-	|	key2:STRING COLON s2:BIGSTRING  {mapping[key2.getText()]=s2.getText();}
-	|	"default" COLON s3:STRING
-	    {mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s3.getText();}
-	|	"default" COLON s4:BIGSTRING
-	    {mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s4.getText();}
-	;    
+{
+	StringTemplate v = null;
+}
+	:	key:STRING COLON v=keyValue {mapping[key.getText()] = v;}
+	;
+
+keyValue returns [StringTemplate valueST=null]
+	:	s1:BIGSTRING	{valueST = new StringTemplate(_group, s1.getText());}
+	|	s2:STRING		{valueST = new StringTemplate(_group, s2.getText());}
+	|	k:ID			{k.getText().Equals("key")}?
+						{valueST = ASTExpr.MAP_KEY_VALUE;}
+	|					{valueST = null;}
+	;
 
 class GroupLexer extends Lexer;
 

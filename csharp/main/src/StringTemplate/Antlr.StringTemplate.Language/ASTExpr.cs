@@ -86,6 +86,10 @@ namespace Antlr.StringTemplate.Language
 		public const string DEFAULT_INDEX_VARIABLE_NAME = "i";
 		public const string DEFAULT_INDEX0_VARIABLE_NAME = "i0";
 		public const string DEFAULT_MAP_VALUE_NAME = "_default_";
+		public const string DEFAULT_MAP_KEY_NAME = "key";
+
+		// Used to indicate "default:key" in maps within groups
+		public static readonly StringTemplate MAP_KEY_VALUE = new StringTemplate();
 
 		// used temporarily for checking obj.prop cache
 		public static int totalObjPropRefs = 0;
@@ -344,8 +348,7 @@ namespace Antlr.StringTemplate.Language
 				return null;
 			}
 			totalObjPropRefs++;
-
-            object @value = null;
+			object @value = null;
             IAttributeStrategy strategy = enclosingTemplate.Group.AttributeStrategy;
             if (strategy != null && strategy.UseCustomGetObjectProperty)
                 @value = strategy.GetObjectProperty(self, o, propertyName);
@@ -390,12 +393,20 @@ namespace Antlr.StringTemplate.Language
 			if (typeof(IDictionary).IsAssignableFrom(c))
 			{
 				IDictionary map = (IDictionary) o;
-				val = map[propertyName];
-				if (val == null)
+				if ( map.Contains(propertyName) ) 
+				{
+					val = map[propertyName];
+				}
+				else
+				{
+					if ( map.Contains(DEFAULT_MAP_VALUE_NAME) )
+						val = map[DEFAULT_MAP_VALUE_NAME];
+				}
+				if (val == MAP_KEY_VALUE)
 				{
 					// no property defined; if a map in this group
 					// then there may be a default value
-					val = map[DEFAULT_MAP_VALUE_NAME];
+					val = propertyName;
 				}
 				return val;
 			}
@@ -509,27 +520,27 @@ namespace Antlr.StringTemplate.Language
                 return strategy.TestAttributeTrue(a);
             else
             {
-                if (a == null)
-                {
-                    return false;
-                }
-                if (a is bool)
-                {
-                    return ((bool)a);
-                }
-                if (a is ICollection)
-                {
-                    return ((ICollection)a).Count > 0;
-                }
-                if (a is IDictionary)
-                {
-                    return ((IDictionary)a).Count > 0;
-                }
-                if (a is IEnumerator)
-                {
-                    return ((IEnumerator)a).MoveNext();
-                }
-                return true; // any other non-null object, return true--it's present
+				if (a == null)
+				{
+					return false;
+				}
+				if (a is bool)
+				{
+					return ((bool) a);
+				}
+				if (a is ICollection)
+				{
+					return ((ICollection) a).Count > 0;
+				}
+				if (a is IDictionary)
+				{
+					return ((IDictionary) a).Count > 0;
+				}
+				if (a is IEnumerator)
+				{
+					return ((IEnumerator) a).MoveNext();
+				}
+				return true; // any other non-null object, return true--it's present
             }
 		}
 		

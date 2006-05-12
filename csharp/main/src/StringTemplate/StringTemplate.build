@@ -1,19 +1,66 @@
 <?xml version="1.0"?>
-<project name="StringTemplate" default="build">
+<project name="StringTemplate.NET" default="build">
     <tstamp/>
-    <property name="debug" value="true"/>
-    <property name="project.name" value="StringTemplate Library"/>
-    <property name="project.FormalName" value="StringTemplate"/>
+	<property name="base.dir" value="${path::get-full-path( project::get-base-directory() )}" />
+	<property name="bin.dir" value="${base.dir}/../bin" />
 
-    <property name="src.dir" value="."/>
-    <property name="build.dir" value="bin"/>
-    <property name="antlr.dir" value="..\..\antlr"/>
-    <property name="grammar.dir" value="Antlr.StringTemplate.Language"/>
+	<include buildfile="../stringtemplate.net.common.inc" />
+
+	<property name="stringtemplate.test" value="true" unless="${property::exists('stringtemplate.test')}" />
+	<property name="enabletest" value="ALLOWTEST" unless="${property::exists('enabletest')}" />
+
+	<property name="version" value="2.3b7" />
+
+	<property name="name" value="StringTemplate" />
+	<property name="test.name" value="${name}.Tests" />
+	
+	<property name="assembly.name" value="${name}.dll" />
+	<property name="test.assembly.name" value="${test.name}.dll" />
+	
+	<property name="src.dir" value="${base.dir}/" />
+	<property name="test.src.dir" value="${base.dir}/../StringTemplateTests" />
+
+    <property name="debug" value="true" unless="${property::exists('debug')}" />
+
+    <property name="antlr.tool.dir" value="${base.dir}/../Tools/antlr-2.7.6"/>
+    <property name="antlr.tool.exe" value="${antlr.tool.dir}/antlr.Tool.exe"/>
+    <property name="grammar.dir" value="${base.dir}/Antlr.StringTemplate.Language"/>
     
-    <echo message="Building project: '${project.name}'"/>
+    <echo message="Building project: '${name}' version ${version} ==> '${assembly.name}'"/>
 
-    <target name="clean" description="cleans up everything">
-        <echo message="Deleting directory '${build.dir}': You should rebuild VS.NET project in '${build.dir}\..'."/>
+    <target name="release" depends="clean" description="build non-debug version">
+        <!-- build a clean release distribution for release -->
+        <property name="debug" value="false"/>
+        <echo message="Debug = ${debug}"/>
+        <call target="build"/>
+    </target>
+    
+    <target name="build" depends="init, compile, test" description="compiles the source code">
+    </target>
+
+    <target name="rebuild" depends="init, clean_generated, generate, compile" description="regenerates lexers/[tree]parsers and compiles the source code">
+    </target>
+
+	<target name="init" depends="clean">
+        <mkdir dir="${bin.dir}" />
+        <mkdir dir="${bin.dir}/tests" />
+
+		<!-- Copy StringTemplate dependencies -->
+		<nant buildfile="${base.dir}/../stringtemplate.net.copy-tasks.xml" target="copy-antlr-runtime" inheritall="true" />
+
+		<!-- Copy StringTemplateTests dependencies -->
+		<nant buildfile="${base.dir}/../stringtemplate.net.copy-tasks.xml" target="copy-st-tests" inheritall="true" />
+	</target>
+
+    <target name="clean" description="cleans up compiled output">
+<!--    
+        <echo message="Deleting directory '${bin.dir}': You should rebuild VS.NET project in '${bin.dir}\..'."/>
+        <delete dir="${bin.dir}" failonerror="false"/>
+-->        
+        <delete dir="${bin.dir}" failonerror="false"/>
+    </target>
+
+    <target name="clean_generated" description="cleans up generated files">
         <delete file="${grammar.dir}\ActionEvaluator.cs" failonerror="false"/>
         <delete file="${grammar.dir}\ActionEvaluatorTokenTypes.cs" failonerror="false"/>
         <delete file="${grammar.dir}\ActionEvaluatorTokenTypes.txt" failonerror="false"/>
@@ -34,39 +81,162 @@
         <delete file="${grammar.dir}\GroupParserTokenTypes.txt" failonerror="false"/>
         <delete file="${grammar.dir}\InterfaceLexer.cs" failonerror="false"/>
         <delete file="${grammar.dir}\InterfaceParser.cs" failonerror="false"/>
-        <delete dir="${build.dir}" failonerror="false"/>
     </target>
 
     <target name="generate" description="calls ANTLR to generate Lexers/Parsers">    	
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\template.g" failonerror="true"/>
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\action.g" failonerror="true"/>
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\group.g" failonerror="true"/>
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\angle.bracket.template.g" failonerror="true"/>
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\eval.g" failonerror="true"/>
-        <exec program="java.exe" commandline="-cp ${antlr.dir} antlr.Tool -o ${grammar.dir} ${grammar.dir}\interface.g" failonerror="true"/>
+        <echo message="Due to an issue in the ANTLR tool, some of the generated files have an issue that"/>
+        <echo message="currently has to be resolved manually. These generated files would not compile."/>
+        
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/template.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/action.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/group.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/angle.bracket.template.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/eval.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/interface.g" failonerror="true"/>
     </target>
 
-    <target name="release" depends="clean" description="build non-debug version">
-        <!-- build a clean release distribution for release -->
-        <property name="debug" value="false"/>
-        <echo message="Debug = ${debug}"/>
-        <call target="build"/>
-    </target>
-    
-    <target name="build" depends="generate" description="compiles the source code">
-        <mkdir dir="${build.dir}"/>
-        <!-- copy the assemblies required to build example to the build folder -->
-        <copy file="${antlr.dir}\lib\csharp\antlr.runtime\bin\antlr.runtime.dll" tofile="${build.dir}\antlr.runtime.dll" />
+	<target name="compile" depends="init">
+		<csc 
+			define="${strong_name} ${dotnet_define}"
+			target="library" 
+			debug="${debug}"
+			optimize="${optimize}"
+			output="${bin.dir}/${assembly.name}" 
+			doc="${bin.dir}/${name}.xml">
+			
+			<nowarn>
+				<warning number="1591" />
+				<warning number="1572" />
+			</nowarn>
+			
+			<sources basedir="${src.dir}" defaultexcludes="true">
+				<include name="**/*.cs" />
+			</sources>
 
-        <!-- compile example's ${project.name}.exe -->
-        <csc target="exe" output="${build.dir}\${project.FormalName}.exe" debug="${debug}">
-            <sources basedir="${src.dir}">
-                <includes name="**/*.cs"/>
-            </sources>
-            <references>
-                <includes name="${build.dir}\antlr.runtime.dll"/>
-            </references>
-            <arg value="/nowarn:1591"/>
-        </csc>
-    </target>
+			<references>
+				<include name="${bin.dir}/antlr.runtime.dll" />
+			</references>
+		</csc>
+	</target>
+
+	<target name="tests.compile" depends="init">
+		<csc 
+			define="${dotnet_define}"
+			target="library" 
+			debug="${debug}" 
+			output="${bin.dir}/${test.assembly.name}">
+			
+			<sources basedir="${test.src.dir}" defaultexcludes="true">
+				<include name="**/*.cs" />
+			</sources>
+
+			<references>
+				<include name="${nunit.framework.dll}" />
+				<include name="${bin.dir}/${assembly.name}" />
+				<include name="${bin.dir}/antlr.runtime.dll" />
+				<include name="${bin.dir}/Castle.DynamicProxy.dll" />
+			</references>
+		</csc>
+	</target>
+	
+	<target name="test" depends="tests.run" if="${stringtemplate.test}">
+	</target>
+
+	<target name="tests.run" depends="tests.compile">
+		<nunit2>
+			<formatter type="${nunit.formatter}" />
+			<test assemblyname="${bin.dir}/${test.assembly.name}" />
+		</nunit2>
+	</target>
+
+	<target name="docs">
+		<ndoc failonerror="true">
+			<assemblies basedir="${bin.dir}">
+				<include name="StringTemplate.dll" />
+			</assemblies>
+			<documenters>
+				<documenter name="MSDN">
+					<!--<property name="OutputTarget" value="HTMLHelp" />-->
+					<property name="Preliminary" value="true" />
+					<property name="CleanIntermediates" value="true" />
+					<property name="SdkLinksOnWeb" value="true" />
+					<property name="AutoPropertyBackerSummaries" value="true" />
+					<property name="AutoDocumentConstructors" value="true" />
+					<property name="OutputDirectory" value="${doc.dir}" />
+					<property name="HtmlHelpName" value="StringTemplate" />
+					<property name="IncludeFavorites" value="False" />
+					<property name="Title" value="StringTemplate" />
+					<property name="SplitTOCs" value="False" />
+					<property name="DefaulTOC" value="Antlr.StringTemplate" />
+					<property name="ShowVisualBasic" value="True" />
+					<property name="ShowMissingSummaries" value="False" />
+					<property name="ShowMissingRemarks" value="False" />
+					<property name="ShowMissingParams" value="False" />
+					<property name="ShowMissingReturns" value="False" />
+					<property name="ShowMissingValues" value="False" />
+					<property name="DocumentInternals" value="False" />
+					<property name="DocumentProtected" value="True" />
+					<property name="DocumentPrivates" value="False" />
+					<property name="DocumentEmptyNamespaces" value="False" />
+					<property name="IncludeAssemblyVersion" value="True" />
+					<property name="CopyrightText" value="Copyright 2005-2006 - Kunle Odutola" />
+					<property name="CopyrightHref" value="http://www.stringtemplate.org" />
+				</documenter>
+			</documenters>
+		</ndoc>
+	</target>
+			
+	<target name="dist" depends="docs">
+		<zip zipfile="${name}.${version}.src.zip">
+			<fileset basedir="${base.dir}">
+				<include name="*.build" />
+				<include name="*.csproj" />
+				<include name="**/*.cs" />
+				<include name="**/*TokenTypes.txt" />
+				<include name="**/*.g" />
+
+				<include name="${library.dir}/*.dll" />
+				<include name="${library.dir}/*.rtf" />
+				<include name="${library.dir}/*.exe" />
+				
+				<exclude name="**/obj/Debug/*.*" />
+				<exclude name="**/bin/Debug/*.*" />
+				<exclude name="**/bin/*.*" />
+				<exclude name="**/*.user" />
+				<exclude name="**/*.resharperoptions" />
+				<exclude name="**/*.obj" />
+				<exclude name="**/*.pch" />
+				<exclude name="**/*.pdb" />
+				<exclude name="**/*.idb" />
+				<exclude name="**/*.log*" />
+				<exclude name="**/*.suo" />
+				<exclude name="**/*.bak" />
+				<exclude name="**/*.new" />
+				<exclude name="**/*.original" />
+			</fileset>
+		</zip>
+		
+		<zip zipfile="${name}.${version}.zip">
+			<fileset basedir="${base.dir}">
+				<include name="${doc.dir}/**/*.chm" />
+				<include name="${bin.dir}/StringTemplate.dll" />
+				<include name="${bin.dir}/antlr.runtime.dll" />
+				<include name="${bin.dir}/StringTemplate.Tests.dll" />
+				<include name="${bin.dir}/StringTemplate.Viewer.dll" />
+				<include name="${bin.dir}/StringTemplateViewer.exe" />
+				<include name="${bin.dir}/Benchmark.exe" />
+				<include name="${name}.src.zip" />
+
+				<include name="README.TXT" />
+				<include name="LICENSE.TXT" />
+				<include name="NOTICE.TXT" />
+				
+				<exclude name="${bin.dir}/*.Tests*" />
+				<exclude name="${bin.dir}/*.lang" />
+				<exclude name="${bin.dir}/*.xml" />
+				<exclude name="**/*.log*" />
+			</fileset>
+		</zip>
+	</target>
+
 </project>

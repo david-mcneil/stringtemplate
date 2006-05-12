@@ -90,8 +90,8 @@ namespace Antlr.StringTemplate.Language
 		public const int ASSIGN = 17;
 		public const int ANONYMOUS_TEMPLATE = 18;
 		public const int LBRACK = 19;
-		public const int RBRACK = 20;
-		public const int LITERAL_default = 21;
+		public const int LITERAL_default = 20;
+		public const int RBRACK = 21;
 		public const int STAR = 22;
 		public const int PLUS = 23;
 		public const int OPTIONAL = 24;
@@ -149,6 +149,9 @@ override public void reportError(RecognitionException e) {
 		IToken  s = null;
 		IToken  i = null;
 		IToken  i2 = null;
+		
+			this._group = g;
+		
 		
 		try {      // for error handling
 			match(LITERAL_group);
@@ -526,13 +529,16 @@ _loop14_breakloop:				;
 		IDictionary mapping=new Hashtable();
 		
 		
+			StringTemplate v = null;
+		
+		
 		try {      // for error handling
 			match(LBRACK);
 			keyValuePair(mapping);
 			{    // ( ... )*
 				for (;;)
 				{
-					if ((LA(1)==COMMA))
+					if ((LA(1)==COMMA) && (LA(2)==STRING))
 					{
 						match(COMMA);
 						keyValuePair(mapping);
@@ -545,6 +551,28 @@ _loop14_breakloop:				;
 				}
 _loop20_breakloop:				;
 			}    // ( ... )*
+			{
+				switch ( LA(1) )
+				{
+				case COMMA:
+				{
+					match(COMMA);
+					match(LITERAL_default);
+					match(COLON);
+					v=keyValue();
+					mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;
+					break;
+				}
+				case RBRACK:
+				{
+					break;
+				}
+				default:
+				{
+					throw new NoViableAltException(LT(1), getFilename());
+				}
+				 }
+			}
 			match(RBRACK);
 		}
 		catch (RecognitionException ex)
@@ -560,56 +588,77 @@ _loop20_breakloop:				;
 	) //throws RecognitionException, TokenStreamException
 {
 		
-		IToken  key1 = null;
-		IToken  s1 = null;
-		IToken  key2 = null;
-		IToken  s2 = null;
-		IToken  s3 = null;
-		IToken  s4 = null;
+		IToken  key = null;
+		
+			StringTemplate v = null;
+		
 		
 		try {      // for error handling
-			if ((LA(1)==STRING) && (LA(2)==COLON) && (LA(3)==STRING))
-			{
-				key1 = LT(1);
-				match(STRING);
-				match(COLON);
-				s1 = LT(1);
-				match(STRING);
-				mapping[key1.getText()]=s1.getText();
-			}
-			else if ((LA(1)==STRING) && (LA(2)==COLON) && (LA(3)==BIGSTRING)) {
-				key2 = LT(1);
-				match(STRING);
-				match(COLON);
-				s2 = LT(1);
-				match(BIGSTRING);
-				mapping[key2.getText()]=s2.getText();
-			}
-			else if ((LA(1)==LITERAL_default) && (LA(2)==COLON) && (LA(3)==STRING)) {
-				match(LITERAL_default);
-				match(COLON);
-				s3 = LT(1);
-				match(STRING);
-				mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s3.getText();
-			}
-			else if ((LA(1)==LITERAL_default) && (LA(2)==COLON) && (LA(3)==BIGSTRING)) {
-				match(LITERAL_default);
-				match(COLON);
-				s4 = LT(1);
-				match(BIGSTRING);
-				mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME]=s4.getText();
-			}
-			else
-			{
-				throw new NoViableAltException(LT(1), getFilename());
-			}
-			
+			key = LT(1);
+			match(STRING);
+			match(COLON);
+			v=keyValue();
+			mapping[key.getText()] = v;
 		}
 		catch (RecognitionException ex)
 		{
 			reportError(ex);
 			recover(ex,tokenSet_4_);
 		}
+	}
+	
+	public StringTemplate  keyValue() //throws RecognitionException, TokenStreamException
+{
+		StringTemplate valueST=null;
+		
+		IToken  s1 = null;
+		IToken  s2 = null;
+		IToken  k = null;
+		
+		try {      // for error handling
+			switch ( LA(1) )
+			{
+			case BIGSTRING:
+			{
+				s1 = LT(1);
+				match(BIGSTRING);
+				valueST = new StringTemplate(_group, s1.getText());
+				break;
+			}
+			case STRING:
+			{
+				s2 = LT(1);
+				match(STRING);
+				valueST = new StringTemplate(_group, s2.getText());
+				break;
+			}
+			case ID:
+			{
+				k = LT(1);
+				match(ID);
+				if (!(k.getText().Equals("key")))
+				  throw new SemanticException("k.getText().Equals(\"key\")");
+				valueST = ASTExpr.MAP_KEY_VALUE;
+				break;
+			}
+			case COMMA:
+			case RBRACK:
+			{
+				valueST = null;
+				break;
+			}
+			default:
+			{
+				throw new NoViableAltException(LT(1), getFilename());
+			}
+			 }
+		}
+		catch (RecognitionException ex)
+		{
+			reportError(ex);
+			recover(ex,tokenSet_4_);
+		}
+		return valueST;
 	}
 	
 	private void initializeFactory()
@@ -637,8 +686,8 @@ _loop20_breakloop:				;
 		@"""ASSIGN""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""LBRACK""",
-		@"""RBRACK""",
 		@"""default""",
+		@"""RBRACK""",
 		@"""STAR""",
 		@"""PLUS""",
 		@"""OPTIONAL""",
@@ -673,7 +722,7 @@ _loop20_breakloop:				;
 	public static readonly BitSet tokenSet_3_ = new BitSet(mk_tokenSet_3_());
 	private static long[] mk_tokenSet_4_()
 	{
-		long[] data = { 1048832L, 0L};
+		long[] data = { 2097408L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());

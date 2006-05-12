@@ -1,9 +1,12 @@
 StringTemplate.NET - A C# implementation of the StringTemplate Library
 
-30 March, 2006
+Version 2.3 beta 7
+
+11 May, 2006
 
 Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
 Micheal Jordan
+Anthony Oguntimehin
 
 
 1. INTRODUCTION 
@@ -67,19 +70,15 @@ StringTemplateTests has a dependency on NUnit v2.2+.
 
 4. USING StringTemplate.NET
 
-If you have the binary distribution, add references to the following files 
-in your project:
+Tou use ST# in your projects, add references to the following files in 
+your projects:
   - StringTemplate.dll 
   - antlr.runtime.dll
-  
-If you have the source distribution, unpack the files into a directory. Open 
-the StringTemplate.NET (VS2003).sln solution file with Visual Studio.NET 2003
-or, StringTemplate.NET (VS2005).sln if you have Visual Studio.NET 2005.
 
 
 5. BUILDING StringTemplate.NET
 
-If you wish to re-build ST# for any reason, this is what you ned to know.
+If you wish to re-build ST# for any reason, this is what you need to know.
 
 a) This release of ST# was built with ANTLR 2.7.6. If you change any of the 
 ANTLR grammar files supplied with ST#, you will need to use the ANTLR tool to 
@@ -87,7 +86,10 @@ regenerate the corresponding C# source files for the Lexer/Parser/TreeParsers.
 The grammar files - all named <something>.g - are in:
 	%ST_DIR%\StringTemplate\Antlr.StringTemplate.Language\
 
-b) Then, just use the supplied VS.NET project files to build the projects. 
+  The ANTLR tool is included in the Tools subdirectory.
+  
+b) Once you've regenerated the Lexers/Parsers/Treeparsers, you can then use the 
+supplied VS.NET project files to build the projects. 
 
 NOTE: Some of the ANTLR grammar files above trigger a curious bug in ANTLR 2.x 
 that can only by fixed by hand. The errors are related to the redefinition of 
@@ -99,6 +101,15 @@ of error/warning messages you get may be more than that. Errors are:
 	        it would give a different meaning to 'var', which is already used in 
 	        a 'parent or current' scope to denote something else
 
+Using NAnt:
+Alternatively, if you have Nant just type the following in the root directory of 
+the StringTemplate source tree on your computer to regenerate the sources:
+	nant rebuild
+
+You will get builds error due to the ANTLR issue described above. Once you've 
+fixed those issues in the generated source files, type the following:
+	nant build
+	
 
 6. StringTemplate.NET STATUS
 
@@ -118,10 +129,9 @@ We'd like to hear about how you're using ST#.
 
 Kunle Odutola		-- primary developer
 Micheal Jordan		-- template loader abstraction, unit tests
-
+Anthony Oguntimehin	-- developer/tester
 
 
 Enjoy!
 
 Kunle Odutola
-

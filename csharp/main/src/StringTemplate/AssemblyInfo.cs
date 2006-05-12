@@ -26,7 +26,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("2.3.0.5")]
+[assembly: AssemblyVersion("2.3.0.7")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
@@ -56,11 +56,17 @@ using System.Runtime.CompilerServices;
 
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyKeyName("")]
+
 #if STRONG_NAME
-[assembly: AssemblyDelaySign(true)]
-[assembly: AssemblyKeyFile(@"..\..\StringTemplate_KeyPair.snk")]
+// This strongly suggests that the build is a VS.NET build.
+[assembly: AssemblyDelaySign(false)]
+[assembly: AssemblyKeyFile("../../../StringTemplate_KeyPair.snk")]
+#elif NANT_STRONGNAME
+// This strongly suggests that the build is a NANT build.
+[assembly: AssemblyDelaySign(false)]
+[assembly: AssemblyKeyFile("../StringTemplate_KeyPair.snk")]
 #else
+// This should happen as the assembly should always be strong named.
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
 #endif
-

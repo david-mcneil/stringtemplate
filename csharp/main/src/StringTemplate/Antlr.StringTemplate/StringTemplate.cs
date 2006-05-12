@@ -152,7 +152,7 @@ namespace Antlr.StringTemplate
 	/// </summary>
 	public class StringTemplate
 	{
-		public const string VERSION = "2.3b6";
+		public const string VERSION = "2.3b7";
 
 		/// <summary><@r()></summary>
 		internal const int REGION_IMPLICIT = 1;
@@ -182,7 +182,8 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		virtual public StringTemplate GetInstanceOf()
 		{
-			StringTemplate t = group.CreateStringTemplate();
+			//StringTemplate t = group.CreateStringTemplate();
+			StringTemplate t = nativeGroup.CreateStringTemplate();
 			dup(this, t);
 			return t;
 		}
@@ -776,7 +777,8 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public StringTemplate()
 		{
-			group = defaultGroup; // make sure has a group even if default
+			group = defaultGroup;		// make sure has a group even if default
+			nativeGroup = defaultGroup; // same with nativeGroup
 		}
 		
 		/// <summary>
@@ -790,6 +792,7 @@ namespace Antlr.StringTemplate
 		public StringTemplate(string template, Type lexer):this()
 		{
 			Group = new StringTemplateGroup("defaultGroup", lexer);
+			NativeGroup = Group;
 			Template = template;
 		}
 		
@@ -801,6 +804,7 @@ namespace Antlr.StringTemplate
 			if (group != null)
 			{
 				Group = group;
+				NativeGroup = group;
 			}
 			Template = template;
 		}
@@ -858,7 +862,10 @@ namespace Antlr.StringTemplate
 		
 		public virtual void  RemoveAttribute(string name)
 		{
-			attributes.Remove(name);
+			if (attributes != null)
+			{
+				attributes.Remove(name);
+			}
 		}
 		
 		/// <summary>
@@ -1010,7 +1017,8 @@ namespace Antlr.StringTemplate
 			string[] propList = propString.Split(new char[]{','});
 			for (int i = 0; i < propList.Length; i++)
 			{
-				properties.Add(propList[i].Trim());
+				//properties.Add(propList[i].Trim());
+				properties.Add(propList[i]);
 			}
 			return aggrName;
 		}

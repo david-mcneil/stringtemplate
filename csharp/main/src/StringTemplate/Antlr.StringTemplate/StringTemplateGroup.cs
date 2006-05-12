@@ -78,30 +78,75 @@ namespace Antlr.StringTemplate
 
 		/// <summary>
 		/// Create a group manager for some templates, all of which are
-		/// at or below the indicated directory.
+		/// loaded relative to the current Application BasePath.
 		/// </summary>
-		public StringTemplateGroup(string name, string rootDir)
-			: this(name, new FileSystemTemplateLoader(rootDir), typeof(DefaultTemplateLexer))
+		public StringTemplateGroup(string name)
+			: this(name, new FileSystemTemplateLoader(string.Empty, false), null, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
 		
-		public StringTemplateGroup(string name, string rootDir, Type lexer)
-			: this(name, new FileSystemTemplateLoader(rootDir), lexer)
+		/// <summary>
+		/// Create a group manager for some templates, all of which are
+		/// loaded relative to the current Application BasePath and use
+		/// the specified lexer to break up the templates into chunks.
+		/// </summary>
+		public StringTemplateGroup(string name, Type lexer)
+			: this(name, new FileSystemTemplateLoader(string.Empty, false), lexer, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-
-		public StringTemplateGroup(string name, StringTemplateLoader templateLoader)
-			: this(name, templateLoader, typeof(DefaultTemplateLexer))
+		
+		/// <summary>
+		/// Create a group manager for some templates, all of which are
+		/// at or below the indicated directory.
+		/// </summary>
+		public StringTemplateGroup(string name, string rootDir)
+			: this(name, new FileSystemTemplateLoader(rootDir, false), typeof(DefaultTemplateLexer), DEFAULT_ERROR_LISTENER, null)
+		{
+		}
+		
+		/// <summary>
+		/// Create a group manager for some templates, all of which are
+		/// at or below the indicated directory and use the specified 
+		/// lexer to break up the templates into chunks.
+		/// </summary>
+		public StringTemplateGroup(string name, string rootDir, Type lexer)
+			: this(name, new FileSystemTemplateLoader(rootDir, false), lexer, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
 
 		/// <summary>
-		/// 
+		/// Create a group manager for some templates, all of which are
+		/// located via the specified <see cref="StringTemplateLoader"/>.
+		/// </summary>
+		public StringTemplateGroup(string name, StringTemplateLoader templateLoader)
+			: this(name, templateLoader, typeof(DefaultTemplateLexer), DEFAULT_ERROR_LISTENER, null)
+		{
+		}
+
+		/// <summary>
+		/// Create a group manager for some templates, all of which are
+		/// located via the specified <see cref="StringTemplateLoader"/> and 
+		/// use the specified lexer to break up the templates into chunks.
+		/// </summary>
+		public StringTemplateGroup(string name, StringTemplateLoader templateLoader, Type lexer)
+			: this(name, templateLoader, lexer, DEFAULT_ERROR_LISTENER, null)
+		{
+		}
+		
+		/// <summary>
+		/// Creates a group manager for some templates, all of which are
+		/// loaded via a <see cref="StringTemplateLoader"/>.
 		/// </summary>
 		/// <param name="name"></param>
 		/// <param name="templateLoader"></param>
 		/// <param name="lexer"></param>
-		public StringTemplateGroup(string name, StringTemplateLoader templateLoader, Type lexer)
+		/// <param name="errorListener"></param>
+		public StringTemplateGroup(
+			string name, 
+			StringTemplateLoader templateLoader, 
+			Type lexer, 
+			IStringTemplateErrorListener errorListener,
+			StringTemplateGroup superGroup)
 		{
 			this.name = name;
 			nameToGroupMap[name] = this;
@@ -110,20 +155,11 @@ namespace Antlr.StringTemplate
 			else
 				this.templateLoader = templateLoader;
 			this.templateLexerClass = lexer;
-		}
-		
-		/// <summary>
-		/// Create a group manager for some templates, all of which are
-		/// loaded as resources via the classloader.
-		/// </summary>
-		public StringTemplateGroup(string name)
-			: this(name, (StringTemplateLoader)null, null)
-		{
-		}
-		
-		public StringTemplateGroup(string name, Type lexer)
-			: this(name, (StringTemplateLoader)null, lexer)
-		{
+			if (errorListener == null)
+				this.errorListener = DEFAULT_ERROR_LISTENER;
+			else
+				this.errorListener = errorListener;
+			this.superGroup = superGroup;
 		}
 		
 		/// <summary>
@@ -428,12 +464,16 @@ namespace Antlr.StringTemplate
 				}
 				throw new StringTemplateException(Name + " has no super group; invalid template: " + name);
 			}
-			// Discard cached template?
-			if (templateLoader.HasChanged(name))
-			{
-				templates.Remove(name);
-			}
 			StringTemplate st = (StringTemplate) templates[name];
+			if (st != null)
+			{
+				// Discard cached template?
+				if (st.NativeGroup.TemplateHasChanged(name))
+				{
+					templates.Remove(name);
+					st = null;
+				}
+			}
 			if (st == null)
 			{
 				// not there?  Attempt to load
@@ -445,7 +485,8 @@ namespace Antlr.StringTemplate
 				if (st == null && superGroup != null)
 				{
 					// try to resolve in super group
-					st = superGroup.GetInstanceOf(name);
+					//st = superGroup.GetInstanceOf(name);
+					st = superGroup.GetInstanceOf(enclosingInstance, name);
 					// make sure that when we inherit a template, that it's
 					// group is reset; it's nativeGroup will remain where it was
 					if (st != null)
@@ -619,6 +660,14 @@ namespace Antlr.StringTemplate
 				return true;
 			}
 			return false;
+		}
+		
+		public virtual bool TemplateHasChanged(string templateName)
+		{
+			if (templatesDefinedInGroupFile)
+				return false;
+			else
+				return templateLoader.HasChanged(templateName);
 		}
 		
 		/// <summary>
@@ -802,9 +851,8 @@ namespace Antlr.StringTemplate
 			}
 			return buf.ToString();
 		}
-
         /// <summary>
-        /// Property to get / set IAttributeStrategy.
+        /// Gets or sets this group's IAttributeStrategy.
         /// </summary>
         public IAttributeStrategy AttributeStrategy
         {
@@ -925,7 +973,6 @@ namespace Antlr.StringTemplate
 		/// use this error handler by default.
 		/// </summary>
 		protected IStringTemplateErrorListener errorListener = DEFAULT_ERROR_LISTENER;
-
         /// <summary>
         /// Hold reference to AttributeStrategy, if any.
         /// </summary>

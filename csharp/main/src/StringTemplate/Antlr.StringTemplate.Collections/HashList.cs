@@ -34,6 +34,7 @@ namespace Antlr.StringTemplate.Collections
 	using IDictionary				= System.Collections.IDictionary;
 	using IDictionaryEnumerator		= System.Collections.IDictionaryEnumerator;
 	using ICollection				= System.Collections.ICollection;
+	using IList						= System.Collections.IList;
 	using IEnumerator				= System.Collections.IEnumerator;
 	using IEnumerable				= System.Collections.IEnumerable;
 	using Hashtable					= System.Collections.Hashtable;
@@ -178,7 +179,7 @@ namespace Antlr.StringTemplate.Collections
 			#endregion
 		}
 
-		private sealed class KeyCollection : ICollection
+		private sealed class KeyCollection : ICollection, IList
 		{
 			private HashList _hashList;
 		
@@ -268,6 +269,61 @@ namespace Antlr.StringTemplate.Collections
 			public IEnumerator GetEnumerator()
 			{
 				return new HashListEnumerator(_hashList, HashListEnumerator.EnumerationMode.Key);
+			}
+
+			#endregion
+		
+			#region IList Members
+
+			public bool IsReadOnly
+			{
+				get { return true; }
+			}
+
+			public object this[int index]
+			{
+				get { return _hashList._insertionOrderList[index]; }
+				set { throw new NotSupportedException("IList is ReadOnly"); }
+			}
+
+			public void RemoveAt(int index)
+			{
+				throw new NotSupportedException("IList is ReadOnly");
+			}
+
+			public void Insert(int index, object obj)
+			{
+				throw new NotSupportedException("IList is ReadOnly");
+			}
+
+			public void Remove(object obj)
+			{
+				throw new NotSupportedException("IList is ReadOnly");
+			}
+
+			public bool Contains(object obj)
+			{
+				return _hashList._insertionOrderList.Contains(obj);
+			}
+
+			public void Clear()
+			{
+				throw new NotSupportedException("IList is ReadOnly");
+			}
+
+			public int IndexOf(object obj)
+			{
+				return _hashList._insertionOrderList.IndexOf(obj);
+			}
+
+			public int Add(object obj)
+			{
+				throw new NotSupportedException("IList is ReadOnly");
+			}
+
+			public bool IsFixedSize
+			{
+				get { return false; }
 			}
 
 			#endregion
@@ -427,6 +483,11 @@ namespace Antlr.StringTemplate.Collections
 		}
 
 		public ICollection Keys
+		{
+			get { return new KeyCollection(this); }
+		}
+
+		public IList KeysList
 		{
 			get { return new KeyCollection(this); }
 		}

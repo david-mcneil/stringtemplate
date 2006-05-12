@@ -1,245 +1,96 @@
 ﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProductVersion>8.0.50727</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{EF3F8BC9-CA7E-4BF0-87F3-1FE410D49834}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ApplicationIcon>
-    </ApplicationIcon>
-    <AssemblyKeyContainerName>
-    </AssemblyKeyContainerName>
-    <AssemblyName>StringTemplate</AssemblyName>
-    <AssemblyOriginatorKeyFile>
-    </AssemblyOriginatorKeyFile>
-    <DefaultClientScript>JScript</DefaultClientScript>
-    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-    <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <DelaySign>false</DelaySign>
+    <ProjectGuid>{EF3F8BC9-CA7E-4BF0-87F3-1FE410D49834}</ProjectGuid>
     <OutputType>Library</OutputType>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <AssemblyName>StringTemplate</AssemblyName>
     <RootNamespace>Antlr.StringTemplate</RootNamespace>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <StartupObject>
-    </StartupObject>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <OutputPath>bin\Debug\net-1.1\</OutputPath>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <BaseAddress>285212672</BaseAddress>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-    <ConfigurationOverrideFile>
-    </ConfigurationOverrideFile>
-    <DefineConstants>
-    </DefineConstants>
-    <DocumentationFile>
-    </DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <FileAlignment>4096</FileAlignment>
-    <NoStdLib>false</NoStdLib>
-    <NoWarn>
-    </NoWarn>
-    <Optimize>false</Optimize>
-    <RegisterForComInterop>false</RegisterForComInterop>
-    <RemoveIntegerChecks>false</RemoveIntegerChecks>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningLevel>4</WarningLevel>
     <DebugType>full</DebugType>
-    <ErrorReport>prompt</ErrorReport>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\net-2.0\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;STRONG_NAME DOTNET2</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>bin\Release\net-1.1\</OutputPath>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <BaseAddress>285212672</BaseAddress>
-    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-    <ConfigurationOverrideFile>
-    </ConfigurationOverrideFile>
-    <DefineConstants>
-    </DefineConstants>
-    <DocumentationFile>
-    </DocumentationFile>
-    <DebugSymbols>false</DebugSymbols>
-    <FileAlignment>4096</FileAlignment>
-    <NoStdLib>false</NoStdLib>
-    <NoWarn>
-    </NoWarn>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <RegisterForComInterop>false</RegisterForComInterop>
-    <RemoveIntegerChecks>false</RemoveIntegerChecks>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningLevel>4</WarningLevel>
-    <DebugType>none</DebugType>
-    <ErrorReport>prompt</ErrorReport>
+    <OutputPath>bin\Release\net-2.0\</OutputPath>
+    <DefineConstants>TRACE;STRONG_NAME DOTNET2</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="antlr.runtime">
-      <Name>antlr.runtime</Name>
+    <Compile Include="Antlr.StringTemplate.Collections\CollectionUtils.cs" />
+    <Compile Include="Antlr.StringTemplate.Collections\HashList.cs" />
+    <Compile Include="Antlr.StringTemplate.Collections\StackList.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ActionEvaluator.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ActionEvaluatorTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ActionLexer.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ActionParser.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ActionParserTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\AngleBracketTemplateLexer.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\AngleBracketTemplateLexerTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ASTExpr.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\CatIterator.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ChunkToken.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\ConditionalExpr.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\DefaultTemplateLexer.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\Expr.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\FormalArgument.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\GroupLexer.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\GroupParser.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\GroupParserTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\InterfaceLexer.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\InterfaceParser.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\InterfaceParserTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\NewlineRef.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\RestCollection.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\StringRef.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\StringTemplateAST.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\StringTemplateToken.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\TemplateParser.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\TemplateParserTokenTypes.cs" />
+    <Compile Include="Antlr.StringTemplate.Utils\DateTimeFormatter.cs" />
+    <Compile Include="Antlr.StringTemplate.Utils\NumberFormatter.cs" />
+    <Compile Include="Antlr.StringTemplate\AutoIndentWriter.cs" />
+    <Compile Include="Antlr.StringTemplate\CommonGroupLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\CompositeGroupLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\ConsoleErrorListener.cs" />
+    <Compile Include="Antlr.StringTemplate\DefaultGroupFactory.cs" />
+    <Compile Include="Antlr.StringTemplate\EmbeddedResourceGroupLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\EmbeddedResourceTemplateLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\FileSystemTemplateLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\IAttributeRenderer.cs" />
+    <Compile Include="Antlr.StringTemplate\IAttributeStrategy.cs" />
+    <Compile Include="Antlr.StringTemplate\IStringTemplateErrorListener.cs" />
+    <Compile Include="Antlr.StringTemplate\IStringTemplateGroupFactory.cs" />
+    <Compile Include="Antlr.StringTemplate\IStringTemplateGroupLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\IStringTemplateWriter.cs" />
+    <Compile Include="Antlr.StringTemplate\NoIndentWriter.cs" />
+    <Compile Include="Antlr.StringTemplate\NullErrorListener.cs" />
+    <Compile Include="Antlr.StringTemplate\NullTemplateLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\StringTemplate.cs" />
+    <Compile Include="Antlr.StringTemplate\StringTemplateException.cs" />
+    <Compile Include="Antlr.StringTemplate\StringTemplateGroup.cs" />
+    <Compile Include="Antlr.StringTemplate\StringTemplateGroupInterface.cs" />
+    <Compile Include="Antlr.StringTemplate\StringTemplateLoader.cs" />
+    <Compile Include="Antlr.StringTemplate\TemplateLoadException.cs" />
+    <Compile Include="AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="To-do Notes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="antlr.runtime, Version=2.7.6.2, Culture=neutral">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Lib\net-1.1\antlr.runtime.dll</HintPath>
     </Reference>
-    <Reference Include="System">
-      <Name>System</Name>
-    </Reference>
+    <Reference Include="System" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Antlr.StringTemplate.Collections\CollectionUtils.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Collections\HashList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Collections\StackList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ActionEvaluator.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ActionEvaluatorTokenTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ActionLexer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ActionParser.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ActionParserTokenTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\AngleBracketTemplateLexer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\AngleBracketTemplateLexerTokenTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ASTExpr.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\CatIterator.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ChunkToken.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\ConditionalExpr.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\DefaultTemplateLexer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\Expr.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\FormalArgument.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\GroupLexer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\GroupParser.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\GroupParserTokenTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\InterfaceLexer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\InterfaceParser.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\NewlineRef.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\RestCollection.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\StringRef.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\StringTemplateAST.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\StringTemplateToken.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\TemplateParser.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate.Language\TemplateParserTokenTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\AutoIndentWriter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\CommonGroupLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\ConsoleErrorListener.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\FromFileTemplateLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\IAttributeRenderer.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\IAttributeStrategy.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\IStringTemplateErrorListener.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\IStringTemplateGroupLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\IStringTemplateWriter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\NoIndentWriter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\NullErrorListener.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\NullTemplateLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\StringTemplate.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\StringTemplateException.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\StringTemplateGroup.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\StringTemplateGroupInterface.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\StringTemplateLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Antlr.StringTemplate\TemplateLoadException.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Content Include="Antlr.StringTemplate.Language\ActionEvaluatorTokenTypes.txt" />
-    <Content Include="Antlr.StringTemplate.Language\ActionParserTokenTypes.txt" />
-    <Content Include="Antlr.StringTemplate.Language\AngleBracketTemplateLexerTokenTypes.txt" />
-    <Content Include="Antlr.StringTemplate.Language\GroupParserTokenTypes.txt" />
-    <Content Include="Antlr.StringTemplate.Language\TemplateParserTokenTypes.txt" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
+  <ProjectExtensions>
+    <VisualStudio AllowExistingFolder="true" />
+  </ProjectExtensions>
 </Project>

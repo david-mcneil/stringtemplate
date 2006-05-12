@@ -39,6 +39,7 @@ namespace Antlr.StringTemplate
 	using Path					= System.IO.Path;
 	using Directory				= System.IO.Directory;
 	using IOException			= System.IO.IOException;
+	using DefaultTemplateLexer	= Antlr.StringTemplate.Language.DefaultTemplateLexer;
 	
 	/// <summary>
 	/// A brain dead group loader that looks only in the directory(ies) specified 
@@ -54,29 +55,23 @@ namespace Antlr.StringTemplate
 	/// </summary>
 	public class CommonGroupLoader : IStringTemplateGroupLoader
 	{
+		protected IStringTemplateGroupFactory factory;
 		protected ArrayList directories;
 		protected Encoding encoding;
 		protected IStringTemplateErrorListener errorListener;
 
 		protected CommonGroupLoader() 
+			: this(DefaultGroupFactory.DefaultFactory, NullErrorListener.DefaultNullListener, Encoding.Default, null)
 		{
 		}
 
-		/// <summary>
-		/// Construct an instance that loads groups/interfaces from the single dir or 
-		/// multiple dirs specified.
-		/// </summary>
-		/// <remarks>
-		/// If a specified directory is an absolute path, the full path is used to 
-		/// locate the template group or interface file.
-		/// 
-		/// If a specified directory is a relative path, the path is taken to be
-		/// relative to the location of the stringtemplate assembly itself.
-		/// 
-		/// TODO: Check shadow-copying doesn't knock this outta whack.
-		/// </remarks>
 		public CommonGroupLoader(IStringTemplateErrorListener errorListener, params string[] directoryNames) 
-			: this(errorListener, Encoding.Default, directoryNames)
+			: this(new DefaultGroupFactory(), errorListener, Encoding.Default, directoryNames)
+		{
+		}
+
+		public CommonGroupLoader(IStringTemplateErrorListener errorListener, Encoding encoding, params string[] directoryNames)
+			: this(new DefaultGroupFactory(), errorListener, encoding, directoryNames)
 		{
 		}
 
@@ -94,11 +89,13 @@ namespace Antlr.StringTemplate
 		/// TODO: Check shadow-copying doesn't knock this outta whack.
 		/// </remarks>
 		public CommonGroupLoader(
+			IStringTemplateGroupFactory factory,
 			IStringTemplateErrorListener errorListener, 
 			Encoding encoding, 
 			params string[] directoryNames) 
 		{
-			this.errorListener = errorListener;
+			this.factory = factory;
+			this.errorListener = (errorListener == null) ? new NullErrorListener() : errorListener;
 			this.encoding = encoding;
 			foreach (string directoryName in directoryNames)
 			{
@@ -109,8 +106,7 @@ namespace Antlr.StringTemplate
 				}
 				else
 				{
-					fullpath = Path.Combine(
-						//System.Reflection.Assembly.GetExecutingAssembly().Location, 
+					fullpath = string.Format("{0}/{1}", 
 						AppDomain.CurrentDomain.BaseDirectory, 
 						directoryName
 						);
@@ -165,7 +161,7 @@ namespace Antlr.StringTemplate
 				{
 					try 
 					{
-						group = new StringTemplateGroup(reader, errorListener, superGroup);
+						group = factory.CreateGroup(reader, typeof(DefaultTemplateLexer), errorListener, superGroup);
 					}
 					catch (ArgumentException argx) 
 					{
@@ -194,7 +190,7 @@ namespace Antlr.StringTemplate
 				{
 					try 
 					{
-						groupInterface = new StringTemplateGroupInterface(reader, errorListener);
+						groupInterface = factory.CreateInterface(reader, errorListener, null);
 					}
 					catch (ArgumentException argx) 
 					{
@@ -220,7 +216,8 @@ namespace Antlr.StringTemplate
 			for (int i = 0; i < directories.Count; i++) 
 			{
 				string directoryName = (string) directories[i];
-				string fullname = Path.Combine(directoryName, filename);
+				//string fullname = Path.Combine(directoryName, filename);
+				string fullname = string.Format("{0}/{1}", directoryName, filename);
 				if ( File.Exists(fullname) ) 
 				{
 					return fullname;

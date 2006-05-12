@@ -48,7 +48,7 @@
                     BaseAddress = "285212672"
                     CheckForOverflowUnderflow = "false"
                     ConfigurationOverrideFile = ""
-                    DefineConstants = ""
+                    DefineConstants = "STRONG_NAME"
                     DocumentationFile = ""
                     DebugSymbols = "false"
                     FileAlignment = "4096"
@@ -93,13 +93,32 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Antlr.StringTemplate\CompositeGroupLoader.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Antlr.StringTemplate\ConsoleErrorListener.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
                 <File
-                    RelPath = "Antlr.StringTemplate\FromFileTemplateLoader.cs"
+                    RelPath = "Antlr.StringTemplate\DefaultGroupFactory.cs"
                     SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\EmbeddedResourceGroupLoader.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\EmbeddedResourceTemplateLoader.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\FileSystemTemplateLoader.cs"
                     BuildAction = "Compile"
                 />
                 <File
@@ -114,6 +133,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate\IStringTemplateErrorListener.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate\IStringTemplateGroupFactory.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -336,6 +360,16 @@
                 <File
                     RelPath = "Antlr.StringTemplate.Language\TemplateParserTokenTypes.txt"
                     BuildAction = "Content"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Utils\DateTimeFormatter.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Utils\NumberFormatter.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
                 />
             </Include>
         </Files>

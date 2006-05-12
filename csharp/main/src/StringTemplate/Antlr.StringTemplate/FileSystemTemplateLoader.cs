@@ -1,6 +1,6 @@
 /*
 [The "BSD licence"]
-Copyright (c) 2005 Kunle Odutola
+Copyright (c) 2005-2006 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -31,17 +31,19 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
-	using IOException				= System.IO.IOException;
-	using Path						= System.IO.Path;
-	using StreamReader				= System.IO.StreamReader;
-	using FileSystemWatcher			= System.IO.FileSystemWatcher;
-	using FileSystemEventHandler	= System.IO.FileSystemEventHandler;
-	using FileSystemEventArgs		= System.IO.FileSystemEventArgs;
-	using RenamedEventHandler		= System.IO.RenamedEventHandler;
-	using RenamedEventArgs			= System.IO.RenamedEventArgs;
-	using NotifyFilters				= System.IO.NotifyFilters;
-	using HybridDictionary			= System.Collections.Specialized.HybridDictionary;
-	using Encoding					= System.Text.Encoding;
+	using IOException					= System.IO.IOException;
+	using DirectoryNotFoundException	= System.IO.DirectoryNotFoundException;
+	using FileNotFoundException			= System.IO.FileNotFoundException;
+	using Path							= System.IO.Path;
+	using StreamReader					= System.IO.StreamReader;
+	using FileSystemWatcher				= System.IO.FileSystemWatcher;
+	using FileSystemEventHandler		= System.IO.FileSystemEventHandler;
+	using FileSystemEventArgs			= System.IO.FileSystemEventArgs;
+	using RenamedEventHandler			= System.IO.RenamedEventHandler;
+	using RenamedEventArgs				= System.IO.RenamedEventArgs;
+	using NotifyFilters					= System.IO.NotifyFilters;
+	using HybridDictionary				= System.Collections.Specialized.HybridDictionary;
+	using Encoding						= System.Text.Encoding;
 
 	/// <summary>
 	/// A StringTemplateLoader that can load StringTemplates from the file system.
@@ -56,26 +58,34 @@ namespace Antlr.StringTemplate
 
 		private FileSystemWatcher filesWatcher;
 		private HybridDictionary fileSet;
-		private object sentinel = new object();
 
-		public FileSystemTemplateLoader() : this(null, Encoding.Default)
+		public FileSystemTemplateLoader() : this(null, Encoding.Default, true)
 		{
 		}
 
 		public FileSystemTemplateLoader(string locationRoot)
-			: this(locationRoot, Encoding.Default)
+			: this(locationRoot, Encoding.Default, true)
+		{
+		}
+		public FileSystemTemplateLoader(string locationRoot, bool raiseExceptionForEmptyTemplate)
+			: this(locationRoot, Encoding.Default, raiseExceptionForEmptyTemplate)
 		{
 		}
 
 		public FileSystemTemplateLoader(string locationRoot, Encoding encoding)
-			: base(locationRoot)
+			: this(locationRoot, encoding, true)
 		{
-			if (locationRoot == null)
+		}
+
+		public FileSystemTemplateLoader(string locationRoot, Encoding encoding, bool raiseExceptionForEmptyTemplate)
+			: base(locationRoot, raiseExceptionForEmptyTemplate)
+		{
+			if ((locationRoot == null) || (locationRoot.Trim().Length == 0))
 			{
 				this.locationRoot = AppDomain.CurrentDomain.BaseDirectory;
 			}
 			this.encoding = encoding;
-			fileSet = new HybridDictionary();
+			fileSet = new HybridDictionary(true);
 		}
 
 		/// <summary>
@@ -85,11 +95,11 @@ namespace Antlr.StringTemplate
 		/// <returns>True if the named template has changed</returns>
 		public override bool HasChanged(string templateName)
 		{
-			string templateLocation = Path.Combine(LocationRoot, GetLocationFromTemplateName(templateName));
+			//string templateLocation = Path.Combine(LocationRoot, GetLocationFromTemplateName(templateName));
+			string templateLocation = string.Format("{0}/{1}", LocationRoot, GetLocationFromTemplateName(templateName)).Replace('\\', '/');
 			object o = fileSet[templateLocation];
-			if ((o != null) && (o != sentinel))
+			if ((o != null))
 			{
-				fileSet.Remove(templateLocation);
 				return true;
 			}
 			return false;
@@ -110,20 +120,41 @@ namespace Antlr.StringTemplate
 
 			try
 			{
-				templateLocation = Path.Combine(LocationRoot, GetLocationFromTemplateName(templateName));
+				//templateLocation = Path.Combine(LocationRoot, GetLocationFromTemplateName(templateName));
+				templateLocation = string.Format("{0}/{1}", LocationRoot, GetLocationFromTemplateName(templateName)).Replace('\\', '/');
+				StreamReader br;
+				try
+				{
+					br = new StreamReader(templateLocation, encoding);
+				}
+				catch(FileNotFoundException)
+				{
+					return null;
+				}
+				catch(DirectoryNotFoundException)
+				{
+					return null;
+				}
+				catch(Exception ex)
+				{
+					throw new TemplateLoadException("Cannot open template file: " + templateLocation, ex);
+				}
 
-				using (StreamReader br = new StreamReader(templateLocation, encoding))
+				try 
 				{
 					templateText = br.ReadToEnd();
 					if ((templateText != null) && (templateText.Length > 0))
 					{
-						templateText = templateText.Trim();
+						//templateText = templateText.Trim();
 
 						if (filesWatcher == null)
 						{
 							filesWatcher = new FileSystemWatcher(LocationRoot, "*.st");
+							//filesWatcher.InternalBufferSize *= 2;
 							filesWatcher.NotifyFilter = 
 								NotifyFilters.LastWrite 
+								| NotifyFilters.Attributes
+								| NotifyFilters.Security 
 								| NotifyFilters.Size 
 								| NotifyFilters.CreationTime 
 								| NotifyFilters.DirectoryName 
@@ -135,8 +166,13 @@ namespace Antlr.StringTemplate
 							filesWatcher.Renamed += new RenamedEventHandler(OnRenamed);
 							filesWatcher.EnableRaisingEvents = true;
 						}
-						fileSet[templateLocation] = sentinel;
 					}
+					fileSet.Remove(templateLocation);
+				}
+                finally
+				{
+                    if (br != null) ((IDisposable)br).Dispose();
+					br = null;
 				}
 			}
 			catch (ArgumentException ex) 
@@ -181,26 +217,17 @@ namespace Antlr.StringTemplate
 
 		private void OnChanged(object source, FileSystemEventArgs e)
 		{
-			string fullpath = e.FullPath;
-			if (fileSet.Contains(fullpath))
-			{
-				fileSet[fullpath] = fullpath;
-			}
+			string fullpath = e.FullPath.Replace('\\', '/');
+			fileSet[fullpath] = locationRoot;
 		}
 
 		private void OnRenamed(object source, RenamedEventArgs e)
 		{
-			string fullpath = e.FullPath;
-			if (fileSet.Contains(fullpath))
-			{
-				fileSet[fullpath] = fullpath;
-			}
+			string fullpath = e.FullPath.Replace('\\', '/');
+			fileSet[fullpath] = locationRoot;
 
-			fullpath = e.OldFullPath;
-			if (fileSet.Contains(fullpath))
-			{
-				fileSet[fullpath] = fullpath;
-			}
+			fullpath = e.OldFullPath.Replace('\\', '/');
+			fileSet[fullpath] = locationRoot;
 		}
 
 		#endregion

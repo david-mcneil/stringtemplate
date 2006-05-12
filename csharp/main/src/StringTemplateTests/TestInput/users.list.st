@@ -1,1 +1,1 @@
-$users:org/antlr/stringtemplate/test/row()$
+$users:tests/row()$

@@ -51,8 +51,8 @@ namespace Antlr.StringTemplate.Language
 		public const int ASSIGN = 17;
 		public const int ANONYMOUS_TEMPLATE = 18;
 		public const int LBRACK = 19;
-		public const int RBRACK = 20;
-		public const int LITERAL_default = 21;
+		public const int LITERAL_default = 20;
+		public const int RBRACK = 21;
 		public const int STAR = 22;
 		public const int PLUS = 23;
 		public const int OPTIONAL = 24;

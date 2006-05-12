@@ -35,21 +35,21 @@ namespace Antlr.StringTemplate
 	/// <summary>
 	/// A Listener that sends it's output to the console.
 	/// </summary>
-	internal class NullErrorListener : IStringTemplateErrorListener
+	internal sealed class NullErrorListener : IStringTemplateErrorListener
 	{
 		public static IStringTemplateErrorListener DefaultNullListener = new NullErrorListener();
 
 		/// <summary>
 		/// Send an error message to the Listener.
 		/// </summary>
-		public virtual void  Error(string s, Exception e)
+		public void  Error(string s, Exception e)
 		{
 		}
 
 		/// <summary>
 		/// Send a warning message to the Listener.
 		/// </summary>
-		public virtual void  Warning(string s)
+		public void  Warning(string s)
 		{
 		}
 
@@ -59,7 +59,7 @@ namespace Antlr.StringTemplate
 		/// <remarks>
 		/// Warning: Debug() is not useful at the moment.
 		/// </remarks>
-		public virtual void  Debug(string s)
+		public void  Debug(string s)
 		{
 		}
 	}

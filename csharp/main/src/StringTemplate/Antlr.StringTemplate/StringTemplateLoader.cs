@@ -40,7 +40,7 @@ namespace Antlr.StringTemplate
 		protected string locationRoot;
 		protected bool raiseExceptionForEmptyTemplate;
 
-		private StringTemplateLoader()
+		protected StringTemplateLoader()
 		{
 		}
 
