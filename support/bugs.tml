@@ -16,11 +16,17 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
-04-07-2005
+05-12-2006
+
+o using nativegroup to create instances now in ST.getInstanceOf.  Needed
+so that super.foo works properly.  THe new instance's group will point at
+creating group so polymorphism works properly.
+
+04-07-2006
 
 o <...> is now default delimiter for group files.  BREAKS BACKWARD COMPAT!
 
-04-01-2005
+04-01-2006
 
 o note in doc that map strings are now templates and that <<...>> works too.
   default or others can have empty values (implying no value) or use "key"
@@ -662,6 +668,25 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o look for calls to 
+chunkStream.setTokenObjectClass("org.antlr.stringtemplate.language.ChunkToken")
+to see if it avoids classloader or something.
+Method
+    panic(String s):void of class antlr.CharScanner 
+Found usages  (4 usages)
+    Unclassified usage  (3 usages)
+        antlr  (3 usages)
+            CharScanner  (3 usages)
+                (181, 13) panic("can't instantiate token: " + tokenObjectClass); 
+                (184, 13) panic("Token class is not accessible" + tokenObjectClass);
+                (338, 13) panic("ClassNotFoundException: " + cl);
+
+
+o renderers: subclass handled by superclass if not there?  What if you
+ registered Object type renderer?  That might be useful.  Search path goes up
+ enclosing ST chain then groups?  Date could handle SQLDate then.  Do anon
+ templates look for renderers properly?
 
 o doc add: 2. API and encodings
 

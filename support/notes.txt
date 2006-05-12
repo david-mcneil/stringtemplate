@@ -1,3 +1,10 @@
+TODO:
+
+o make ST spit out start/stop boundaries of template in output for debugging
+
+o make getDOT dependency graph dynamic.
+
+--------------------
 Hmm...for java code: don't really want obj.method in the template as
 you can't reuse the template for something else...you have separated
 view from logic, but exactly one logic.  You couldn't reuse Java code
