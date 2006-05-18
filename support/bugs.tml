@@ -18,6 +18,15 @@ StringTemplate Bugs, Requests, Changes
 
 05-18-2006
 
+o Fixed: you could not have template expressions, just simple
+expressions in indirect template expressions like
+$data:("foo":a())()$.  I decided not to allow IF expressions inside.
+
+o now throws exception when dots are in template names or attribute names
+
+o don't set "it" nor "attr" default attributes if there is a parameter
+to an anonymous block like <names:{n | ...}>
+
 o Bug fix.  If you passed in a list and then another element, it added
 it to the list you passed in!  Now, I make a (shallow) copy of the list.
 
@@ -593,6 +602,11 @@ appear in normal output (eg. !!!MISSING_ATTRIBUTE!!!). A testing
 process, human or otherwise, could then detect such output with relative
 ease.
 
+o Koen Van Exem: suggest different modes for dealing with missing values:
+  > 1. default mode (attribute lenient and property strict)
+  > 2. lenient (attribute and property lenient)
+  > 3 strict (attribute and property strict)
+
 o new function reverse(list) like first/rest?
 
 o maps should map string to string or string to template.  Thanks to
@@ -749,8 +763,6 @@ o lots of extra whitespace in antlr output
 
 o should super.it work?
 
-o don't set "it" if there is a parameter to the anonymous block
-
 o When calling super.t() within t, don't require dots: super.t(...)
 <<
 dfaDecision(decisionNumber,description) ::= <<
@@ -765,64 +777,20 @@ catch (NoViableAltException nvae) {
 \>\>
 >>
 
-o No warning on this: (needs args)
-
-ruleRefBangAndListLabel ::= <<
-<ruleRefBang(...)>
-<listLabel(...)>
->>
-
 o line numbers in gropu files still show parse errors within a template not overall file
 
 o when i put <\@foo> at end of template right before >> then it said problem at FFFF (-1) not missing <@end>
 
-o warn if people use dots in their filenames for attributes or
-templates!  I don't check for nested embedded regions nor regions
-defined within explicit region definitions
-
-o throw exception when dots in template names or attribute names
-
-o NO error generated for this template definition:
-<<
-foo ::= "kjfdkj"
->>
+o I don't check for nested embedded regions nor regions defined within
+explicit region definitions
 
 o I get this error when tokenRef is inherited from super group:
 <<
 internal error: cannot alias tokenRefBang to undefined template: tokenRef 
 >>
 
-o $i$ not available for multi-iteration 
-<<
-users,jobs:{ u,j | User $i$: $u.name$, $j.name$ }
->>
-
 o seems like {$"$name$ foo":bold()$} doesn't treat the first string as
 a template
-
-5) I tried to write a template like the following, but it failed with a
-"java.lang.NullPointerException at
-org.antlr.stringtemplate.language.TemplateParser.action(TemplateParser.java:
-132)".  It looks like the results of a template execution cannot be used as
-the name of a template to execute.  As a work-around I passed the results of
-the template execution to another template as a parameter, which then
-executed it via (x)().
-
-test1() ::= <<
-$("foo":test2())()$
-
-
-test2( it ) ::= "$it$"
-
-foo() ::= "foo"
-
-o have 
-
-<<
-$items:(format)()$
->>
-
-walk format if it's a list also.
 
 06-06-2005 John Williams
 
