@@ -16,6 +16,31 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+05-18-2006
+
+o Bug fix.  If you passed in a list and then another element, it added
+it to the list you passed in!  Now, I make a (shallow) copy of the list.
+
+o Bug fix.  If you passed an element then a list to an attr and I
+think it didn't flatten out properly!
+
+o added build.xml ANT file (ick)
+
+o {} and "" work as arguments now to templates
+
+05-17-2006
+
+o Couldn't escape in template group.  \>> failed as did {...\}} for
+anonymous templates.
+
+o When creating an aggregate list, couldn't have spaces in {...}  such
+as "folders.{a, b}".
+
+o Embedded templates such as {...} anonymous templates couldn't see
+the renderers for enclosing templates.  Easy to set one renderer in
+root template for, say, Date and forget about it.  If none found for
+that class in containment hierarchy, then group hierarchy is checked.
+
 05-12-2006
 
 o using nativegroup to create instances now in ST.getInstanceOf.  Needed
@@ -669,116 +694,27 @@ o relative page access ./samedir
 
 #### BUGS
 
-o look for calls to 
-chunkStream.setTokenObjectClass("org.antlr.stringtemplate.language.ChunkToken")
-to see if it avoids classloader or something.
-Method
-    panic(String s):void of class antlr.CharScanner 
-Found usages  (4 usages)
-    Unclassified usage  (3 usages)
-        antlr  (3 usages)
-            CharScanner  (3 usages)
-                (181, 13) panic("can't instantiate token: " + tokenObjectClass); 
-                (184, 13) panic("Token class is not accessible" + tokenObjectClass);
-                (338, 13) panic("ClassNotFoundException: " + cl);
-
-
-o renderers: subclass handled by superclass if not there?  What if you
- registered Object type renderer?  That might be useful.  Search path goes up
- enclosing ST chain then groups?  Date could handle SQLDate then.  Do anon
- templates look for renderers properly?
-
 o doc add: 2. API and encodings
 
-To my mind, API is not very clear when dealing with encodings: there are constructors, which take Readers and there is a method setFileCharEncoding.
+To my mind, API is not very clear when dealing with encodings: there
+are constructors, which take Readers and there is a method
+setFileCharEncoding.
 
+TJP: True...yeah, that is for reading actual template files as opposed
+to group files.
 
-TJP: True...yeah, that is for reading actual template files as opposed to group files.
+This is a bit confusing. Now I figered that out (by looking at the
+source): fileCharEncoding is used when templates are loaded from
+files. In case of .stg file, this property is not used. Maybe a bit of
+javadoc would help to make things clearer :-)
 
-This is a bit confusing. Now I figered that out (by looking at the source): fileCharEncoding is used when templates are loaded from files. In case of .stg file, this property is not used. Maybe a bit of javadoc would help to make things clearer :-)
-
-o 	From: 	  sanderhahn@gmail.com
-	Date: 	April 5, 2006 10:29:45 AM PDT
-	Subject: 	ANTLR feedback
-	To: 	  parrt@antlr.org
-
-timestamp=20060405_10.29.45
-email=sanderhahn@gmail.com
-name=Sander Hahn
-ANTLRVersion=antlr-2.7.5.jar
-ANTLRWorksVersion=
-StringTemplateVersion=stringtemplate-2.3b6.jar
-OS=Windows XP Pro SP2
-JavaVersion=1.5.0_06-b05
-software=StringTemplate
-RemoteHost=aesklepios.xs4all.nl
-uploadedFile=false
-feedback=Very nice product, my compliments!
-
-Best regards,
-Sander Hahn
-
-I ran into this bug:
-
-NullPointer exception occurs with template inheritance:
-
--- File stringtemplate/mysql.stg
-group mysql : sql;
-
-quote(id) ::= "\"$id$\""
-
--- File stringtemplate/sql.stg
-
-group sql;
-
-quote(id) ::= "[$id$]"
-
-select(column, table) ::= <<
-SELECT $column:quote(); separator=","$ FROM $table:quote()$
-
-
--- example bug
-loader = new org.antlr.stringtemplate.PathGroupLoader("g:\stringtemplate", null)
-// this works with the sql group, but fails with the mysql group
-loader.loadGroup('mysql')
-
--- thrown exception
-
-StringTemplate: problem parsing group mysql: java.lang.NullPointerException
-java.lang.NullPointerException
-        at org.antlr.stringtemplate.StringTemplateGroup.setSuperGroup(StringTemplateGroup.java:304)
-        at org.antlr.stringtemplate.language.GroupParser.group(GroupParser.java:128)
-        at org.antlr.stringtemplate.StringTemplateGroup.parseGroup(StringTemplateGroup.java:754)
-        at org.antlr.stringtemplate.StringTemplateGroup.<init>(StringTemplateGroup.java:264)
-        at org.antlr.stringtemplate.PathGroupLoader.loadGroup(PathGroupLoader.java:61)
-        at org.antlr.stringtemplate.PathGroupLoader.loadGroup(PathGroupLoader.java:74)
-
--- workaround
-change "group mysql : sql;" into "group mysql;"
-and load using:
-
-loader = new org.antlr.stringtemplate.PathGroupLoader("g:\stringtemplate", null)
-// this works with the sql group, but fails with the mysql group
-sql = loader.loadGroup('sql')
-mysql = loader.loadGroup('mysql')
-mysql.setSuperGroup(sql)
-
-o I tried 2.3b again and it definitely is not calling my renderers on the
-anonymous templates. I would expect anon to check enclosing then group.
-		Thanks,
-		Galen		
-
-o When creating an aggregate list, can't have a space after the comma between attributes.  folders.{a, b}.
-
-o pars.type is a stringtemplate but only sometimes there is a basetype (also
-being a stringtemplate) present. When it is not present then the produced
-output is correct, except for the error reporting.  TJP: don't gen error when loadding attr from st.  even if(pars.type.foo) fails when foo not there.
+o pars.type is a stringtemplate but only sometimes there is a basetype
+(also being a stringtemplate) present. When it is not present then the
+produced output is correct, except for the error reporting.  TJP:
+don't gen error when loadding attr from st.  even if(pars.type.foo)
+fails when foo not there.
 
 o no error generated when keyword like group used as arg name
-
-o map elements should be templates not strings.
-
-o anonymous templates don't get enclosing template's renderers.  Only anon should do this though?  Perhaps should always follow enclosing...
 
 o can't use <@super.members()> in Dbg.stg subgroup.
 
@@ -800,10 +736,6 @@ org.antlr.codegen.CodeGenerator.genRecognizer(CodeGenerator.java:278)
 org.antlr.Tool.processGrammar(Tool.java:285)
 org.antlr.Tool.process(Tool.java:222)
 org.antlr.Tool.main(Tool.java:72)
-
-
-o Can't escape in template group?
-   \>> fails.  \>\> generates \>\>.
 
 o  No indent for the <if>
 <<
@@ -840,18 +772,13 @@ ruleRefBangAndListLabel ::= <<
 <listLabel(...)>
 >>
 
-
 o line numbers in gropu files still show parse errors within a template not overall file
 
 o when i put <\@foo> at end of template right before >> then it said problem at FFFF (-1) not missing <@end>
 
-o warn if people use dots in their filenames for attributes or templates!
-
-o Ack!  If you pass in a list and then another element, it adds it to the list you passed in.  Must make a copy of the list.
-
-o during ANTLR2005 workshop.  I passed an element then a list to an attr and I think it didn't flatten out properly!  Something like that.
-
-o I don't check for nested embedded regions nor regions defined within explicit region definitions
+o warn if people use dots in their filenames for attributes or
+templates!  I don't check for nested embedded regions nor regions
+defined within explicit region definitions
 
 o throw exception when dots in template names or attribute names
 
