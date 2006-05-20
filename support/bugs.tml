@@ -68,7 +68,7 @@ o note in doc that map strings are now templates and that <<...>> works too.
   Also, default must be at end now (and only 1).  Default value is empty
   as before.
   To return null, use "default :" at end.  Can use empty values too:
-  "float":, "int":"0"...
+  {"float":}, {"int":"0"}, ...
 
 03-4-2006
 

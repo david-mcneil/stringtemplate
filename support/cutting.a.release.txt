@@ -1,8 +1,10 @@
 # cut release; create branch and do it
-p4 integrate -b stringtemplate-2.2b5
+p4 branch stringtemplate-2.3
+#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-2.3/...
+p4 integrate -b stringtemplate-2.3
 p4 submit
 
-cd ~/antlr/code/stringtemplate/java/release-2.2
+cd ~/antlr/code/stringtemplate/java/release-2.3
 
 # build antlr generated files
 pushd src/org/antlr/stringtemplate/language
@@ -10,6 +12,7 @@ java antlr.Tool group.g
 java antlr.Tool template.g 
 java antlr.Tool action.g 
 java antlr.Tool eval.g
+java antlr.Tool interface.g
 java antlr.Tool angle.bracket.template.g
 popd
 
@@ -18,6 +21,7 @@ pushd src
 javac -classpath .:/usr/local/lib/antlr-latest.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
+mkdir ../lib
 jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
 
 # remove .class files
@@ -30,8 +34,24 @@ chmod -R +w *
 
 # remove *.iml !
 
-# make tarball (next time name release stringtemplate-2.2b5 dir)
+# make doc and push
+cd doc
+p4 edit doc.html
+tmlcss doc
+scp doc.tml parrt@antlr.org:/var/data/magenta/resources/doc
+
+# make API and push
+
+# make tarball (next time name release stringtemplate-2.3b7 dir)
 cd ~/antlr/code/stringtemplate/java
-cp -r release-2.2 /tmp/stringtemplate-2.2b5
+cp -r release-2.3 /tmp/stringtemplate-2.3b7
 pushd /tmp
-tar cvfz stringtemplate-2.2b5.tar.gz stringtemplate-2.2b5
+tar cvfz stringtemplate-2.3b7.tar.gz stringtemplate-2.3b7
+
+# push
+scp stringtemplate-2.3b7.tar.gz parrt@antlr.org:/var/data/lime/resources/download
+
+# push bugs
+pushd ~/antlr/code/stringtemplate/support
+scp bugs.tml parrt@antlr.org:/var/data/magenta/resources    
+
