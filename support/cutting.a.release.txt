@@ -30,6 +30,7 @@ popd
 
 find . -name '*~' -exec rm {} \;
 
+# WAIT!  MAKE COPY FIRST!!!!
 chmod -R +w *
 
 # remove *.iml !
