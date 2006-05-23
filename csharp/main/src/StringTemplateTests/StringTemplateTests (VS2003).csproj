@@ -17,7 +17,7 @@
                 DelaySign = "false"
                 OutputType = "Library"
                 PreBuildEvent = ""
-                PostBuildEvent = ""
+                PostBuildEvent = "MKDIR $(TargetDir)\tests&#xd;&#xa;XCOPY $(ProjectDir)\TestInput\*.st $(TargetDir)\tests /Y /C&#xd;&#xa;"
                 RootNamespace = "Antlr.StringTemplate.Tests"
                 RunPostBuildEvent = "OnBuildSuccess"
                 StartupObject = ""

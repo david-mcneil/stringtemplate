@@ -109,9 +109,9 @@ namespace Antlr.StringTemplate.Language
 			caseSensitiveLiterals = true;
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
-			literals.Add("default", 20);
 			literals.Add("group", 4);
 			literals.Add("implements", 7);
+			literals.Add("default", 20);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException
@@ -518,6 +518,12 @@ _loop30_breakloop:			;
 					match('\n');
 					newline();
 				}
+				else if ((cached_LA1=='\\') && (cached_LA2=='>')) {
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('>');
+				}
 				else if (((cached_LA1 >= '\u0000' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
 					matchNot(EOF/*_CHAR*/);
 				}
@@ -576,6 +582,12 @@ _loop36_breakloop:			;
 					}
 					match('\n');
 					newline();
+				}
+				else if ((cached_LA1=='\\') && (cached_LA2=='}')) {
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('}');
 				}
 				else if (((cached_LA1 >= '\u0000' && cached_LA1 <= '\ufffe')) && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe'))) {
 					matchNot(EOF/*_CHAR*/);

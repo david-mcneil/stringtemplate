@@ -40,7 +40,7 @@ namespace Antlr.StringTemplate
 		public static IStringTemplateErrorListener DefaultConsoleListener = new ConsoleErrorListener();
 
 		/// <summary>
-		/// Send an error message to the Listener.
+		/// Prints an error message to the standard error console.
 		/// </summary>
 		public virtual void  Error(string s, Exception e)
 		{
@@ -52,20 +52,9 @@ namespace Antlr.StringTemplate
 		}
 
 		/// <summary>
-		/// Send a warning message to the Listener.
+		/// Prints a warning message to the standard output console.
 		/// </summary>
 		public virtual void  Warning(string s)
-		{
-			Console.Out.WriteLine(s);
-		}
-
-		/// <summary>
-		/// Send an error message to the Listener.
-		/// </summary>
-		/// <remarks>
-		/// Warning: Debug() is not useful at the moment.
-		/// </remarks>
-		public virtual void  Debug(string s)
 		{
 			Console.Out.WriteLine(s);
 		}

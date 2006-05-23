@@ -595,8 +595,19 @@ namespace Antlr.StringTemplate
 				return returnVal;
 			}
 		}
-		
-		public const string ANONYMOUS_ST_NAME = "anonymous";
+
+		/// <summary>
+		/// An internal ArrayList sub-class so we can differentiate between a 
+		/// multi-valued attribute list and a plain incoming list.
+		/// </summary>
+		internal class STAttributeList : ArrayList
+		{
+			public STAttributeList() : base() {}
+			public STAttributeList(int capacity) : base(capacity) {}
+			public STAttributeList(ICollection collection) : base(collection) {}
+		}
+
+	public const string ANONYMOUS_ST_NAME = "anonymous";
 		
 		/// <summary>track probable issues like setting attribute that is not referenced. </summary>
 		internal static bool lintMode = false;
@@ -875,17 +886,27 @@ namespace Antlr.StringTemplate
 		/// enclosing instance (where it will inherit values from) is
 		/// set to 'this'.  This would be the normal case, though you
 		/// can set it back to null after this call if you want.
+		/// 
 		/// If you send in a List plus other values to the same
 		/// attribute, they all get flattened into one List of values.
+		/// 
+		/// This will be a new list object so that incoming objects are
+		/// not altered.
+		/// 
 		/// If you send in an array, it is converted to a List.  Works
 		/// with arrays of objects and arrays of {int,float,double}.
 		/// </summary>
 		public virtual void  SetAttribute(string name, object val)
 		{
-			if (val == null)
+			if ((name == null) || (val == null))
 			{
 				return ;
 			}
+			if (name.IndexOf('.') != -1)
+			{
+				throw new ArgumentException("cannot have '.' in attribute names", "name");
+			}
+
 			if (attributes == null)
 			{
 				attributes = new Hashtable();
@@ -901,72 +922,51 @@ namespace Antlr.StringTemplate
 			object o = attributes[name];
 			if (o != null)
 			{
-				// it's a multi-value attribute
+				// it is or will be a multi-value attribute
 				//Console.WriteLine("exists: "+name+"="+o);
-				IList v = null;
-				if (o is IList)
+				STAttributeList v = null;
+				if (o is STAttributeList)
 				{
-					// already a List
-					v = (IList) o;
-					if (val is IList)
+					// already a multi-valued
+					v = (STAttributeList) o;
+				}
+				else if (o is IList)
+				{
+					// existing attribute is non-ST List
+					// must copy to an STAttributeList before adding new attribute
+					v = new STAttributeList((ICollection)o);
+					// replace existing attribute with the new STAttributeList
+					RawSetAttribute(attributes, name, v);
+				}
+				else
+				{
+					// existing attribute is not a list
+					// must convert to an STAttributeList before adding new attribute
+					v = new STAttributeList();
+					// replace existing attribute with the new STAttributeList
+					RawSetAttribute(attributes, name, v);
+					// add the pre-existing attribute to new STAttributeList
+					v.Add(o);
+				}
+
+				// now we process the newly added attribute 
+				if (val is IList)
+				{
+					// flatten incoming list into existing
+					// (do nothing if same List to avoid trouble)
+					if (v != val)
 					{
-						// flatten incoming list into existing
-						// (do nothing if same List to avoid trouble)
-						IList v2 = (IList) val;
-						for (int i = 0; v != v2 && i < v2.Count; i++)
-						{
-							// Console.WriteLine("flattening "+name+"["+i+"]="+v2.elementAt(i)+" into existing value");
-							v.Add(v2[i]);
-						}
-					}
-					else if (val is ICollection)
-					{
-						// flatten incoming collection into existing list
-						// (do nothing if same List to avoid trouble)
-						ICollection coll = (ICollection) val;
-						foreach (object obj in coll)
-						{
-							v.Add(obj);
-						}
-					}
-					else
-					{
-						v.Add(val);
+						v.AddRange((ICollection)val);
 					}
 				}
 				else
 				{
-					// second attribute, must convert existing to ArrayList
-					v = new ArrayList(); // make list to hold multiple values
-					// make it point to list now
-					RawSetAttribute(attributes, name, v);
-					v.Add(o); // add previous single-valued attribute
-					if (val is IList)
-					{
-						// flatten incoming list into new list
-						IList v2 = (IList) val;
-						for (int i = 0; i < v2.Count; i++)
-						{
-							v.Add(v2[i]);
-						}
-					}
-					else if (val is ICollection)
-					{
-						// flatten incoming collection into new list
-						ICollection coll = (ICollection) val;
-						foreach (object obj in coll)
-						{
-							v.Add(obj);
-						}
-					}
-					else
-					{
-						v.Add(val);
-					}
+					v.Add(val);
 				}
 			}
 			else
 			{
+				// new attribute
 				RawSetAttribute(attributes, name, val);
 			}
 		}
@@ -979,6 +979,11 @@ namespace Antlr.StringTemplate
 		public virtual void  SetAttribute(string aggrSpec, params object[] values)
 		{
 			IList properties = new ArrayList();
+			if (aggrSpec.IndexOf(".{") == -1)
+			{
+				SetAttribute(aggrSpec, (object) values);
+				return;
+			}
 			string aggrName = ParseAggregateAttributeSpec(aggrSpec, properties);
 			if (values == null || properties.Count == 0)
 			{
@@ -1003,7 +1008,7 @@ namespace Antlr.StringTemplate
 		
 		/// <summary>
 		/// Split "aggrName.{propName1,propName2}" into list [propName1,propName2]
-		/// and the aggrName.
+		/// and the aggrName. Space is allowed around ','.
 		/// </summary>
 		protected virtual string ParseAggregateAttributeSpec(string aggrSpec, IList properties)
 		{
@@ -1017,8 +1022,8 @@ namespace Antlr.StringTemplate
 			string[] propList = propString.Split(new char[]{','});
 			for (int i = 0; i < propList.Length; i++)
 			{
-				//properties.Add(propList[i].Trim());
-				properties.Add(propList[i]);
+				// Whitespace is allowed around ','. Trim it.
+				properties.Add(propList[i].Trim());
 			}
 			return aggrName;
 		}
@@ -1413,16 +1418,26 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public virtual IAttributeRenderer GetAttributeRenderer(Type attributeClassType)
 		{
-			if (attributeRenderers == null)
+			IAttributeRenderer renderer = null;
+			if (attributeRenderers != null)
 			{
-				// we have no renderer overrides for the template, check group
-				return group.GetAttributeRenderer(attributeClassType);
+				renderer = (IAttributeRenderer) attributeRenderers[attributeClassType];
 			}
-			IAttributeRenderer renderer = (IAttributeRenderer) attributeRenderers[attributeClassType];
+
 			if (renderer == null)
 			{
-				// no renderer override registered for this class, check group
-				renderer = group.GetAttributeRenderer(attributeClassType);
+				// No renderer overrides exist for this template for 'attributeClassType'
+				// check parent template if we are embedded
+				if ( enclosingInstance != null ) 
+				{
+					renderer = enclosingInstance.GetAttributeRenderer(attributeClassType);
+				}
+				else
+				{
+					// We found no renderer overrides for the template and,
+					// we aren't embedded so, check group
+					renderer = group.GetAttributeRenderer(attributeClassType);
+				}
 			}
 			return renderer;
 		}
@@ -1437,13 +1452,6 @@ namespace Antlr.StringTemplate
 		public virtual void  Warning(string msg)
 		{
 			ErrorListener.Warning(msg);
-		}
-		
-		/// <deprecated> 2.2
-		/// </deprecated>
-		public virtual void  Debug(string msg)
-		{
-			ErrorListener.Debug(msg);
 		}
 		
 		public virtual void  Error(string msg, Exception e)

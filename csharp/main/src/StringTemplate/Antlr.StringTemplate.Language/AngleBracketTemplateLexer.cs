@@ -1168,8 +1168,7 @@ _loop43_breakloop:			;
 		_ttype = SUBTEMPLATE;
 		
 		match('{');
-		{ // ( ... )+
-			int _cnt60=0;
+		{    // ( ... )*
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -1191,13 +1190,12 @@ _loop43_breakloop:			;
 					}
 				else
 				{
-					if (_cnt60 >= 1) { goto _loop60_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					goto _loop60_breakloop;
 				}
 				break; }
-				_cnt60++;
 			}
 _loop60_breakloop:			;
-		}    // ( ... )+
+		}    // ( ... )*
 		match('}');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -1217,8 +1215,7 @@ _loop60_breakloop:			;
 		case '"':
 		{
 			match('"');
-			{ // ( ... )+
-				int _cnt46=0;
+			{    // ( ... )*
 				for (;;)
 				{
 					if ((cached_LA1=='\\'))
@@ -1230,13 +1227,12 @@ _loop60_breakloop:			;
 					}
 					else
 					{
-						if (_cnt46 >= 1) { goto _loop46_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+						goto _loop46_breakloop;
 					}
 					
-					_cnt46++;
 				}
 _loop46_breakloop:				;
-			}    // ( ... )+
+			}    // ( ... )*
 			match('"');
 			break;
 		}

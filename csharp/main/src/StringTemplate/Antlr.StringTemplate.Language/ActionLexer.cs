@@ -121,12 +121,12 @@ namespace Antlr.StringTemplate.Language
 			caseSensitiveLiterals = true;
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
-			literals.Add("super", 24);
 			literals.Add("if", 8);
-			literals.Add("first", 26);
 			literals.Add("separator", 17);
-			literals.Add("last", 28);
 			literals.Add("rest", 27);
+			literals.Add("last", 28);
+			literals.Add("first", 26);
+			literals.Add("super", 24);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException
@@ -455,6 +455,9 @@ _loop56_breakloop:			;
 		returnToken_ = _token;
 	}
 	
+/** Match escape sequences, optionally translating them for strings, but not
+ *  for templates.  Do \} only when in {...} templates.
+ */
 	protected void mESC_CHAR(bool _createToken,
 		bool doEscape
 	) //throws RecognitionException, CharStreamException, TokenStreamException
@@ -593,28 +596,27 @@ _loop56_breakloop:			;
 		{    // ( ... )*
 			for (;;)
 			{
-				switch ( cached_LA1 )
+				if ((cached_LA1=='\\') && (cached_LA2=='}'))
 				{
-				case '\\':
-				{
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('}');
+				}
+				else if ((cached_LA1=='\\') && ((cached_LA2 >= '\u0003' && cached_LA2 <= '\ufffe'))) {
 					mESC_CHAR(false,false);
-					break;
 				}
-				case '{':
-				{
+				else if ((cached_LA1=='{')) {
 					mNESTED_ANONYMOUS_TEMPLATE(false);
-					break;
 				}
-				default:
-					if ((tokenSet_4_.member(cached_LA1)))
-					{
-						matchNot('}');
-					}
+				else if ((tokenSet_4_.member(cached_LA1))) {
+					matchNot('}');
+				}
 				else
 				{
 					goto _loop63_breakloop;
 				}
-				break; }
+				
 			}
 _loop63_breakloop:			;
 		}    // ( ... )*
@@ -850,28 +852,28 @@ _loop69_breakloop:			;
 		{    // ( ... )*
 			for (;;)
 			{
-				switch ( cached_LA1 )
+				if ((cached_LA1=='\\') && (cached_LA2=='}'))
 				{
-				case '\\':
-				{
+					int _saveIndex = 0;
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('}');
+				}
+				else if ((cached_LA1=='\\') && ((cached_LA2 >= '\u0003' && cached_LA2 <= '\ufffe'))) {
 					mESC_CHAR(false,false);
-					break;
 				}
-				case '{':
-				{
+				else if ((cached_LA1=='{')) {
 					mNESTED_ANONYMOUS_TEMPLATE(false);
-					break;
 				}
-				default:
-					if ((tokenSet_4_.member(cached_LA1)))
-					{
-						matchNot('}');
-					}
+				else if ((tokenSet_4_.member(cached_LA1))) {
+					matchNot('}');
+				}
 				else
 				{
 					goto _loop73_breakloop;
 				}
-				break; }
+				
 			}
 _loop73_breakloop:			;
 		}    // ( ... )*

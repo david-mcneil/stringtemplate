@@ -322,7 +322,7 @@ EXPR:   ( ESC
     
 protected
 TEMPLATE
-	:	'"' ( ESC | ~'"' )+ '"'
+	:	'"' ( ESC | ~'"' )* '"'
 	|	"<<"
 	 	(options {greedy=true;}:('\r'!)?'\n'! {newline();})? // consume 1st \n
 		(	options {greedy=false;}  // stop when you see the >>
@@ -349,7 +349,7 @@ ESC :   '\\' ('$'|'r'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
 
 protected
 SUBTEMPLATE
-    :    '{' (SUBTEMPLATE|ESC|~'}')+ '}'
+    :    '{' (SUBTEMPLATE|ESC|~'}')* '}'
     ;
     
 protected

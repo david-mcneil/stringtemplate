@@ -49,6 +49,7 @@ namespace Antlr.StringTemplate.Tests
 	using StringTemplateGroup				= Antlr.StringTemplate.StringTemplateGroup;
 	using StringTemplateGroupInterface		= Antlr.StringTemplate.StringTemplateGroupInterface;
 	using AngleBracketTemplateLexer			= Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
+	using DefaultTemplateLexer				= Antlr.StringTemplate.Language.DefaultTemplateLexer;
 	using NUnit.Framework;
 	
 	/// <summary>
@@ -155,11 +156,6 @@ namespace Antlr.StringTemplate.Tests
 				}
 			}
 			public virtual void  Warning(string msg)
-			{
-				n++;
-				errorOutput.Append(msg);
-			}
-			public virtual void  Debug(string msg)
 			{
 				n++;
 				errorOutput.Append(msg);
@@ -472,7 +468,7 @@ namespace Antlr.StringTemplate.Tests
 			WriteFile(TEMPDIR, "testG.stg", templates);
 
 			file1 = new StreamReader(Path.Combine(TEMPDIR, "testG.stg"));
-			StringTemplateGroup group = new StringTemplateGroup(file1, errors);
+			StringTemplateGroup group = new StringTemplateGroup(file1, typeof(DefaultTemplateLexer), errors);
 			StringTemplate st = group.GetInstanceOf("main");
 			st.SetAttribute("x", "foo");
 
@@ -568,7 +564,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "duh() ::= <<" + NL 
 				+ "xx" + NL 
 				+ ">>" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			
 			string expecting = ""
 				+ "group test;" + NL 
@@ -588,6 +584,34 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, b.ToString());
 		}
 		
+		[Test] public void testEscapedTemplateDelimiters()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "t() ::= <<$\"literal\":{a|$a$\\}}$ template\n>>" + NL
+				+ "bold(item) ::= <<<b>$item$</b\\>>>" + NL
+				+ "duh() ::= <<" + NL
+				+ "xx" + NL
+				+ ">>" + NL;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
+
+			string expecting = ""
+				+ "group test;" + NL
+				+ "bold(item) ::= <<<b>$item$</b>>>" + NL
+				+ "duh() ::= <<xx>>" + NL
+				+ "t() ::= <<$\"literal\":{a|$a$\\}}$ template>>" + NL;
+			Assert.AreEqual(expecting, group.ToString());
+
+			StringTemplate b = group.GetInstanceOf("bold");
+			b.SetAttribute("item", "dork");
+			expecting = "<b>dork</b>";
+			Assert.AreEqual(expecting, b.ToString());
+
+			StringTemplate a = group.GetInstanceOf("t");
+			expecting = "literal} template";
+			Assert.AreEqual(expecting, a.ToString());
+		}
+
 		/// <summary>Check syntax and setAttribute-time errors </summary>
 		[Test] public virtual void  testTemplateParameterDecls()
 		{
@@ -661,7 +685,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ @"page() ::= <<$body(font=""Times"")$>>" + NL 
 				+ @"body(font) ::= ""<font face=$font$>my body</font>""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			string expecting = "<font face=Times>my body</font>";
 			Assert.AreEqual(expecting, t.ToString());
@@ -673,7 +697,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ "page(x) ::= <<$body(font=x)$>>" + NL 
 				+ @"body() ::= ""<font face=$font$>my body</font>""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			t.SetAttribute("x", "Times");
 			string error = "";
@@ -695,7 +719,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ @"page(name) ::= <<$name:bold(font=""Times"")$>>" + NL 
 				+ @"bold(font) ::= ""<font face=$font$><b>$it$</b></font>""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			t.SetAttribute("name", "Ter");
 			string expecting = "<font face=Times><b>Ter</b></font>";
@@ -708,7 +732,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ "page(name,x) ::= <<$name:bold(font=x)$>>" + NL 
 				+ @"bold() ::= ""<font face=$font$><b>$it$</b></font>""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			t.SetAttribute("x", "Times");
 			t.SetAttribute("name", "Ter");
@@ -731,7 +755,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ "page() ::= <<$bold()$>>" + NL 
 				+ @"bold() ::= ""$name$""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			string error = "";
 			try
@@ -752,7 +776,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ "page() ::= <<$bold()$>>" + NL 
 				+ @"bold() ::= ""$it$""" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate t = group.GetInstanceOf("page");
 			string error = "";
 			try
@@ -775,7 +799,7 @@ namespace Antlr.StringTemplate.Tests
 				+ @"b(t) ::= ""<t; separator=\"",\"">""" + NL 
 				+ @"c(t) ::= << <t; separator="",""> >>" + NL;
 			// mainly testing to ensure we don't get parse errors of above
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate t = group.GetInstanceOf("a");
 			t.SetAttribute("s", "Test");
 			string expecting = "case 1 : Test break;";
@@ -796,8 +820,7 @@ namespace Antlr.StringTemplate.Tests
 			string templates = ""
 				+ "group test;" + NL
 				+ "a() ::= \"X$@r()$Y\"" + NL;
-			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XY";
@@ -810,7 +833,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL
 				+ "a() ::= \"X$@r$blort$@end$Y\"" + NL;
 			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates));
+				new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XblortY";
@@ -823,7 +846,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL
 				+ "a() ::= \"X<@r()>Y\"" + NL;
 			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+				new StringTemplateGroup(new StringReader(templates));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XY";
@@ -835,9 +858,7 @@ namespace Antlr.StringTemplate.Tests
 			string templates = ""
 				+ "group test;" + NL 
 				+ "a() ::= \"X<@r>blort<@end>Y\"" + NL;
-			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates),
-				typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XblortY";
@@ -853,7 +874,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "<@end>" + NL
 				+ "Y\"" + NL;
 			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+				new StringTemplateGroup(new StringReader(templates));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XblortY";
@@ -866,8 +887,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" + NL 
 				+ "a() ::= \"X<@r()>Y\"" + NL
 				+ "@a.r() ::= \"foo\"" + NL;
-			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate st = group.GetInstanceOf("a");
 			string result = st.ToString();
 			string expecting = "XfooY";
@@ -880,8 +900,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group test;" +NL
 				+ "a(v) ::= \"X<if(v)>A<@r()>B<endif>Y\"" +NL
 				+ "@a.r() ::= \"foo\"" +NL;
-			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate st = group.GetInstanceOf("a");
 			st.SetAttribute("v", "true");
 			string result = st.ToString();
@@ -897,7 +916,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "@a.r() ::= \"foo\"" +NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer), errors);
+				new StringTemplateGroup(new StringReader(templates), errors);
 			StringTemplate st = group.GetInstanceOf("a");
 			st.SetAttribute("v", "true");
 			string result = st.ToString();
@@ -915,9 +934,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group super;" +NL
 				+ "a() ::= \"X<@r()>Y\"" 
 				+ "@a.r() ::= \"foo\"" +NL;
-			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates1), 
-				typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates1));
 
 			string templates2 = ""
 				+ "group sub;" +NL
@@ -940,17 +957,14 @@ namespace Antlr.StringTemplate.Tests
 				+ "group super;" +NL
 				+ "a() ::= \"X<@r()>Y\"" 
 				+ "@a.r() ::= \"foo\"" +NL;
-			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates1),
-				typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates1));
 
 			string templates2 = ""
 				+ "group sub;" +NL
 				+ "@a.r() ::= \"A<@super.r()>B\"" +NL;
 			StringTemplateGroup subGroup = new StringTemplateGroup(
 				new StringReader(templates2),
-				typeof(AngleBracketTemplateLexer),
-				null,
+				(IStringTemplateErrorListener)null,
 				group);
 
 			StringTemplate st = subGroup.GetInstanceOf("a");
@@ -978,9 +992,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "group super;" +NL
 				+ "a() ::= \"X<@r()>Y\"" 
 				+ "@a.r() ::= \"foo\"" +NL;
-			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates1),
-				typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates1));
 
 			string templates2 = ""
 				+ "group sub;" +NL
@@ -1012,15 +1024,14 @@ namespace Antlr.StringTemplate.Tests
 				+ "group super;" +NL
 				+ "a() ::= \"X<@r>foo<@end>Y\""+NL;
 			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates1),
-				typeof(AngleBracketTemplateLexer));
+				new StringReader(templates1));
 
 			string templates2 = ""
 				+ "group sub;" +NL
 				+ "@a.r() ::= \"A<@super.r()>\"" +NL;
 			StringTemplateGroup subGroup = new StringTemplateGroup(
 				new StringReader(templates2),
-				typeof(AngleBracketTemplateLexer),
+				null,		// should default to typeof(AngleBracketTemplateLexer),
 				null,
 				group);
 
@@ -1038,10 +1049,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "a() ::= \"X<@r>dork<@end>Y\"" 
 				+ "@a.r() ::= \"foo\"" +NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates),
-				typeof(AngleBracketTemplateLexer),
-				errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
 			StringTemplate st = group.GetInstanceOf("a");
 			st.ToString();
 			string result = errors.ToString();
@@ -1059,9 +1067,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "@a.r() ::= \"bar\"" +NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup group =
-				new StringTemplateGroup(new StringReader(templates),
-				typeof(AngleBracketTemplateLexer),
-				errors);
+				new StringTemplateGroup(new StringReader(templates), errors);
 			StringTemplate st = group.GetInstanceOf("a");
 			st.ToString();
 			string result = errors.ToString();
@@ -1076,8 +1082,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "a() ::= \"X<@r()>Y\"" 
 				+ "@a.r() ::= \"foo\"" +NL;
 			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates1),
-				typeof(AngleBracketTemplateLexer));
+				new StringReader(templates1));
 
 			string templates2 = ""
 				+ "group sub;" +NL
@@ -1085,10 +1090,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "@a.r() ::= \"bar\"" +NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup subGroup = new StringTemplateGroup(
-				new StringReader(templates2),
-				typeof(AngleBracketTemplateLexer),
-				errors,
-				group);
+				new StringReader(templates2), errors, group);
 
 			StringTemplate st = subGroup.GetInstanceOf("a");
 			string result = errors.ToString();
@@ -1106,7 +1108,6 @@ namespace Antlr.StringTemplate.Tests
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup group = new StringTemplateGroup(
 				new StringReader(templates),
-				typeof(AngleBracketTemplateLexer),
 				errors);
 			StringTemplate st = group.GetInstanceOf("a");
 			st.ToString();
@@ -1131,7 +1132,6 @@ namespace Antlr.StringTemplate.Tests
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup subGroup = new StringTemplateGroup(
 				new StringReader(templates2),
-				typeof(AngleBracketTemplateLexer),
 				errors,
 				group);
 
@@ -1150,6 +1150,7 @@ namespace Antlr.StringTemplate.Tests
 			IStringTemplateErrorListener errors = new ErrorBuffer();
 			StringTemplateGroup group = new StringTemplateGroup(
 				new StringReader(templates),
+				typeof(DefaultTemplateLexer),
 				errors);
 			StringTemplate st = group.GetInstanceOf("a");
 			st.ToString();
@@ -1376,6 +1377,18 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, t.ToString());
 		}
 		
+		[Test] public void testApplyTemplateNameTemplateEval()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("test");
+			StringTemplate foobar = group.DefineTemplate("foobar", "foo$it$bar");
+			StringTemplate a = group.DefineTemplate("a", "$it$bar");
+			StringTemplate t = new StringTemplate(group, "$data:(\"foo\":a())()$");
+			t.SetAttribute("data", "Ter");
+			t.SetAttribute("data", "Tom");
+			string expecting = "fooTerbarfooTombar";
+			Assert.AreEqual(expecting, t.ToString());
+		}
+
 		[Test] public virtual void  testTemplateNameExpression()
 		{
 			StringTemplateGroup group = new StringTemplateGroup("test");
@@ -1726,8 +1739,9 @@ namespace Antlr.StringTemplate.Tests
 		[Test] public virtual void  testApplyAnonymousTemplateToAggregateAttribute()
 		{
 			StringTemplate st = new StringTemplate("$items:{$it.lastName$, $it.firstName$\n}$");
-			st.SetAttribute("items.{firstName,lastName}", "Ter", "Parr");
-			st.SetAttribute("items.{firstName,lastName}", "Tom", "Burns");
+			// also testing wacky spaces and tabs in aggregate spec
+			st.SetAttribute("items.{ firstName,lastName }", "Ter", "Parr");
+			st.SetAttribute("items.{firstName	, lastName}", "Tom", "Burns");
 			string expecting = "Parr, Ter" + NL + "Burns, Tom" + NL;
 			Assert.AreEqual(expecting, st.ToString());
 		}
@@ -2081,7 +2095,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "list(names) ::= <<" + @"  $names; separator=""\n""$" + NL 
 				+ ">>" + NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate t = group.GetInstanceOf("list");
 			t.SetAttribute("names", "Terence");
 			t.SetAttribute("names", "Jim");
@@ -2100,7 +2114,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "list(names) ::= <<" + @"  $names; separator=""\n""$" + NL 
 				+ ">>" + NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate t = group.GetInstanceOf("list");
 			t.SetAttribute("names", "Terence\nis\na\nmaniac");
 			t.SetAttribute("names", "Jim");
@@ -2124,7 +2138,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "list(names) ::= <<" + "  $names$" + NL 
 				+ ">>" + NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate t = group.GetInstanceOf("list");
 			t.SetAttribute("names", "Terence\n\nis a maniac");
 			string expecting = ""
@@ -2142,7 +2156,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "after" + NL 
 				+ ">>" + NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate t = group.GetInstanceOf("list");
 			t.SetAttribute("names", "Terence");
 			t.SetAttribute("names", "Jim");
@@ -2170,7 +2184,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "}" + ">>" + NL 
 				+ "assign(lhs,expr) ::= <<$lhs$=$expr$;>>" + NL;
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate t = group.GetInstanceOf("method");
 			t.SetAttribute("name", "foo");
 			StringTemplate s1 = group.GetInstanceOf("assign");
@@ -2353,7 +2367,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "mybody() ::= <<$font()$stuff>>" + NL 
 				+ "font() ::= <<$if(cond)$this$else$that$endif$>>";
 			IStringTemplateErrorListener errors = new ErrorBuffer();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), errors);
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer), errors);
 			StringTemplate outputST = group.GetInstanceOf("output");
 			StringTemplate bodyST1 = group.GetInstanceOf("mybody");
 			StringTemplate bodyST2 = group.GetInstanceOf("mybody");
@@ -2371,7 +2385,7 @@ namespace Antlr.StringTemplate.Tests
 			string templates = ""
 				+ "group test;" + NL 
 				+ "block(stats) ::= \"<stats>\"" + "ifstat(stats) ::= \"IF true then <stats>\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("block");
 			b.SetAttribute("stats", group.GetInstanceOf("ifstat"));
 			b.SetAttribute("stats", group.GetInstanceOf("ifstat"));
@@ -2391,7 +2405,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "ifstat(stats) ::= \"IF true then <stats>\"" + NL;
 			StringTemplate.LintMode = true;
 			StringTemplate.resetTemplateCounter();
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("block");
 			StringTemplate ifstat = group.GetInstanceOf("ifstat");
 			b.SetAttribute("stats", ifstat); // block has if stat
@@ -2442,7 +2456,7 @@ namespace Antlr.StringTemplate.Tests
 			string templates = ""
 				+ "group test;" + NL 
 				+ "page(name) ::= \"name is <name>\"" + "other ::= page" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("other"); // alias for page
 			b.SetAttribute("name", "Ter");
 			string expecting = "name is Ter";
@@ -2464,7 +2478,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "func(name,args,body) ::= <<" + NL 
 				+ "public void <name>(<args>) {<body>}" + NL 
 				+ ">>" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("Cfile");
 			StringTemplate f1 = group.GetInstanceOf("func");
 			StringTemplate f2 = group.GetInstanceOf("func");
@@ -2545,7 +2559,7 @@ namespace Antlr.StringTemplate.Tests
 				+ ">>" + NL 
 				+ "ind() ::= \"[<it>]\"" + NL;
 			;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate f = group.GetInstanceOf("test");
 			f.SetAttribute("names", "me");
 			f.SetAttribute("names", "you");
@@ -2562,7 +2576,7 @@ namespace Antlr.StringTemplate.Tests
 				+ ">>" + NL 
 				+ "first() ::= \"the first\"" + NL 
 				+ "second() ::= \"the second\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate f = group.GetInstanceOf("test");
 			string expecting = "";
 			Assert.AreEqual(expecting, f.ToString());
@@ -2743,7 +2757,7 @@ namespace Antlr.StringTemplate.Tests
 		{
 			StringTemplateGroup group = new StringTemplateGroup("group");
 			StringTemplate pageST = group.GetInstanceOf("tests/page");
-			StringTemplate listST = group.GetInstanceOf("tests/users.list");
+			StringTemplate listST = group.GetInstanceOf("tests/users_list");
 			// users.list references row.st which has a single blank line at the end.
 			// I.e., there are 2 \n in a row at the end
 			// ST should eat all whitespace at end
@@ -2900,7 +2914,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "stat(name) ::= \"x=y; // <name>\"" + NL;
 			// name is not visible in stat because of the formal arg called name.
 			// somehow, it must be set.
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("method");
 			b.SetAttribute("name", "foo");
 			string expecting = "x=y; // ";
@@ -2965,7 +2979,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "<stat(...)>" + NL 
 				+ ">>" + NL 
 				+ "stat(name,value=\"99\") ::= \"x=<value>; // <name>\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("method");
 			b.SetAttribute("name", "foo");
 			string expecting = "x=99; // foo";
@@ -3044,7 +3058,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "<stat(value={<size>})>" + NL 
 				+ ">>" + NL 
 				+ "stat(value) ::= \"x=<value>;\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("method");
 			b.SetAttribute("name", "foo");
 			b.SetAttribute("size", "34");
@@ -3061,7 +3075,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "$stat(value={$size$})$" + NL 
 				+ ">>" + NL 
 				+ "stat(value) ::= \"x=$value$;\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate b = group.GetInstanceOf("method");
 			b.SetAttribute("name", "foo");
 			b.SetAttribute("size", "34");
@@ -3075,7 +3089,7 @@ namespace Antlr.StringTemplate.Tests
 			string templates = ""
 				+ "group test;" + NL 
 				+ "b(name=\"foo\") ::= \".<name>.\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
 			StringTemplate b = group.GetInstanceOf("b");
 			string expecting = ".foo.";
 			string result = b.ToString();
@@ -3092,6 +3106,41 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, result);
 		}
 		
+		[Test] public void testEmbeddedRendererSeesEnclosing()
+		{
+			// st is embedded in outer; set renderer on outer, st should
+			// still see it.
+			StringTemplate outer = new StringTemplate("X: <x>", typeof(AngleBracketTemplateLexer));
+			StringTemplate st = new StringTemplate("date: <created>", typeof(AngleBracketTemplateLexer));
+			st.SetAttribute("created", new DateTime(2005, 07, 05));
+			outer.SetAttribute("x", st);
+			outer.RegisterAttributeRenderer(typeof(DateTime), new DateRenderer());
+			string expecting = "X: date: 2005.07.05";
+			string result = outer.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void testEmbeddedRendererSeesEnclosing_UsingGroupFile()
+		{
+			string templates = ""
+				+ "group Messages;" + NL
+				+ "PrintMessage(date) ::= <<" + NL
+				+ "Remember this date: $PrintDate(date=date)$" + NL
+				+ ">>" + NL
+				+ "PrintDate(date) ::= <<$date$>>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(DefaultTemplateLexer)
+				);
+			StringTemplate printMessageTemplate = group.GetInstanceOf("PrintMessage");
+			printMessageTemplate.SetAttribute("date", new DateTime(2005, 7, 5));
+			group.RegisterAttributeRenderer(typeof(DateTime), new DateRenderer2());
+			printMessageTemplate.RegisterAttributeRenderer(typeof(DateTime), new DateRenderer());
+			string expecting = "Remember this date: 2005.07.05";
+			string result = printMessageTemplate.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test] public virtual void  testRendererForGroup()
 		{
 			string templates = ""
@@ -3289,7 +3338,35 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, result);
 		}
 		
-		[Test] public virtual void  test8BitEuroChars()
+		[Test] public void testEmptyStringAndEmptyAnonTemplateAsParameterUsingAngleBracketLexer()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "top() ::= <<<x(a=\"\", b={})\\>>>"+ NL
+				+ "x(a,b) ::= \"a=<a>, b=<b>\""+ NL;
+			;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplate a = group.GetInstanceOf("top");
+			string expecting = "a=, b=";
+			string result = a.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public void testEmptyStringAndEmptyAnonTemplateAsParameterUsingDollarLexer()
+		{
+			string templates = ""
+				+ "group test;" + NL
+				+ "top() ::= <<$x(a=\"\", b={})$>>"+ NL
+				+ "x(a,b) ::= \"a=$a$, b=$b$\""+ NL;
+			;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
+			StringTemplate a = group.GetInstanceOf("top");
+			string expecting = "a=, b=";
+			string result = a.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public void  test8BitEuroChars()
 		{
 			StringTemplate e = new StringTemplate("Danish: Å char");
 			e = e.GetInstanceOf();
@@ -3297,7 +3374,7 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, e.ToString());
 		}
 		
-		[Test] public virtual void  testFirstOp()
+		[Test] public void  testFirstOp()
 		{
 			StringTemplate e = new StringTemplate("$first(names)$");
 			e = e.GetInstanceOf();
@@ -3455,11 +3532,73 @@ namespace Antlr.StringTemplate.Tests
 				+ "root(names) ::= \"$other(rest(names))$\""+ NL 
 				+ "other(x) ::= \"$x$, $x$\""+ NL
 				;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate e = group.GetInstanceOf("root");
 			e.SetAttribute("names", "Ter");
 			e.SetAttribute("names", "Tom");
 			string expecting = "Tom, Tom";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		[Test] public void testIncomingLists()
+		{
+			StringTemplate e = new StringTemplate(
+				"$rest(names)$, $rest(names)$" // gets 2nd element
+				);
+			e = e.GetInstanceOf();
+			e.SetAttribute("names", "Ter");
+			e.SetAttribute("names", "Tom");
+			string expecting = "Tom, Tom";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		[Test] public void testIncomingListsAreNotModified()
+		{
+			StringTemplate e = new StringTemplate(
+				"$names; separator=\", \"$" // gets 2nd element
+				);
+			e = e.GetInstanceOf();
+			IList names = new ArrayList();
+			names.Add("Ter");
+			names.Add("Tom");
+			e.SetAttribute("names", names);
+			e.SetAttribute("names", "Sriram");
+			string expecting = "Ter, Tom, Sriram";
+			Assert.AreEqual(expecting, e.ToString());
+
+			Assert.AreEqual(names.Count, 2);
+			Assert.AreEqual(names[0], "Ter");
+			Assert.AreEqual(names[1], "Tom");
+		}
+
+		[Test] public void testIncomingListsAreNotModified2() 
+		{
+			StringTemplate e = new StringTemplate(
+				"$names; separator=\", \"$" // gets 2nd element
+				);
+			e = e.GetInstanceOf();
+			IList names = new ArrayList();
+			names.Add("Ter");
+			names.Add("Tom");
+			e.SetAttribute("names", "Sriram"); // single element first now
+			e.SetAttribute("names", names);
+			string expecting = "Sriram, Ter, Tom";
+			Assert.AreEqual(expecting, e.ToString());
+
+			Assert.AreEqual(names.Count, 2);
+			Assert.AreEqual(names[0], "Ter");
+			Assert.AreEqual(names[1], "Tom");
+		}
+
+		[Test] public void testIncomingArraysAreOk()
+		{
+			StringTemplate e = new StringTemplate(
+				"$names; separator=\", \"$" // gets 2nd element
+				);
+			e = e.GetInstanceOf();
+			e.SetAttribute("names", new String[] {"Ter","Tom"});
+			e.SetAttribute("names", "Sriram");
+			string expecting = "Ter, Tom, Sriram";
 			Assert.AreEqual(expecting, e.ToString());
 		}
 
@@ -3513,6 +3652,21 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, e.ToString());
 		}
 		
+		[ExpectedException(
+			 typeof(InvalidOperationException), 
+			 "no such attribute: it in template context [anonymous anonymous]")
+		]
+		[Test] public void testAnonTemplateWithArgHasNoITArg()
+		{
+			StringTemplate e = new StringTemplate(
+				"$names:{n| $n$:$it$}; separator=\", \"$"
+				);
+			e = e.GetInstanceOf();
+			e.SetAttribute("names", "Ter");
+			e.SetAttribute("names", "Tom");
+			string s = e.ToString();
+		}
+
 		[Test] public virtual void  testFirstWithCatAttribute()
 		{
 			StringTemplate e = new StringTemplate("$first([names,phones])$");
@@ -3686,6 +3840,22 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, e.ToString());
 		}
 		
+		[Test] public void testParallelAttributeIterationHasI()
+		{
+			StringTemplate e = new StringTemplate(
+				"$names,phones,salaries:{n,p,s | $i0$. $n$@$p$: $s$\n}$"
+				);
+			e = e.GetInstanceOf();
+			e.SetAttribute("names", "Ter");
+			e.SetAttribute("names", "Tom");
+			e.SetAttribute("phones", "1");
+			e.SetAttribute("phones", "2");
+			e.SetAttribute("salaries", "big");
+			e.SetAttribute("salaries", "huge");
+			string expecting = "0. Ter@1: big" +  NL + "1. Tom@2: huge" + NL;
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
 		[Test] public virtual void  testParallelAttributeIterationWithDifferentSizes()
 		{
 			StringTemplate e = new StringTemplate("$names,phones,salaries:{n,p,s | $n$@$p$: $s$}; separator=\", \"$");
@@ -3749,7 +3919,7 @@ namespace Antlr.StringTemplate.Tests
 				+ "page(names,phones,salaries) ::= " + NL 
 				+ "	<<$names,phones,salaries:{n,p,s | $value(n)$@$value(p)$: $value(s)$}; separator=\", \"$>>" + NL 
 				+ "value(x=\"n/a\") ::= \"$x$\"" + NL;
-			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate p = group.GetInstanceOf("page");
 			p.SetAttribute("names", "Ter");
 			p.SetAttribute("names", "Tom");
@@ -3868,6 +4038,46 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, t.ToString());
 		}
 
+		[ExpectedException(typeof(ArgumentException))]
+		[Test] public void TestAttributeNameCannotHaveDots()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = new StringTemplate(group, "$user.Name$");
+			t.SetAttribute("user.Name", "Kunle");
+		}
+
+		[Ignore("Should it be possible to directly create STs with dotted names?")]
+		[ExpectedException(typeof(ArgumentException))]
+		[Test] public void TestTemplateNameCannotHaveDots()
+		{
+			StringTemplate t = new StringTemplate("user.name");
+		}
+
+		[ExpectedException(typeof(ArgumentException))]
+		[Test] public void TestTemplateNameCannotHaveDots2()
+		{
+			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
+			StringTemplate t = group.DefineTemplate("user.name", "$person.email$");
+		}
+
+		[Ignore("Should group files allow dotted template names? (Regions may be affected?")]
+		[ExpectedException(typeof(ArgumentException))]
+		[Test] public void TestTemplateNameCannotHaveDots_UsingGroupFile()
+		{
+			string templates = ""
+				+ "group Dotted;" + NL 
+				+ "CreateTable(name) ::= <<" + NL
+				+ "$user.name(a=name, b=name)$" + NL
+				+ ">>" + NL
+				+"user.name(a , b) ::= <<" + NL
+				+ "  $a$" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(DefaultTemplateLexer));
+			StringTemplate st = group.GetInstanceOf("CreateTable");
+		}
+
 		#region Tests for Issues reported by Users
 
 		/// <summary>
@@ -3886,7 +4096,7 @@ namespace Antlr.StringTemplate.Tests
 				+ ">>" + NL
 				;
 			StringTemplateGroup group = new StringTemplateGroup(
-				new StringReader(templates));
+				new StringReader(templates), typeof(DefaultTemplateLexer));
 			StringTemplate createTableTemplate = group.GetInstanceOf("CreateTable");
 			createTableTemplate.SetAttribute("name", "A");
 			string expecting = "  A";
@@ -3910,6 +4120,90 @@ namespace Antlr.StringTemplate.Tests
 			StringTemplate createTableTemplate = group.GetInstanceOf("CreateTable");
 			createTableTemplate.SetAttribute("name", "A");
 			string expecting = "  A";
+			string result = createTableTemplate.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		/// <summary>
+		/// Used to throw a System.ArgumentException("invalid aggregate attribute format:")
+		/// in ParseAggregateAttributeSpec(string, Ilist).
+		/// Reported by: Ulf Dreyer (2006-05-16_14.59)
+		/// </summary>
+		[Test] public virtual void  TestAttributeIsArrayOfDataClass()
+		{
+			string templates = ""
+				+ "group General;" + NL 
+				+ "DisplayData(userList) ::= <<" + NL
+				+ "<userList:{user|<user.Name>, <user.Email>}; separator=\"\\n\">" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate displayDataST= group.GetInstanceOf("DisplayData");
+			UlfUserData[] data = { new UlfUserData("Kunle", "kunle@email.com"),
+									 new UlfUserData("Micheal", "micheal@email.com"),
+									 new UlfUserData("Ulf", "ulf@email.com")
+								 };
+			displayDataST.SetAttribute("userList", data);
+			string expecting = ""
+				+ "Kunle, kunle@email.com\n"
+				+ "Micheal, micheal@email.com\n"
+				+ "Ulf, ulf@email.com"
+				;
+			string result = displayDataST.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		class UlfUserData
+		{
+			string name;
+			string email;
+			public UlfUserData(string name, string email)
+			{
+				this.name  = name;
+				this.email = email;
+			}
+			public string GetName() { return name; }
+			public string GetEmail() { return email; }
+		}
+
+		
+		[Test] public virtual void TestEmptyStringAndEmptyAnonTemplateAsParameterUsingAngleBracketLexer()
+		{
+			string templates = ""
+				+ "group Html;" + NL
+				+ "CreateButton(name) ::= <<" + NL
+				+ "<Button(name=name, id={}, value=\"\")>" + NL
+				+ ">>" + NL
+				+ "Button(name, id, value) ::= <<" + NL
+				+ "\\<input type=\"button\" name=\"<name>\" id=\"<id>\" value=\"<value>\"/>" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(AngleBracketTemplateLexer));
+			StringTemplate createTableTemplate = group.GetInstanceOf("CreateButton");
+			createTableTemplate.SetAttribute("name", "btn");
+			string expecting = "<input type=\"button\" name=\"btn\" id=\"\" value=\"\"/>";
+			string result = createTableTemplate.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test] public virtual void TestEmptyStringAndEmptyAnonTemplateAsParameterUsingDollarLexer()
+		{
+			string templates = ""
+				+ "group Html;" + NL
+				+ "CreateButton(name) ::= <<" + NL
+				+ "$Button(name=name, id={}, value=\"\")$" + NL
+				+ ">>" + NL
+				+ "Button(name, id, value) ::= <<" + NL
+				+ "<input type=\"button\" name=\"$name$\" id=\"$id$\" value=\"$value$\"/>" + NL
+				+ ">>" + NL
+				;
+			StringTemplateGroup group = new StringTemplateGroup(
+				new StringReader(templates), typeof(DefaultTemplateLexer));
+			StringTemplate createTableTemplate = group.GetInstanceOf("CreateButton");
+			createTableTemplate.SetAttribute("name", "btn");
+			string expecting = "<input type=\"button\" name=\"btn\" id=\"\" value=\"\"/>";
 			string result = createTableTemplate.ToString();
 			Assert.AreEqual(expecting, result);
 		}

@@ -47,14 +47,5 @@ namespace Antlr.StringTemplate
 		/// Send a warning message to the Listener.
 		/// </summary>
 		void  Warning(string msg);
-
-		/// <summary>
-		/// Send an error message to the Listener.
-		/// </summary>
-		/// <remarks>
-		/// Warning: Debug() is not useful at the moment.
-		/// </remarks>
-		//[ObsoleteAttribute("This method will be removed in a future version.", false)]
-		void  Debug(string msg);
 	}
 }

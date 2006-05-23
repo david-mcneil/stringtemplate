@@ -31,24 +31,25 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
-	using IList					= System.Collections.IList;
-	using ICollection			= System.Collections.ICollection;
-	using IEnumerator			= System.Collections.IEnumerator;
-	using IDictionary			= System.Collections.IDictionary;
-	using DictionaryEntry		= System.Collections.DictionaryEntry;
-	using ArrayList				= System.Collections.ArrayList;
-	using Hashtable				= System.Collections.Hashtable;
-	using SortedList			= System.Collections.SortedList;
-	using TextReader			= System.IO.TextReader;
-	using TextWriter			= System.IO.TextWriter;
-	using StringBuilder			= System.Text.StringBuilder;
-	using ConstructorInfo		= System.Reflection.ConstructorInfo;
-	using MemberInfo			= System.Reflection.MemberInfo;
-	using DefaultTemplateLexer	= Antlr.StringTemplate.Language.DefaultTemplateLexer;
-	using GroupLexer			= Antlr.StringTemplate.Language.GroupLexer;
-	using GroupParser			= Antlr.StringTemplate.Language.GroupParser;
-	using HashList				= Antlr.StringTemplate.Collections.HashList;
-	using CollectionUtils		= Antlr.StringTemplate.Collections.CollectionUtils;
+	using IList							= System.Collections.IList;
+	using ICollection					= System.Collections.ICollection;
+	using IEnumerator					= System.Collections.IEnumerator;
+	using IDictionary					= System.Collections.IDictionary;
+	using DictionaryEntry				= System.Collections.DictionaryEntry;
+	using ArrayList						= System.Collections.ArrayList;
+	using Hashtable						= System.Collections.Hashtable;
+	using SortedList					= System.Collections.SortedList;
+	using TextReader					= System.IO.TextReader;
+	using TextWriter					= System.IO.TextWriter;
+	using StringBuilder					= System.Text.StringBuilder;
+	using ConstructorInfo				= System.Reflection.ConstructorInfo;
+	using MemberInfo					= System.Reflection.MemberInfo;
+	using DefaultTemplateLexer			= Antlr.StringTemplate.Language.DefaultTemplateLexer;
+	using AngleBracketTemplateLexer		= Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
+	using GroupLexer					= Antlr.StringTemplate.Language.GroupLexer;
+	using GroupParser					= Antlr.StringTemplate.Language.GroupParser;
+	using HashList						= Antlr.StringTemplate.Collections.HashList;
+	using CollectionUtils				= Antlr.StringTemplate.Collections.CollectionUtils;
 	
 	/// <summary>
 	/// Manages a group of named mutually-referential StringTemplate objects.
@@ -210,11 +211,8 @@ namespace Antlr.StringTemplate
 			StringTemplateGroup superGroup)
 		{
 			this.templatesDefinedInGroupFile = true;
-			this.templateLexerClass = lexer;
-			if (errorListener == null)
-				this.errorListener = DEFAULT_ERROR_LISTENER;
-			else
-				this.errorListener = errorListener;
+			this.templateLexerClass = (lexer == null) ? typeof(AngleBracketTemplateLexer) : lexer;
+			this.errorListener = (errorListener == null) ? DEFAULT_ERROR_LISTENER : errorListener;
 			this.superGroup = superGroup;
 			this.templateLoader = new NullTemplateLoader();
 			ParseGroup(r);
@@ -552,6 +550,10 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public virtual StringTemplate DefineTemplate(string name, string template)
 		{
+			if ((name != null) && (name.IndexOf('.') != -1)) 
+			{
+				throw new ArgumentException("cannot have '.' in template names", "name");
+			}
 			StringTemplate st = CreateStringTemplate();
 			st.Name = name;
 			st.Group = this;

@@ -84,6 +84,8 @@
 				<include name="LICENSE.TXT" />
 				<include name="NOTICE.TXT" />
 				<include name="CHANGES.TXT" />
+				<include name="docs/doc.html" />
+				<include name="docs/page.treeview.jpg" />
 			</fileset>
 		</zip>
 	</target>
@@ -101,6 +103,8 @@
 				<include name="LICENSE.TXT" />
 				<include name="NOTICE.TXT" />
 				<include name="CHANGES.TXT" />
+				<include name="docs/doc.html" />
+				<include name="docs/page.treeview.jpg" />
 			</fileset>
 		</zip>
 	</target>
@@ -127,6 +131,8 @@
 				<include name="**/*.st" />
 				<include name="**/*.resx" />
 				<include name="**/*.ico" />
+				<include name="**/*.html" />
+				<include name="**/*.jpg" />
 
 				<include name="${sharedlibrary.dir}/**/*.dll" />
 

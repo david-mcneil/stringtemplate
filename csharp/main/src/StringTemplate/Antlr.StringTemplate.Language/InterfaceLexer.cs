@@ -97,8 +97,8 @@ namespace Antlr.StringTemplate.Language
 			caseSensitiveLiterals = true;
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
-			literals.Add("interface", 4);
 			literals.Add("optional", 7);
+			literals.Add("interface", 4);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException

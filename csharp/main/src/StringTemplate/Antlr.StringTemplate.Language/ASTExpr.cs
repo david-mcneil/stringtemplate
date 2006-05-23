@@ -156,7 +156,7 @@ namespace Antlr.StringTemplate.Language
 				return null; // do not apply if missing templates or empty values
 			}
 			IDictionary argumentContext = null;
-			IList results = new ArrayList();
+			IList results = new StringTemplate.STAttributeList();
 			
 			// convert all attributes to iterators even if just one value
 			for (int a = 0; a < attributes.Count; a++)
@@ -242,9 +242,12 @@ namespace Antlr.StringTemplate.Language
 			// anything iteratable can be used for "APPLY"
 			attributeValue = ConvertAnythingIteratableToIterator(attributeValue);
 			
+			bool isAnonymous;
+			bool hasFormalArgument;
 			if (attributeValue is IEnumerator)
 			{
-				IList resultVector = new ArrayList();
+				// results can be treated list an attribute, indicate ST created list
+				IList resultVector = new StringTemplate.STAttributeList();
 				IEnumerator iter = (IEnumerator) attributeValue;
 				int i = 0;
 				while (iter.MoveNext())
@@ -267,9 +270,16 @@ namespace Antlr.StringTemplate.Language
 					embedded.ArgumentsAST = args;
 
 					argumentContext = new Hashtable();
+					isAnonymous = (embedded.Name == StringTemplate.ANONYMOUS_ST_NAME);
+					IDictionary formalArgs = embedded.FormalArguments;
 					SetSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue);
-					argumentContext[DEFAULT_ATTRIBUTE_NAME] = ithValue;
-					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue;
+					hasFormalArgument = ((formalArgs != null) && (formalArgs.Count > 0));
+					// if it's an anonymous template with a formal arg, don't set it/attr
+					if ( !(isAnonymous && hasFormalArgument) ) 
+					{
+						argumentContext[DEFAULT_ATTRIBUTE_NAME] = ithValue;
+						argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue;
+					}
 					argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = (i + 1);
 					argumentContext[DEFAULT_INDEX0_VARIABLE_NAME] = i;
 					embedded.ArgumentContext = argumentContext;
@@ -297,9 +307,16 @@ namespace Antlr.StringTemplate.Language
 				*/
 				embedded = (StringTemplate) templatesToApply[0];
 				argumentContext = new Hashtable();
+				IDictionary formalArgs = embedded.FormalArguments;
 				SetSoleFormalArgumentToIthValue(embedded, argumentContext, attributeValue);
-				argumentContext[DEFAULT_ATTRIBUTE_NAME] = attributeValue;
-				argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue;
+				isAnonymous = (embedded.Name == StringTemplate.ANONYMOUS_ST_NAME);
+				hasFormalArgument = ((formalArgs != null) && (formalArgs.Count > 0));
+				// if it's an anonymous template with a formal arg, don't set it/attr
+				if ( !(isAnonymous && hasFormalArgument) ) 
+				{
+					argumentContext[DEFAULT_ATTRIBUTE_NAME] = attributeValue;
+					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue;
+				}
 				argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = 1;
 				embedded.ArgumentContext = argumentContext;
 				EvaluateArguments(embedded);
@@ -313,7 +330,7 @@ namespace Antlr.StringTemplate.Language
 			if (formalArgs != null)
 			{
 				string soleArgName = null;
-				bool isAnonymous = embedded.Name.Equals(StringTemplate.ANONYMOUS_ST_NAME);
+				bool isAnonymous = (embedded.Name == StringTemplate.ANONYMOUS_ST_NAME);
 				if (formalArgs.Count == 1 || (isAnonymous && formalArgs.Count > 0))
 				{
 					if (isAnonymous && formalArgs.Count > 1)
@@ -348,15 +365,22 @@ namespace Antlr.StringTemplate.Language
 				return null;
 			}
 			totalObjPropRefs++;
-			object @value = null;
+			object valueObj = null;
             IAttributeStrategy strategy = enclosingTemplate.Group.AttributeStrategy;
             if (strategy != null && strategy.UseCustomGetObjectProperty)
-                @value = strategy.GetObjectProperty(self, o, propertyName);
+                valueObj = strategy.GetObjectProperty(self, o, propertyName);
             else
-                @value = rawGetObjectProperty(self, o, propertyName);
+                valueObj = rawGetObjectProperty(self, o, propertyName);
 			// take care of array properties...convert to a List so we can
 			// apply templates to the elements etc...
-			return @value;
+
+			//TODO: Decide if arrays should be converted to STAttributeList
+//			if (typeof(Array).IsAssignableFrom(valueObj.GetType()))
+//			{
+//				// convert arrays to STAttributeList instances so we know we created these
+//				valueObj = StringTemplate.STAttributeList((ICollection)valueObj);
+//			}
+			return valueObj;
 		}
 
 		protected object rawGetObjectProperty(StringTemplate self, object o, string propertyName) 
@@ -828,7 +852,7 @@ namespace Antlr.StringTemplate.Language
 			}
 			if (iter == null)
 			{
-				IList singleton = new ArrayList(1);
+				IList singleton = new StringTemplate.STAttributeList(1);
 				singleton.Add(o);
 				return singleton.GetEnumerator();
 			}

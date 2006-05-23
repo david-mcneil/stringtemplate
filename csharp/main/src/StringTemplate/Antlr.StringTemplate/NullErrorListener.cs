@@ -52,15 +52,5 @@ namespace Antlr.StringTemplate
 		public void  Warning(string s)
 		{
 		}
-
-		/// <summary>
-		/// Send an error message to the Listener.
-		/// </summary>
-		/// <remarks>
-		/// Warning: Debug() is not useful at the moment.
-		/// </remarks>
-		public void  Debug(string s)
-		{
-		}
 	}
 }

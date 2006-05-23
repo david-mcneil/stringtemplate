@@ -1256,7 +1256,7 @@ _loop38_breakloop:				;
 			Antlr.StringTemplate.Language.StringTemplateAST tmp33_AST = null;
 			tmp33_AST = (Antlr.StringTemplate.Language.StringTemplateAST) astFactory.create(LT(1));
 			match(LPAREN);
-			expr();
+			templatesExpr();
 			if (0 == inputState.guessing)
 			{
 				e_AST = (Antlr.StringTemplate.Language.StringTemplateAST)returnAST;
