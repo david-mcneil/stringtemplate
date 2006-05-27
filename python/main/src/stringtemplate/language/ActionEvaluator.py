@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050419): "eval.g" -> "ActionEvaluator.py"$
+### $ANTLR 2.7.6 (20060527): "eval.g" -> "ActionEvaluator.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -275,13 +275,13 @@ class Walker(antlr.TreeParser):
                     
                 _t = _t21
                 _t = _t.getNextSibling()
-                value = self.chunk.getObjectProperty(self.this,obj,propName)
+                value = self.chunk.getObjectProperty(self.this, obj, propName)
             elif la1 and la1 in [ID]:
                 pass
                 i3 = _t
                 self.match(_t,ID)
                 _t = _t.getNextSibling()
-                value=self.this.getAttribute(i3.getText())
+                value = self.this.getAttribute(i3.getText())
             elif la1 and la1 in [INT]:
                 pass
                 i = _t
@@ -336,7 +336,7 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
                 a1 = _t
                 if not _t:
-                    raise MismatchedTokenException()
+                    raise antlr.MismatchedTokenException()
                 _t = _t.getNextSibling()
                 name=id.getText(); args=a1
             elif la1 and la1 in [VALUE]:
@@ -349,7 +349,7 @@ class Walker(antlr.TreeParser):
                 _t = self._retTree
                 a2 = _t
                 if not _t:
-                    raise MismatchedTokenException()
+                    raise antlr.MismatchedTokenException()
                 _t = _t.getNextSibling()
                 _t = _t8
                 _t = _t.getNextSibling()
@@ -400,7 +400,7 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
                 args = _t
                 if not _t:
-                    raise MismatchedTokenException()
+                    raise antlr.MismatchedTokenException()
                 _t = _t.getNextSibling()
                 templateName = t.getText()
                 group = self.this.getGroup()

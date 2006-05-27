@@ -1,0 +1,5 @@
+group test;
+
+a(s)::= "<s:{case <i>: <it> break;}>"
+b(t)::= "<t; separator=\",\">"
+c(t)::= << <t; separator=","> >>

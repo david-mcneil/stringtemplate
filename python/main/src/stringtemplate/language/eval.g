@@ -165,16 +165,14 @@ attribute returns [value = None]
 }
     :   #( DOT obj=expr
            ( prop:ID { propName = prop.getText() }
-           | #( VALUE e=expr )
+           | #(VALUE e=expr)
              { if e: propName = str(e) }
            )
          )
-        { value = self.chunk.getObjectProperty(self.this,obj,propName) }
+        { value = self.chunk.getObjectProperty(self.this, obj, propName) }
 
     |   i3:ID
-        {
-            value=self.this.getAttribute(i3.getText())
-        }
+        { value = self.this.getAttribute(i3.getText()) }
 
     |   i:INT { value = int(i.getText()) }
 

@@ -180,10 +180,8 @@ class ASTExpr(Expr):
         	except AttributeError, ae:
                     # try for a visible field
                     try:
-                        f = getattr(o, propertyName)
                         try:
-                            value = o.f
-                            return value
+                            return getattr(o, propertyName)
                         except AttributeError, ae2:
                             this.error('Can\'t get property ' + propertyName +
                                        ' using method get/is' + methodSuffix +

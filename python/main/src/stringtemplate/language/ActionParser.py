@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050419): "action.g" -> "ActionParser.py"$
+### $ANTLR 2.7.6 (20060527): "action.g" -> "ActionParser.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -673,7 +673,7 @@ class Parser(antlr.LLkParser):
                 self.match(RPAREN)
                 if not self.inputState.guessing:
                     argList_AST = currentAST.root
-                    argList_AST = self.astFactory.create(ARGS,"ARGS");
+                    argList_AST = self.astFactory.create(ARGS,"ARGS")
                     currentAST.root = argList_AST
                     if (argList_AST != None) and (argList_AST.getFirstChild() != None):
                         currentAST.child = argList_AST.getFirstChild()
