@@ -16,6 +16,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+05-27-2006
+
+o Couldn't use \{ inside of a {...} anonymous template.
+
 05-18-2006
 
 o Fixed: you could not have template expressions, just simple
@@ -592,6 +596,8 @@ o attr is not re-evaluated in template application to a vector--args
   does not work!
 
 #### Wanted features
+
+o we need to be able to wrap lines properly in ST.  We'll need a line width and an indentation option.  Printing 10000 ints would be challenging otherwise.
 
 o Sriram: It might be worth it to spit out usage & coverage analysis of the templates and template fragments (at the "basic block" level). I'd also like a warning if an object is using Object's toString ("Foo@ad34fe"), instead of defining its own.
 
