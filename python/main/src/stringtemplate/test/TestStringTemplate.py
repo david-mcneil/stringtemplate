@@ -4,6 +4,7 @@ import sys
 import os
 import traceback
 import unittest
+import time
 from StringIO import StringIO
 
 import stringtemplate
