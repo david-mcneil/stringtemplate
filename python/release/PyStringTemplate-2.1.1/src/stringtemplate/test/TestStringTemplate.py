@@ -779,6 +779,40 @@ class TestFindTemplateInCurrentDir(unittest.TestCase):
 	self.assertEqual(str(m), expecting)
 
 
+class TestTiming(unittest.TestCase):
+
+    def setUp(self):
+	self.group = stringtemplate.StringTemplateGroup('mygroup', 'templates')
+        self.group.setRootDir('.')
+        self.table = self.group.getInstanceOf('table')
+
+    def runTest(self):
+        s = time.time()
+        for line in range(0,50):
+            cell = self.group.getInstanceOf('cell')
+            cell['data'] = 'X'
+            self.table['cell'] = cell
+	expecting = \
+          "<table>" + os.linesep + \
+          "<tr>" + os.linesep + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + \
+          "<td>X</td><td>X</td><td>X</td><td>X</td><td>X</td>" + os.linesep + \
+          "</tr>" + os.linesep + \
+          "</table>"
+	result = str(self.table)
+        e = time.time()
+	self.assertEqual(result, expecting)
+        self.assert_((e-s) < 1.0)
+
+
 class TestApplyTemplateToSingleValuedAttribute(unittest.TestCase):
 
     def runTest(self):
@@ -2457,6 +2491,7 @@ if __name__ == '__main__':
     suite.addTest(TestMultiValuedAttributeWithAnonymousTemplateUsingIndexVariableI())
     suite.addTest(TestDictAttributeWithAnonymousTemplateUsingKeyVariableIk())
     suite.addTest(TestFindTemplateInCurrentDir())
+    suite.addTest(TestTiming())
     suite.addTest(TestApplyTemplateToSingleValuedAttribute())
     suite.addTest(TestStringLiteralAsAttribute())
     suite.addTest(TestApplyTemplateToSingleValuedAttributeWithDefaultAttribute())

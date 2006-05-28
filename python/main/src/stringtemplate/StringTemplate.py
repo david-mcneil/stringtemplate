@@ -560,7 +560,7 @@ class StringTemplate(object):
                 obj = self.attributes[name]
                 # sys.stderr.write('exists: ' + name + '=' + str(obj) + '\n')
                 if isinstance(obj, list):
-                    v = deepcopy(obj)
+                    v = copy(obj)
                     # make it pt to list now
                     self.rawSetAttribute(self.attributes, name, v)
                     v.append(value)
