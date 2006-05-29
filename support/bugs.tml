@@ -16,6 +16,16 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+05-28-2006
+
+o added auto line wrap facility.  st.toString(72).  Wraps in between
+  chunks or between elements of a multiple value attribute.  Will not
+  break line between element and separator.  Added writeSeparator
+  method to StringTemplateWriter interface.  Updated AutoIndentWriter 
+  big time.  toString(72) followed by toString() does not wrap on the
+  second invocation. Wrap is a soft width; does not break elements.
+  TODO: Need to think about latex \\ breaks and fortran "    c " indents.
+
 05-27-2006
 
 o Couldn't use \{ inside of a {...} anonymous template.
@@ -597,7 +607,7 @@ o attr is not re-evaluated in template application to a vector--args
 
 #### Wanted features
 
-o we need to be able to wrap lines properly in ST.  We'll need a line width and an indentation option.  Printing 10000 ints would be challenging otherwise.
+o TODO: Need to think about latex \\ breaks and fortran "    c " indents.
 
 o Sriram: It might be worth it to spit out usage & coverage analysis of the templates and template fragments (at the "basic block" level). I'd also like a warning if an object is using Object's toString ("Foo@ad34fe"), instead of defining its own.
 
