@@ -18,6 +18,9 @@ StringTemplate Bugs, Requests, Changes
 
 06-02-2006
 
+o Couldn't gen \ in a template.  \<value> in a template escaped the <.
+  \\<value> printed both slashes.  Fixed.
+
 o added line wrap facility.  st.toString(72).  Wraps in between
   expressions or elements of a multiple value attribute if you use
   new expression option "wrap".  It will not break line between
@@ -787,6 +790,16 @@ o allow >>> on end of template in group.  foo ::= <<The <items>>>
 o relative page access ./samedir
 
 #### BUGS
+
+o REALLY slow copying big arrays for ANTLR v3's DFA state tables in
+converting int[] to List.  Create an array iterator for int[] etc...
+Actually not sure it's the copying...still slow after I made ANTLR use
+a List.  Must be just that it's a huge list of stuff.
+
+o doesn't do this wrap 
+public static final String DFA<dfa.decisionNumber>_minS =
+    "<dfa.compressedMin:{v|\\<v>}; wrap="\"+\n\"">";
+no wrap occurs.
 
 o doc add: 2. API and encodings
 
