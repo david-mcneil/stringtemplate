@@ -6,7 +6,7 @@ from StringIO import StringIO
 import stringtemplate
 from ASTExpr import ASTExpr
 
-builtins = ['bool', 'buffer', 'complex', 'dict', 'file', 'float', 'int',
+builtins = ['bool', 'buffer', 'complex', 'dict', 'file', 'float', 'int', 
 	    'list', 'long', 'map', 'object', 'str', 'tuple', 'xrange']
 
 ## This class knows how to recursively walk a StringTemplate and all
@@ -17,7 +17,7 @@ builtins = ['bool', 'buffer', 'complex', 'dict', 'file', 'float', 'int',
 #
 #  I am not using ST itself to print out the text for $attributes$ because
 #  it kept getting into nasty self-recursive loops that made my head really
-#  hurt.  Pretty hard to get ST to print itselt out.  Oh well, it was
+#  hurt.  Pretty hard to get ST to print itself out.  Oh well, it was
 #  a cool thought while I had it.  I just dump raw text to an output buffer
 #  now.  Easier to understand also.
 #
@@ -47,7 +47,7 @@ class AttributeReflectionController(object):
 
     def walkStringTemplate(self, st):
         # make sure the exact ST instance has not been visited
-	if not st or st in self.typesVisited:
+	if (not st) or st in self.typesVisited.values():
             return
         self.typesVisited[st.getName()] = st
         self.indent()

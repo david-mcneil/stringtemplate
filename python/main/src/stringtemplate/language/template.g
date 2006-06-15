@@ -160,17 +160,16 @@ ACTION
     |   "$\\t$"! {$setText('\t'); $setType(LITERAL) }
     |   "$\\ $"! {$setText(' '); $setType(LITERAL) }
     |   COMMENT {$skip}
-    |   (
-        options {
-                generateAmbigWarnings=false; // $EXPR$ is ambig with $endif$ etc...
-                }
-        :       '$'! "if" (' '!)* "(" (~')')+ ")" '$'! {$setType(IF)}
-        ( NL! {$newline})? // ignore any newline right after an IF
-    |   '$'! "else" '$'! {$setType(ELSE)}
-        ( NL! {$newline})? // ignore any newline right after an ELSE
-    |   '$'! "endif" '$'!{$setType(ENDIF)}
-        ( {startCol==1}? NL! {$newline})? // ignore after ENDIF if on line by itself
-    |   '$'! EXPR '$'! // (Can't start with '!', which would mean comment)
+    |   ( // $EXPR$ is ambig with $endif$ etc...
+          options { generateAmbigWarnings=false; }
+        : '$'! "if" (' '!)* "(" IF_EXPR ")" '$'! { $setType(IF) }
+          ( NL! { $newline} )? // ignore any newline right after an IF
+        | '$'! "else" '$'! { $setType(ELSE) }
+          ( NL! { $newline} )? // ignore any newline right after an ELSE
+        | '$'! "endif" '$'! { $setType(ENDIF) }
+          // ignore after ENDIF if on line by itself
+          ( { startCol == 1 }? NL! { $newline } )?
+        | '$'! EXPR '$'! // (Can't start with '!', which would mean comment)
         )
         {
             t = ChunkToken(_ttype, $getText, self.currentIndent)
@@ -180,19 +179,49 @@ ACTION
 
 protected
 NL
-options {
-    generateAmbigWarnings=false; // single '\r' is ambig with '\r' '\n'
-}
-        : '\r'
-        | '\n'
-        | '\r' '\n'
+// single '\r' is ambig with '\r' '\n'
+options { generateAmbigWarnings = false; }
+    :   '\r'
+    |   '\n'
+    |   '\r' '\n'
     ;
 
 protected
-EXPR:   ( ESC
+EXPR
+    :   ( ESC
         | NL {$newline}
         | SUBTEMPLATE
+        | '=' TEMPLATE
+        | '=' SUBTEMPLATE
+        | '=' ~('"'|'<'|'{')
         | ~'$'
+        )+
+    ;
+
+protected
+TEMPLATE
+    :   '"' ( ESC | ~'"' )+ '"'
+    |   "<<"
+        ( options { greedy = true; }
+        : ( '\r'! )? '\n'! { $newline } )? // consume 1st \n
+        ( options { greedy = false; }      // stop when you see the >>
+        : { self.LA(3) == '>' and self.LA(4) == '>' }?
+          '\r'! '\n'! { $newline }         // kill last \r\n
+        | { self.LA(2) == '>' and self.LA(3) == '>' }?
+          '\n'! { $newline }               // kill last \n
+        | ('\r')? '\n' { $newline }        // else keep
+        | .
+        )*
+        ">>"
+    ;
+
+protected
+IF_EXPR
+    :   ( ESC
+        | ( '\r' )? '\n' { $newline }
+        | SUBTEMPLATE
+        | NESTED_PARENS
+        | ~')'
         )+
     ;
 
@@ -206,8 +235,13 @@ SUBTEMPLATE
     ;
 
 protected
+NESTED_PARENS
+    :    '(' ( options { greedy = false; } : NESTED_PARENS | ESC | ~')' )+ ')'
+    ;
+
+protected
 INDENT
-    :   ( options {greedy=true;}: ' ' | '\t')+
+    :   ( options { greedy = true; } : ' ' | '\t' )+
     ;
 
 protected
@@ -216,9 +250,9 @@ COMMENT
     startCol = self.getColumn()
 }
     :   "$!"
-        (       options {greedy=false;}
-        :       NL {$newline}
-        |       .
+        ( options { greedy = false; }
+        : NL { $newline }
+        | .
         )*
-        "!$" ( {startCol == 1}? NL {$newline} )?
+        "!$" ( { startCol == 1 }? NL { $newline } )?
     ;

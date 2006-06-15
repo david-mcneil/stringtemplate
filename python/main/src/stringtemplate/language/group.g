@@ -1,5 +1,6 @@
 
 header {
+from ASTExpr import *
 import stringtemplate
 }
 
@@ -41,12 +42,15 @@ options {
 
 {
     def reportError(self, e):
-        self.error("template parse error", e)
+        if self.group_:
+            self.group_.error("template parse error", e)
+        else:
+            sys.stderr.write("template parse error: " + str(e) + '\n')
 }
 
 group[g]
-        :       "group" name:ID {g.setName(name.getText())} SEMI
-            (template[g])*
+    :   "group" name:ID { g.setName(name.getText()) } SEMI
+        ( template[g] | mapdef[g] )*
     ;
 
 template[g]
@@ -55,27 +59,55 @@ template[g]
     st = None
     ignore = False
 }
-        :       name:ID
-            {
-                if g.isDefinedInThisGroup(name.getText()):
-                    g.error("redefinition of template: " + name.getText())
-                    st = stringtemplate.StringTemplate() // create bogus template to fill in
-                else:
-                    st = g.defineTemplate(name.getText(), None)
-            }
-            LPAREN
-                (args[st] | { st.defineEmptyFormalArgumentList() })
-            RPAREN
-            DEFINED_TO_BE t:TEMPLATE { st.setTemplate(t.getText()) }
-
-        |   alias:ID DEFINED_TO_BE target:ID
-            { g.defineTemplateAlias(alias.getText(), target.getText()) }
-        ;
+    :   name:ID
+        {
+            if g.isDefinedInThisGroup(name.getText()):
+                g.error("redefinition of template: " + name.getText())
+                // create bogus template to fill in
+                st = stringtemplate.StringTemplate()
+            else:
+                st = g.defineTemplate(name.getText(), None)
+        }
+        LPAREN
+        ( args[st] | { st.defineEmptyFormalArgumentList() } )
+        RPAREN
+        DEFINED_TO_BE
+        ( t:STRING { st.setTemplate(t.getText()) }
+        | bt:BIGSTRING { st.setTemplate(bt.getText()) }
+        )
+    |   alias:ID DEFINED_TO_BE target:ID
+        { g.defineTemplateAlias(alias.getText(), target.getText()) }
+    ;
 
 args[st]
-    :   name:ID { st.defineFormalArgument(name.getText()) }
-        (COMMA name2:ID { st.defineFormalArgument(name2.getText()) })*
-        ;
+    :    arg[st] ( COMMA arg[st] )*
+    ;
+
+arg[st]
+{
+    defaultValue = None
+}
+    :   name:ID
+        ( ASSIGN s:STRING
+          {
+              defaultValue = stringtemplate.StringTemplate("$_val_$")
+              defaultValue["_val_"] = s.getText()
+              defaultValue.defineFormalArgument("_val_")
+              defaultValue.setName("<" + st.getName() + "'s arg " + \
+                                   name.getText() + \
+                                   " default value subtemplate>")
+          }
+        | ASSIGN bs:ANONYMOUS_TEMPLATE
+          {
+              defaultValue = stringtemplate.StringTemplate(st.getGroup(), \
+                  bs.getText())
+              defaultValue.setName("<" + st.getName() + "'s arg " + \
+                                   name.getText() + \
+                                   " default value subtemplate>")
+          }
+        )?
+        { st.defineFormalArgument(name.getText(), defaultValue) }
+    ;
 
 // suffix returns [int cardinality=FormalArgument.REQUIRED]
 //     :   OPTIONAL {cardinality=FormalArgument.OPTIONAL;}
@@ -83,6 +115,37 @@ args[st]
 //     |   PLUS     {cardinality=FormalArgument.ONE_OR_MORE;}
 //     |
 //     ;
+
+mapdef[g]
+{
+    m = None
+}
+    :   name:ID
+        DEFINED_TO_BE m=map
+        {
+            if g.getMap(name.getText()):
+                g.error("redefinition of map: " + name.getText())
+            elif g.isDefinedInThisGroup(name.getText()):
+                g.error("redefinition of template as map: " + name.getText())
+            else:
+                g.defineMap(name.getText(), m)
+        }
+    ;
+
+map returns [mapping = {}]
+    :   LBRACK keyValuePair[mapping] ( COMMA keyValuePair[mapping] )* RBRACK
+    ;
+
+keyValuePair[mapping]
+    :    key1:STRING COLON s1:STRING
+         { mapping[key1.getText()] = s1.getText() }
+    |    key2:STRING COLON s2:BIGSTRING
+         { mapping[key2.getText()] = s2.getText() }
+    |    "default" COLON s3:STRING
+         { mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s3.getText() }
+    |    "default" COLON s4:BIGSTRING
+         { mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s4.getText() }
+    ;
 
 class GroupLexer extends Lexer;
 
@@ -94,28 +157,52 @@ options {
 ID      :       ('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-'|'_')*
         ;
 
-TEMPLATE
-        :       '"'! ( '\\'! '"' | '\\' ~'"' | ~'"' )+ '"'!
-        |       "<<"!
-                (options {greedy=true;}: NL! { $newline })? // consume 1st newline
-                (       options {greedy=false;}  // stop when you see the >>
-                :       { self.LA(3)=='>' and self.LA(4)=='>' }? '\r'! '\n'! { $newline } // kill last \r\n
-                |       { self.LA(2)=='>' and self.LA(3)=='>' }? '\n'! { $newline }       // kill last \n
-                |       { self.LA(2)=='>' and self.LA(3)=='>' }? '\r'! { $newline }       // kill last \r
-                |       NL { $newline }                          // else keep
-                |       .
-                )*
+STRING
+    :   '"'! ( '\\'! '"' | '\\' ~'"' | ~'"' )* '"'!
+    ;
+
+BIGSTRING
+    :   "<<"!
+        ( options { greedy = true; }
+          : NL! { $newline } )?       // consume 1st newline
+        ( options { greedy = false; } // stop when you see the >>
+        : { self.LA(3) == '>' and self.LA(4) == '>' }?
+          '\r'! '\n'! { $newline }  // kill last \r\n
+        | { self.LA(2) == '>' and self.LA(3) == '>' }?
+          '\n'! { $newline }        // kill last \n
+        | { self.LA(2) == '>' and self.LA(3) == '>' }?
+          '\r'! { $newline }        // kill last \r
+        | NL { $newline }           // else keep
+        | .
+        )*
         ">>"!
-        ;
+    ;
+
+ANONYMOUS_TEMPLATE
+{
+    args = None
+    t = None
+}
+    :   '{'!
+        ( options { greedy = false; }   // stop when you see the >>
+        : ( '\r' )? '\n' { $newline } // else keep
+        | .
+        )*
+        '}'!
+    ;
 
 LPAREN: '(' ;
 RPAREN: ')' ;
+LBRACK: '[' ;
+RBRACK: ']' ;
 COMMA:  ',' ;
-DEFINED_TO_BE:  "::=" ;
+DEFINED_TO_BE: "::=" ;
 SEMI:   ';' ;
+COLON:  ':' ;
 STAR:   '*' ;
 PLUS:   '+' ;
-OPTIONAL : '?' ;
+ASSIGN: '=' ;
+OPTIONAL: '?' ;
 
 // Single-line comments
 SL_COMMENT
@@ -143,9 +230,9 @@ NL
 options {
     generateAmbigWarnings=false; // single '\r' is ambig with '\r' '\n'
 }
-	: '\r'
-	| '\n'
-	| '\r' '\n'
+        : '\r'
+        | '\n'
+        | '\r' '\n'
     ;
 
 // Whitespace -- ignored

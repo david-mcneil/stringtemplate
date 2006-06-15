@@ -1,4 +1,5 @@
 header {
+from StringTemplateToken import *
 import stringtemplate
 }
 
@@ -23,12 +24,16 @@ options {
 
 tokens {
     APPLY;  // template application
+    MULTI_APPLY;  // parallel array template application
     ARGS;   // subtree is a list of (possibly empty) arguments
     INCLUDE;// isolated template include (no attribute)
     CONDITIONAL="if";
     VALUE;  // used for (foo): #(VALUE foo)
     TEMPLATE;
-}
+    FUNCTION;
+    SINGLEVALUEARG;
+    LIST; // [a,b,c]
+ }
 
 {
     def reportError(self, e):
@@ -46,7 +51,17 @@ optionList! returns [opts = {}]
     ;
 
 templatesExpr
-    :   expr ( c:COLON^ { #c.setType(APPLY) } template (COMMA! template)* )*
+    :   (parallelArrayTemplateApplication)=> parallelArrayTemplateApplication
+    |	expr ( c:COLON^ { #c.setType(APPLY) } template (COMMA! template)* )*
+    ;
+
+parallelArrayTemplateApplication
+    :   expr (COMMA! expr)+ c:COLON anonymousTemplate
+        {
+            #parallelArrayTemplateApplication = \
+                #(#[MULTI_APPLY, "MULTI_APPLY"],
+                  parallelArrayTemplateApplication)
+        }
     ;
 
 ifCondition
@@ -58,7 +73,8 @@ ifAtom
     :   expr
     ;
 
-expr:   primaryExpr (PLUS^ primaryExpr)*
+expr
+    :   primaryExpr (PLUS^ primaryExpr)*
     ;
 
 primaryExpr
@@ -69,7 +85,9 @@ primaryExpr
           )
         )*
     |   (templateInclude) => templateInclude  // (see past parens to arglist)
+    |   function
     |   valueExpr
+    |   list_
     ;
 
 valueExpr
@@ -80,28 +98,22 @@ valueExpr
         }
     ;
 
-/*
-objPropertyRef
-    :   ID
-        ( DOT^
-          ( ID
-          | lp:LPAREN^ expr RPAREN!
-            {
-                #lp.setType(VALUE)
-                #lp.setText("value")
-            }
-          )
-        )+
-    ;
-*/
-
 nonAlternatingTemplateExpr
     :   expr ( c:COLON^ { #c.setType(APPLY) } template )*
     ;
 
+function
+    :   ( "first"
+        | "rest"
+        | "last"
+        )
+        singleArg
+        { #function = #(#[FUNCTION], function) }
+    ;
+
 template
-    :   (   namedTemplate       // foo()
-        |   anonymousTemplate   // {foo}
+    :   ( namedTemplate       // foo()
+        | anonymousTemplate   // {foo}
         )
         { #template = #(#[TEMPLATE],template) }
     ;
@@ -120,6 +132,7 @@ anonymousTemplate
             anonymous.setGroup(self.this.getGroup())
             anonymous.setEnclosingInstance(self.this)
             anonymous.setTemplate(t.getText())
+            anonymous.defineFormalArgument(t.args)
             #t.setStringTemplate(anonymous)
         }
     ;
@@ -128,6 +141,17 @@ atom
     :   ID
     |   STRING
     |   INT
+    |   ANONYMOUS_TEMPLATE
+    ;
+
+list_
+    :   lb:LBRACK^
+        {
+            #lb.setType(LIST)
+            #lb.setText("value")
+        }
+        expr (COMMA! expr)*
+        RBRACK!
     ;
 
 templateInclude
@@ -136,25 +160,30 @@ templateInclude
           { #qid.setText("super."+#qid.getText()) } argList
         | indirectTemplate
         )
-        { #templateInclude = #(#[INCLUDE,"include"], templateInclude) }
+        { #templateInclude = #(#[INCLUDE, "include"], templateInclude) }
     ;
 
-/** Match (foo)() and (foo+".terse")()
- *  breaks encapsulation
- */
+/** Match (foo)() and (foo+".terse")() */
 indirectTemplate!
     :   LPAREN e:expr RPAREN args:argList
-        { #indirectTemplate = #(#[VALUE,"value"],e,args) }
+        { #indirectTemplate = #(#[VALUE, "value"], e, args) }
     ;
 
 argList
-    :!  LPAREN! RPAREN! { #argList = #[ARGS,"ARGS"] }
+    :!  LPAREN! RPAREN! { #argList = #[ARGS,"ARGS"] }  // view()
+    |   (singleArg)=>singleArg // bold(name)
     |   LPAREN! argumentAssignment (COMMA! argumentAssignment)* RPAREN!
-        { #argList = #(#[ARGS,"ARGS"],#argList) }
+        { #argList = #(#[ARGS, "ARGS"], #argList) }
+    ;
+
+singleArg
+    :   LPAREN! nonAlternatingTemplateExpr RPAREN!
+        { #singleArg = #(#[SINGLEVALUEARG, "SINGLEVALUEARG"], #singleArg) }
     ;
 
 argumentAssignment
-    :       ID ASSIGN^ nonAlternatingTemplateExpr
+    :   ID ASSIGN^ nonAlternatingTemplateExpr
+    |   DOTDOTDOT
     ;
 
 
@@ -181,7 +210,34 @@ STRING
     ;
 
 ANONYMOUS_TEMPLATE
-    :   '{'! (ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}')* '}'!
+{
+    args = None
+    t = None
+}
+    :   '{'!
+          ( (TEMPLATE_ARGS)=> args=TEMPLATE_ARGS
+            ( options { greedy = true; } : WS_CHAR! )?
+            {
+                // create a special token to track args
+                t = StringTemplateToken(ANONYMOUS_TEMPLATE, $getText, args)
+                $setToken(t)
+            }
+          | // empty
+          )
+          ( ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )*
+          {
+              if t:
+                  t.setText($getText)
+          }
+        '}'!
+    ;
+
+protected
+TEMPLATE_ARGS returns [args=[]]
+    :!  (WS_CHAR)? a:ID { args.append(a.getText()) }
+        ( options { greedy = true; }
+          : (WS_CHAR)? ',' (WS_CHAR)? a2:ID { args.append(a2.getText()) } )*
+        (WS_CHAR)? '|'
     ;
 
 protected
@@ -204,6 +260,8 @@ ESC_CHAR[doEscape]
         )
     ;
 
+LBRACK : '[' ;
+RBRACK : ']' ;
 LPAREN : '(' ;
 RPAREN : ')' ;
 COMMA  : ',' ;
@@ -213,17 +271,26 @@ COLON  : ':' ;
 PLUS   : '+' ;
 SEMI   : ';' ;
 NOT    : '!' ;
+DOTDOTDOT : "..." ;
 
 WS
     :   ( ' '
         | '\t'
-        | ( options {
-              generateAmbigWarnings=false;
-          }
+        | ( options { generateAmbigWarnings=false; }
           : '\r'
           | '\n'
           | '\r' '\n'
-          ) {$newline}
-        ) {$skip}
+          ) { $newline }
+        ) { $skip }
     ;
 
+protected
+WS_CHAR
+    :   ' '
+    |   '\t'
+    |   ( options { generateAmbigWarnings=false; }
+        : '\r'
+        | '\n'
+        | '\r' '\n'
+        ) { $newline }
+    ;

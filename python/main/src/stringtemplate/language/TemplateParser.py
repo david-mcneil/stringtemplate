@@ -1,4 +1,4 @@
-### $ANTLR 2.7.5 (20050419): "template.g" -> "TemplateParser.py"$
+### $ANTLR 2.7.6 (20060527): "template.g" -> "TemplateParser.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -35,10 +35,13 @@ ELSE = 8
 ENDIF = 9
 NL = 10
 EXPR = 11
-ESC = 12
-SUBTEMPLATE = 13
-INDENT = 14
-COMMENT = 15
+TEMPLATE = 12
+IF_EXPR = 13
+ESC = 14
+SUBTEMPLATE = 15
+NESTED_PARENS = 16
+INDENT = 17
+COMMENT = 18
 
 
 ###/** A parser used to break up a single template into chunks, text literals
@@ -165,8 +168,11 @@ _tokenNames = [
     "ENDIF", 
     "NL", 
     "EXPR", 
+    "TEMPLATE", 
+    "IF_EXPR", 
     "ESC", 
     "SUBTEMPLATE", 
+    "NESTED_PARENS", 
     "INDENT", 
     "COMMENT"
 ]

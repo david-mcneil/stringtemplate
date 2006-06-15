@@ -1,0 +1,242 @@
+<HTML>
+<HEAD>
+<body bgcolor=#FFFFFF text=#000000>
+<title>StringTemplate 2.2 Release Notes</title>
+</HEAD>
+<BODY>
+<H1>StringTemplate 2.2 Release Notes</H1>
+
+
+<P>Brought to you by that maniac that brings you the
+<A HREF="http://www.antlr.org"><B> ANTLR parser generator</B></A>!
+</P>
+
+<P>Terence Parr <BR>
+University of San Francisco <BR>
+<TT>parrt@cs.usfca.edu</TT> <BR>
+<em>Copyright 2003-2006</em> <BR>
+<A HREF="http://www.stringtemplate.org"><B>http://www.stringtemplate.org</B></A> <BR>
+(StringTemplate released under BSD License)
+</P>
+
+<P>Python version created by</P>
+
+<P>Marq Kole <BR>
+<TT>marq.kole at xs4all.nl</TT> <BR>
+<em>Copyright 2003-2006</em> <BR>
+</P>
+
+<P>Version 2.2, June 15, 2006</P>
+
+<P>2.2 is the third full release of the Python version of StringTemplate. It
+is functionally equivalent to the Java StringTemplate version 2.2. Release 2.2
+fixes a few bugs, but mainly 2.2 adds lots of great new features.
+The features were added in response to my needs building ANTLR v3's
+code generator and from feedback by StringTemplate users.
+</P>
+
+<P>2.2 should be a drop-in replacement for those using <TT>StringTemplate</TT>
+for websites and code generation with a few minor potential
+incompatibilities.
+</P>
+
+<H2>Enhancements</H2>
+
+<UL>
+<LI>You can define arguments for anonymous templates now, which is much
+nicer that using <TT>it</TT> all the time:
+
+<FONT SIZE=2><PRE>
+$names:{n| &lt;b&gt;$n$&lt;/b&gt;&lt;br&gt;}; separator=","$
+</PRE></FONT>
+
+
+</LI>
+<LI>added parallel attribute iteration where you can apply a template to
+multiple lists of values; works for anonymous templates only:
+
+<FONT SIZE=2><PRE>
+$names,phones:{n,p | $n$: $p$}$
+</PRE></FONT>
+
+An error is generated if you have too many args for the number of
+parallel lists.  Iteration proceeds while at least one of the
+attributes (<TT>names</TT> or <TT>phones</TT>, in this case) has values.
+</LI>
+<LI>added "[a,b,c,...]" list operator to create multi-valued attributes,
+yielding single, longer multi-valued attribute.  <TT>$[mine,yours]$</TT> is a
+new list with both elements; all of <TT>mine</TT> first then all of <TT>yours</TT>.
+</LI>
+<LI>any template invocation assumes sole formal argument name if just
+one formal argument defined in target template.  For example, if you
+do <TT>$bold(name)$</TT> and <TT>bold</TT> has one formal argument, then it gets the
+value of name.  This works also for template application:
+
+<FONT SIZE=2><PRE>
+test(names) ::= "&lt;names:bold(),italics()&gt;"
+bold(x) ::= "*&lt;x&gt;*"
+italics(y) ::= "_&lt;y&gt;_"
+</PRE></FONT>
+
+
+<B>Note</B>: The binding of a value to the name of a sole formal argument is
+done dynamically so that indirect template invocation and lazy
+evaluation stuff works properly.  For example <TT>(templateName)(value)</TT>
+should work for different templates with differently-named (but sole)
+formal arguments.  See unit test
+<TT>TestInvokeIndirectTemplateWithSingleFormalArgs()</TT>.
+</LI>
+
+<LI>Added operators to get first, rest, last attribute elements; e.g.,
+<TT>first(users)</TT> yields the first value of <TT>users</TT>.  <TT>rest(users)</TT>
+returns all elements of <TT>users</TT> except the first; it returns nothing
+if <TT>users</TT> is single-valued.  This introduces a function-like syntax,
+which necessitated the "<em>assign to sole formal arg</em>" functionality
+above that supports things like <TT>bold(name)</TT>.  You can combine
+operations to say things like <TT>first(rest(names))</TT> to get second
+element.  Can say <TT>first([mine,yours])</TT> to get the first of a combined
+list.  These operators work on any iterable object.  [<em>backward
+incompatible if you used first,last,tail as an attribute or template
+name</em>]
+</LI>
+
+<LI>Added maps to StringTemplate groups.  For example,
+
+<FONT SIZE=2><PRE>
+typeInitMap ::= ["int"="0", "float"="0.0", default="null"]
+</PRE></FONT>
+
+
+then within a template you can refer to them <TT>&lt;typeInitMap.int&gt;</TT>,
+which returns "0".  Those strings are actually templates, but I can't
+really think of a use for that just yet! If your type name is an
+attribute not a constant like int, then use
+<TT>&lt;typeInitMap.(typeName)&gt;</TT>.  The maps are defined in the group's
+scope and are visible if no attribute hides them.  For example, if you
+define a formal argument called <TT>typeInitMap</TT> in template <TT>foo</TT>
+then <TT>foo</TT> cannot see the map defined in the group (though you could
+pass it in, which would be the point).  If a name is not an attribute and
+it's not in the group's maps table, then the super group is consulted
+etc...  You may not redefine a map and it may not have the same name
+as a template in that group.  The <TT>default</TT> value is used if you use a
+key as a property that doesn't exist.  For example <TT>&lt;typeInitMap.foo&gt;</TT>
+returns "<TT>null</TT>".
+</LI>
+
+<LI>Added renderers per template and group.  Templates are inherited
+from super group.  The new class <TT>AttributeRenderer</TT> defines how an
+object is rendered to string.  Here is a renderer that 
+renders <TT>Calendar</TT> date objects tersely.
+
+<FONT SIZE=2><PRE>
+import stringtemplate
+import date from datetime
+
+class DateRenderer(stringtemplate.AttributeRenderer):
+
+    def str(self, o):
+        return o.strftime("%Y.%m.%d")
+
+...
+
+st = stringtemplate.StringTemplate( \
+		"date: &lt;created&gt;", \
+		stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+st["created"] = date(year=2005, month=7, day=5)
+st.registerRenderer(date, DateRenderer())
+expecting = "date: 2005.07.05"
+</PRE></FONT>
+
+
+You can set the renderer for a class either at the group level or the
+individual template level.  Thanks to Anton Keks for his suggestion and sample
+implementation.
+</LI>
+
+<LI>template arguments can be anonymous templates now or simple strings.
+  From the bug list:
+
+<FONT SIZE=2><PRE>
+Template inclusion expressions won't accept a nested template
+as an argument.  I'd like to be able to write &lt;foo(bar={...})&gt;, which
+would mean the same thing as &lt;foo(bar="":{...})&gt;.
+</PRE></FONT>
+
+
+Now you can do <TT>&lt;foo(bar={&lt;firstName&gt; &lt;lastName&gt;</TT>)&gt;}.
+</LI>
+<LI>added default values (strings or anonymous templates like explicit
+template arguments) for formal arguments like
+
+<FONT SIZE=2><PRE>
+bold(x="empty") ::= ...
+</PRE></FONT>
+
+<B>Note:</B> because of lazy evaluation semantics, default value templates may
+refer to argument values.  Everything is evaluated after arg values are set.
+This works for invoked templates and templates you create with code.
+</LI>
+
+<LI>when calling another template, y, with formal arguments from within
+a template, x, none of the x parameters are visible to y because the formal
+parameters force you to define values.  This prevents surprises and makes it
+easy to ensure a value is empty unless you specifically set it for that
+template.  The problem is that you need to factor templates sometimes and want
+to refine behavior with a subclass or just invoke another shared template but
+<TT>&lt;y()&gt;</TT> erases all of x's parameters.  Now, use
+<TT>&lt;y(...)&gt;</TT> as a syntax to indicate y should inherit all values.
+<TT>&lt;y(name="foo", ...)&gt;</TT> would set one arg, but the others are
+inherited whereas <TT>&lt;y(name="foo")&gt;</TT> only has <TT>name</TT> set;
+others are empty. You can set manually with
+<TT>stringtemplate.StringTemplate.setPassThroughAttributes()</TT>.
+</LI>
+
+<LI>When a property or argument is not found, you get a better error message.
+I show the template context (nested tree of templates); e.g.,
+
+<FONT SIZE=2><PRE>
+no such attribute: decisionNumber in template context
+[outputFile lexer cyclicDFA cyclicDFAState cyclicDFAEdge lookaheadTest]
+</PRE></FONT>
+
+</LI>
+
+<LI>added ability to use indirect property names.  <TT>$user.(propName)$</TT>
+evaluates <TT>(propName)</TT> to find the name of the property and then looks
+it up in user object whereas <TT>$user.foo$</TT> looks for literally property
+<TT>foo</TT> in <TT>user</TT> object.
+</LI>
+
+</UL>
+
+<H2>Bug Fixes</H2>
+
+<UL>
+
+<LI>fields that were arrays didn't get treated as iterable objects
+</LI>
+
+<LI>When you invoke foo(x=y), x must be an attribute of foo (well if you
+have formal args defined that is) and y is evaluated within the
+context of the surrounding template; more precisely, it's evaluated in
+the context of the actual template invocation (which can have
+predefined attributes like <TT>attr</TT>, <TT>it</TT>, and <TT>i</TT>).  It's
+weird, but <TT>foo(x=x)</TT> also makes sense.  See new unit test
+<TT>TestArgEvaluationContext()</TT>.  This was not working before, though I
+thought it was!
+</LI>
+
+<LI>Lists, dictionaries, and tuples that are non-null but have no elements
+return false in conditionals; e.g., $if(users)$ is false if users is an empty
+list. This is regular Python behaviour but wasn't in the StringTemplate
+language.
+</LI>
+
+<LI>To define an empty template, you had to write &lt;&lt;&gt;&gt;; an empty
+string (&quot;&quot;) didn't work.
+</LI>
+
+</UL>
+
+</BODY>
+</HTML>

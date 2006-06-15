@@ -1,5 +1,7 @@
 import sys
 
+import stringtemplate
+
 ## Represents the name of a formal argument
 #  defined in a template:
 #
@@ -32,16 +34,14 @@ class FormalArgument(object):
     #
     UNKNOWN = {}
 
-    def __init__(self, name):
+    def __init__(self, name, defaultValueST = None):
         self.name = name
         # self.cardinality = REQUIRED
+	## If they specified name="value", store the template here
+	#
+	self.defaultValueST = defaultValueST
 
-    def getName(self):
-        return self.name
-
-    def setName(self, name):
-        self.name = name
-
+    @staticmethod
     def getCardinalityName(cardinality):
         if cardinality == FormalArgument.OPTIONAL:
 	    return 'optional'
@@ -53,10 +53,13 @@ class FormalArgument(object):
 	    return 'one-or-more'
         else:
 	    return 'unknown'
-    getCardinalityName = staticmethod(getCardinalityName)
 
     def __str__(self):
-        return self.getName()
+        if self.defaultValueST:
+	    return self.name + '=' + str(defaultValueST)
+        return self.name
+
+    __repr__ = __str__
 
 # Set class data attribute values.
 FormalArgument.OPTIONAL = 1
