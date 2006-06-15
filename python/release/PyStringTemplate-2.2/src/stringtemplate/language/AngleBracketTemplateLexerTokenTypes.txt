@@ -1,0 +1,17 @@
+// $ANTLR 2.7.6 (20060527): angle.bracket.template.g -> AngleBracketTemplateLexerTokenTypes.txt$
+AngleBracketTemplateLexer    // output token vocab name
+LITERAL=4
+NEWLINE=5
+ACTION=6
+IF=7
+ELSE=8
+ENDIF=9
+NL=10
+EXPR=11
+TEMPLATE=12
+IF_EXPR=13
+ESC=14
+SUBTEMPLATE=15
+NESTED_PARENS=16
+INDENT=17
+COMMENT=18
