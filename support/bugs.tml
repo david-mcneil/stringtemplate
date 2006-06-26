@@ -2,7 +2,7 @@ StringTemplate Bugs, Requests, Changes
 
 #### Releases
 
-2.3: Summer 2006
+2.3: July ?? 2006
 
 2.2: August 5, 2005
 
@@ -15,6 +15,38 @@ StringTemplate Bugs, Requests, Changes
 1.0.2: Oct 14, 2003
 
 #### Fixed bugs and changes
+
+06-24-2006
+
+o template evaluation for anonymous templates did not properly look up
+overridden templates.  The group for anonymous templates was not reset
+to be the current enclosing template's group (remember we can dynamically
+set the superGroup).
+
+06-20-2006
+
+o Signature changed to use AttributeRenderer: 
+public void registerRenderer(Class attributeClassType,
+                             AttributeRenderer renderer)
+
+06-19-2006
+
+o If expr in <(expr):template()> evaluated to nothing, the template was
+  still invoked.
+
+06-12-2006
+
+o added ability to show start/stop of template with <name>...</name>.
+clean up!  emitTemplateStartDebugString/emitTemplateStopDebugString
+and doNotEmitDebugStringsForTemplate(tempaltename) and
+gate:emitDebugStartStopStrings(boolean)
+
+06-03-2006
+
+o Improved error when property ref causes the error internally.  Now shows
+that exception rather than invocation target exception.
+
+o Couldn't handle List<int[]>.  Nested int[] was not iteratable.
 
 06-02-2006
 
@@ -649,6 +681,8 @@ o attr is not re-evaluated in template application to a vector--args
   does not work!
 
 #### Wanted features
+
+o <trunc(names)> to get all but last
 
 o LINE WRAP THOUGHTS
 Need to think about latex \\ breaks and fortran "    c " indents.
