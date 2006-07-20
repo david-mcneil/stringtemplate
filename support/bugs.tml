@@ -16,6 +16,51 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+07-20-2006
+
+o BACKWARD INCOMPATIBLE: I had to make a more clear distinction
+between empty and null.  Null means there is nothing there whereas
+empty means the value is there but renders to an empty string.  IF
+conditionals now evaluate to empty if condition is false.
+
+o BACKWARD INCOMPATIBLE: Changed how separators are generated.  Now I
+generate a separator for any non-null value in the list even if that
+value is a conditional that evaluates to false.  Iterated empty values
+always get a separator.  Note that empty is not the same thing as
+missing.  "" is not missing and hence will get a separator.
+
+This made the ASTExpr.write separator computation much simpler and
+allowed me to properly handle the new "null" option.
+
+o Added null=expr option on expressions.
+
+For null values in iterated attributes and single attributes that are
+null, use this value instead of skipping.  For single valued
+attributes like <name; null="n/a">
+
+It's a shorthand for
+
+<if(name)><name><else>n/a<endif>
+
+For iterated values
+
+<values; null="0", separator=",">
+
+you get 0 for or null list values.  Works for template application
+like this also:
+
+<values:{v| <v>}; null="0">
+
+This does not replace empty strings like "" as they are not null.
+
+07-11-2006
+
+o made static maps in STG synchronized, also synchronized the look
+up/def methods for templates in STG.
+
+o removed reflection property lookup; too complex for value. profiling
+  indicates it's a small cost.  No thread synch issues either now.
+
 06-24-2006
 
 o template evaluation for anonymous templates did not properly look up
