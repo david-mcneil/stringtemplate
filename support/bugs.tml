@@ -16,6 +16,49 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+08-14-2006
+
+o added toString to Aggregate so that setAttribute("foo.{x,y}", ...) and
+  then referencing foo in isolation prints something useful.
+
+08-09-2006
+
+o had to fix that:
+
+		InputStream is = cl.getResourceAsStream(fileName);
+		if ( is==null ) {
+			cl = ErrorManager.class.getClassLoader();
+			is = cl.getResourceAsStream(fileName);
+		}
+
+08-07-2006
+
+o allow different source of classloader:
+ClassLoader cl = Thread.currentThread().getContextClassLoader();
+if ( cl==null ) {
+    cl = this.getClass().getClassLoader();
+}
+
+07-26-2006
+
+o fixed bug where separator did not appear in lists of stuff with lots
+of null entries.
+
+o map still iterates over values if you say <aMap> but it is now
+shorthand for <aMap.values>.  Similarly <aMap.keys> walks over the keys.  You can do stuff like: <aMap.keys:{k| <k> maps to <aMap.k>}>.
+
+07-24-2006
+
+o added length(attribute) thanks to Kay Roepke.  For now it does not
+work on strings; it works on attributes so length("foo") is 1 meaning
+1 attribute.  Nulls are counted in lists so a list of 300 nulls is
+length 300.  If you don't want to count nulls, use
+length(strip(list)).
+
+o added strip(attribute) that returns an iterator that
+skips any null values.  strip(x)=x when x is a single-valued
+attribute.  Added StripIterator to handle this.
+
 07-20-2006
 
 o BACKWARD INCOMPATIBLE: I had to make a more clear distinction
