@@ -617,8 +617,11 @@ class StringTemplate(object):
                 if isinstance(obj, list):
                     v = deepcopy(obj) # MK: Do we need deepcopy here?
                     # make it pt to list now
-                    self.rawSetAttribute(self.attributes, name, v)
-                    v.append(value)
+                    #self.rawSetAttribute(self.attributes, name, v)
+                    #v.append(value)
+                    # do a shallow copy
+                    self.rawSetAttribute(self.attributes, name, obj)
+                    obj.append(value)
 
                 else:
                     # second attribute, must convert existing to list
