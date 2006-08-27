@@ -819,14 +819,6 @@ Andrew.Goodnough@wicourts.gov. We can also change default behavior
 such that no match returns the key.  Use default:"" to generate
 nothing upon default.
 
-o cache Method object look up for property look up; could save lots of
-time.  Find the email reference in the archive.  He got like 25% speed
-improvement.
-
-o should we allow length of an attribute?  Sure. <names.length> or
-something.  We could even test the length against an int w/o violating
-the rules I think.  If size==1, you may want to do something different.
-
 o should we create a template group interface so that I can define the
  set of all templates an ANTLR code generator can/must supply?  Can this help
  the website related stuff to allow argument spec?  How do we handle
@@ -846,18 +838,6 @@ but not remove args just like instance vars?
 
 o should be able to alias regions so positiveClosure is same as Closure
 
-o We need to be able to walk maps as maps not lists.  Maps are ok as
-it's a data relationship not a type.  Have to use $m.key$ and $m.value$
-rather than $map:\{key,value|...}$ as it breaks idea of parallel list 
-walking that args must match number of lists to walk.  Maybe this:
-<<
-$map:{m|$m.key$ $m.value$}$
-$map$ -> keys
-$map.keys$
-$map.values$
-$map.bob$
->>
-
 o add note in doc about no dots in filenames.  and Thread safety:
 (nothing about this subject in the docs, what we think ...)
 StringTemplate is not thread safe, use StringTemplate.getInstanceOf()
@@ -872,25 +852,10 @@ not testing values, just combining logic, it *should* be ok vis-a-vis
 my model-view separation principles.  Still don't allow testing of
 values.
 
-o I think that a length operator of an attribute is reasonable in ST
-and *possibly* reasonable to compare against.  Technically it's not a
-function *of* the data, just about the data. :)  A length operator
-actually isn't useful unless you can test it to wrap.  Certainly one
-should be able to ask questions about the size/shape of data.
-
 o truncate operators for strings (useful for html).  Perhaps a
 template with special name like <description:trunc(n="30")> or
 <trunc(item=description, n="30")>.  What if they want special
 truncators that don't truncate in the middle of a word?
-
-o make iteration of a HashMap create key/value aggregate so people can do this:
-<<
-<dl>
-$map:{  <dt>$it.key$</dt>
-   <dd>$it.value$</dd>
-}$</dl>
->>
-TJP: use $map:{key,value | $key$:$value$}$
 
 o It seems that the line numbers in parser error messages are relative to
 the template rather than the file.  This is a bit of a nuisance.
@@ -1095,10 +1060,6 @@ yields this:
     
                                                         }
 
-
-10-5-2004
-
-David Scurrah: lots of newline issues in testing.
 
 09-03-2004:
 
