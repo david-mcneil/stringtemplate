@@ -174,13 +174,14 @@ o Updated StringTemplateWriter:
 
 o Examples of wrapping:
 
-data(a) ::= <<int[] a = { 1,9,2,<values; wrap, separator=","> };>>
+<<
+data(a) ::= <<int[] a = { 1,9,2,<values; wrap, separator=","> };\>>
 
 int[] a = { 1,9,2,3,9,20,2,1,4,
 6,32,5,6,77,888,2,1,6,32,5,6,77,
 4,9,20,2,1,4,63,9,20,2,1,4,6 };
 
-data(a) ::= <<int[] a = { 1,9,2,<values; wrap, anchor, separator=","> };>>
+data(a) ::= <<int[] a = { 1,9,2,<values; wrap, anchor, separator=","> };\>>
 int[] a = { 1,9,2,3,9,20,2,1,4,
                   6,32,5,6,77,
                   888,2,1,6,32,
@@ -188,16 +189,17 @@ int[] a = { 1,9,2,3,9,20,2,1,4,
                   2,1,4,63,9,20,
                   2,1,4,6 };
 
-data(a) ::= <<int[] a = { <{1,9,2,<values; wrap, separator=",">}; anchor> };>>
+data(a) ::= <<int[] a = { <{1,9,2,<values; wrap, separator=",">}; anchor> };\>>
 int[] a = { 1,9,2,3,9,20,2,1,4,
             6,32,5,6,77,888,2,
             1,6,32,5,6,77,4,9,
             20,2,1,4,63,9,20,2,
             1,4,6 };
+>>
 
 05-27-2006
 
-o Couldn't use \{ inside of a {...} anonymous template.
+o Couldn't use \\\{ inside of a {...} anonymous template.
 
 05-18-2006
 
@@ -241,7 +243,7 @@ creating group so polymorphism works properly.
 
 04-07-2006
 
-o <...> is now default delimiter for group files.  BREAKS BACKWARD COMPAT!
+o BACKWARD INCOMPATIBLE: <...> is now default delimiter for group files.
 
 04-01-2006
 
@@ -330,10 +332,10 @@ another template which was also overridden; didn't call the overridden method.
 Fixed getInstanceOf() so that it always sets the proper group so polymorphic
 template lookup also starts at the right group.
 
-Test testLazyEvalOfSuperInApplySuperTemplateRef was wrong...The "super." 
-prefix is (like in Java, ...) a scope override and is always evaluated relative
-to the template in which it was defined not the template in which it is
-evaluate!
+Test testLazyEvalOfSuperInApplySuperTemplateRef was wrong...The
+"super."  prefix is (like in Java, ...) a scope override and is always
+evaluated relative to the template in which it was defined not the
+template in which it is evaluate!
 
 Ugh.  I *think* I have this polymorphism nailed down now.
 
