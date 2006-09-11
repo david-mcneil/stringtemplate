@@ -30,29 +30,23 @@ popd
 
 find . -name '*~' -exec rm {} \;
 
-# WAIT!  MAKE COPY FIRST!!!!
+cd ..
+cp -r release-3.0 /tmp/stringtemplate-3.0
+pushd /tmp/stringtemplate-3.0/
 chmod -R +w *
 
-# remove *.iml !
-
-# make doc and push
-cd doc
-p4 edit doc.html
-tmlcss doc
-scp doc.tml parrt@antlr.org:/var/data/magenta/resources/doc
-
-# make API and push
+find . -name '*.iml' -exec rm {} \;
 
 # make tarball (next time name release stringtemplate-2.3b7 dir)
-cd ~/antlr/code/stringtemplate/java
-cp -r release-2.3 /tmp/stringtemplate-2.3b7
 pushd /tmp
-tar cvfz stringtemplate-2.3b7.tar.gz stringtemplate-2.3b7
+tar cvfz stringtemplate-3.0.tar.gz stringtemplate-3.0
 
 # push
-scp stringtemplate-2.3b7.tar.gz parrt@antlr.org:/var/data/lime/resources/download
+scp stringtemplate-3.0.tar.gz parrt@antlr.org:/var/data/lime/resources/download
 
 # push bugs
 pushd ~/antlr/code/stringtemplate/support
 scp bugs.tml parrt@antlr.org:/var/data/magenta/resources    
 
+# push api
+scp -r /tmp/stdoc/api parrt@antlr.org:/var/data/magenta/resources/doc
