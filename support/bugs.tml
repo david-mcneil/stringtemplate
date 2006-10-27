@@ -16,6 +16,10 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+09-25-2006
+
+o ST.dup() was not copying renderers field.
+
 September 6 -- 3.0 release
 
 08-14-2006
