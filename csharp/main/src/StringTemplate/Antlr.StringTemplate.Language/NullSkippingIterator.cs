@@ -1,6 +1,6 @@
 /*
 [The "BSD licence"]
-Copyright (c) 2005 Kunle Odutola
+Copyright (c) 2005-2006 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -31,56 +31,66 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate.Language
 {
 	using System;
-	using StringTemplate	= Antlr.StringTemplate.StringTemplate;
-	using AST				= antlr.collections.AST;
-	using CommonAST			= antlr.CommonAST;
-	using ASTNodeCreator	= antlr.ASTNodeCreator;
-	
-	public class StringTemplateAST : CommonAST
+	using IEnumerator = System.Collections.IEnumerator;
+	using StringBuilder = System.Text.StringBuilder;
+
+	/// <summary>
+	/// An IEnumerator adapter that skips all null values.
+	/// </summary>
+	public sealed class NullSkippingIterator : IEnumerator
 	{
-		new public static readonly StringTemplateAST.StringTemplateASTCreator Creator = new StringTemplateASTCreator();
+		/// <summary>IEnumerator instance being wrapped/adapted</summary>
+		private IEnumerator innerEnumerator;
+		private bool hasCurrent = false;
 
-		public StringTemplateAST() 
+		public NullSkippingIterator(IEnumerator enumerator)
 		{
+			this.innerEnumerator = enumerator;
 		}
 
-		public StringTemplateAST(int type, string text)
+		public object Current
 		{
-			this.Type = type;
-			this.setText(text);
-		}
-
-		virtual public StringTemplate StringTemplate
-		{
-			get { return st; }
-			set { this.st = value; }
-		}
-
-		protected StringTemplate st = null; // track template for ANONYMOUS blocks
-
-		public class StringTemplateASTCreator : ASTNodeCreator
-		{
-			public StringTemplateASTCreator() {}
-
-			/// <summary>
-			/// Returns the fully qualified name of the AST type that this
-			/// class creates.
-			/// </summary>
-			public override string ASTNodeTypeName
+			get
 			{
-				get 
-				{ 
-					return typeof(StringTemplateAST).FullName;; 
-				}
+				if (!hasCurrent)
+					throw new InvalidOperationException("Enumeration not started or already finished.");
+				return innerEnumerator.Current;
 			}
+		}
 
-			/// <summary>
-			/// Constructs a <see cref="AST"/> instance.
-			/// </summary>
-			public override AST Create()
+		public bool MoveNext()
+		{
+			while (innerEnumerator.MoveNext())
 			{
-				return new StringTemplateAST();
+				// skip nulls
+				if (innerEnumerator.Current == null)
+					continue;
+				else
+					return (hasCurrent = true);
 			}
+			return (hasCurrent = false);
+		}
+
+		/// <summary>
+		/// The result of asking for the string of an iterator is the list of elements
+		/// and so this is just the cat'd list of both elements.  This is destructive
+		/// in that the iterator cursors have moved to the end after printing.
+		/// </summary>
+		public override string ToString()
+		{
+			StringBuilder buf = new StringBuilder();
+			//this.Reset();
+			while (this.MoveNext())
+			{
+				buf.Append(this.Current);
+			}
+			return buf.ToString();
+		}
+
+		public void Reset()
+		{
+			hasCurrent = false;
+			innerEnumerator.Reset();
 		}
 	}
 }

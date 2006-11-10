@@ -96,7 +96,7 @@ namespace Antlr.StringTemplate
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
 		public StringTemplateGroup LoadGroup(string groupName) 
 		{
-			return LoadGroup(groupName, null);
+			return LoadGroup(groupName, null, null);
 		}
 
 		/// <summary>
@@ -110,17 +110,34 @@ namespace Antlr.StringTemplate
 		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
 		/// <param name="superGroup">Super group</param>
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
-		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup) 
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup)
+		{
+			return LoadGroup(groupName, superGroup, null);
+		}
+
+		/// <summary>
+		/// Loads the named StringTemplateGroup instance with the specified super 
+		/// group from somewhere. Configure to use specified lexer.
+		/// </summary>
+		/// <remarks>
+		/// Groups with region definitions must know their supergroup to find 
+		/// templates during parsing.
+		/// </remarks>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <param name="superGroup">Super group</param>
+		/// <param name="lexer">Type of lexer to use to break up templates into chunks</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup, Type lexer)
 		{
 			StringTemplateGroup group = null;
 			try
 			{
 				Stream groupStream = assembly.GetManifestResourceStream(namespaceRoot + "." + groupName + ".stg");
-				group = factory.CreateGroup(new StreamReader(groupStream), typeof(DefaultTemplateLexer), errorListener, superGroup);
+				group = factory.CreateGroup(new StreamReader(groupStream), lexer, errorListener, superGroup);
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
-				Error("Resource Error: can't load group '" +namespaceRoot+"."+groupName+ ".stg' from assembly '" +assembly.FullName+ "'", ex);
+				Error("Resource Error: can't load group '" + namespaceRoot + "." + groupName + ".stg' from assembly '" + assembly.FullName + "'", ex);
 			}
 			return group;
 		}

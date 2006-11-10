@@ -70,29 +70,31 @@ namespace Antlr.StringTemplate.Language
 		public const int SEMI = 14;
 		public const int LPAREN = 15;
 		public const int RPAREN = 16;
-		public const int LITERAL_separator = 17;
-		public const int ASSIGN = 18;
-		public const int COMMA = 19;
+		public const int COMMA = 17;
+		public const int ID = 18;
+		public const int ASSIGN = 19;
 		public const int COLON = 20;
 		public const int NOT = 21;
 		public const int PLUS = 22;
-		public const int ID = 23;
-		public const int LITERAL_super = 24;
-		public const int DOT = 25;
-		public const int LITERAL_first = 26;
-		public const int LITERAL_rest = 27;
-		public const int LITERAL_last = 28;
-		public const int ANONYMOUS_TEMPLATE = 29;
-		public const int STRING = 30;
-		public const int INT = 31;
-		public const int LBRACK = 32;
-		public const int RBRACK = 33;
-		public const int DOTDOTDOT = 34;
-		public const int TEMPLATE_ARGS = 35;
-		public const int NESTED_ANONYMOUS_TEMPLATE = 36;
-		public const int ESC_CHAR = 37;
-		public const int WS = 38;
-		public const int WS_CHAR = 39;
+		public const int LITERAL_super = 23;
+		public const int DOT = 24;
+		public const int LITERAL_first = 25;
+		public const int LITERAL_rest = 26;
+		public const int LITERAL_last = 27;
+		public const int LITERAL_length = 28;
+		public const int LITERAL_strip = 29;
+		public const int LITERAL_trunc = 30;
+		public const int ANONYMOUS_TEMPLATE = 31;
+		public const int STRING = 32;
+		public const int INT = 33;
+		public const int LBRACK = 34;
+		public const int RBRACK = 35;
+		public const int DOTDOTDOT = 36;
+		public const int TEMPLATE_ARGS = 37;
+		public const int NESTED_ANONYMOUS_TEMPLATE = 38;
+		public const int ESC_CHAR = 39;
+		public const int WS = 40;
+		public const int WS_CHAR = 41;
 		
 		
     public class NameValuePair {
@@ -220,22 +222,15 @@ namespace Antlr.StringTemplate.Language
 				_t = __t4;
 				_t = _t.getNextSibling();
 				
-				StringWriter buf = new StringWriter();
-				Type writerClass = @out.GetType();
-				IStringTemplateWriter sw = null;
-				try {
-				ConstructorInfo ctor =
-					writerClass.GetConstructor(new Type[] {typeof(TextWriter)});
-				sw = (IStringTemplateWriter)ctor.Invoke(new Object[] {buf});
-				}
-				catch (Exception exc) {
-					// default new AutoIndentWriter(buf)
-					self.Error("cannot make implementation of IStringTemplateWriter",exc);
-					sw = new AutoIndentWriter(buf);
-					}
-				chunk.WriteAttribute(self,e,sw);
-				value = buf.ToString();
-				
+					        StringWriter buf = new StringWriter();
+					        IStringTemplateWriter sw = self.Group.CreateInstanceOfTemplateWriter(buf);
+					        int n = chunk.WriteAttribute(self,e,sw);
+							if (n > 0)
+							{
+					        	value = buf.ToString();
+					
+					        }
+						
 				break;
 			}
 			default:
@@ -625,6 +620,36 @@ _loop19_breakloop:					;
 					value=chunk.Last(a);
 					break;
 				}
+				case LITERAL_length:
+				{
+					Antlr.StringTemplate.Language.StringTemplateAST tmp14_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+					match((AST)_t,LITERAL_length);
+					_t = _t.getNextSibling();
+					a=singleFunctionArg(_t);
+					_t = retTree_;
+					value=chunk.Length(a);
+					break;
+				}
+				case LITERAL_strip:
+				{
+					Antlr.StringTemplate.Language.StringTemplateAST tmp15_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+					match((AST)_t,LITERAL_strip);
+					_t = _t.getNextSibling();
+					a=singleFunctionArg(_t);
+					_t = retTree_;
+					value=chunk.Strip(a);
+					break;
+				}
+				case LITERAL_trunc:
+				{
+					Antlr.StringTemplate.Language.StringTemplateAST tmp16_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+					match((AST)_t,LITERAL_trunc);
+					_t = _t.getNextSibling();
+					a=singleFunctionArg(_t);
+					_t = retTree_;
+					value=chunk.Trunc(a);
+					break;
+				}
 				default:
 				{
 					throw new NoViableAltException(_t);
@@ -660,7 +685,7 @@ _loop19_breakloop:					;
 		
 		try {      // for error handling
 			AST __t6 = _t;
-			Antlr.StringTemplate.Language.StringTemplateAST tmp14_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp17_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,LIST);
 			_t = _t.getFirstChild();
 			{ // ( ... )+
@@ -720,7 +745,7 @@ _loop8_breakloop:				;
 		
 		try {      // for error handling
 			AST __t26 = _t;
-			Antlr.StringTemplate.Language.StringTemplateAST tmp15_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp18_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,TEMPLATE);
 			_t = _t.getFirstChild();
 			{
@@ -754,6 +779,9 @@ _loop8_breakloop:				;
 					_t = _t.getNextSibling();
 					
 					StringTemplate anonymous = anon.StringTemplate;
+					// to properly see overridden templates, always set
+					// anonymous' group to be self's group
+									anonymous.Group = self.Group;
 					templatesToApply.Add(anonymous);
 					
 					break;
@@ -761,7 +789,7 @@ _loop8_breakloop:				;
 				case VALUE:
 				{
 					AST __t28 = _t;
-					Antlr.StringTemplate.Language.StringTemplateAST tmp16_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+					Antlr.StringTemplate.Language.StringTemplateAST tmp19_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 					match((AST)_t,VALUE);
 					_t = _t.getFirstChild();
 					n=expr(_t);
@@ -813,7 +841,7 @@ _loop8_breakloop:				;
 		
 		try {      // for error handling
 			AST __t24 = _t;
-			Antlr.StringTemplate.Language.StringTemplateAST tmp17_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp20_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,SINGLEVALUEARG);
 			_t = _t.getFirstChild();
 			value=expr(_t);
@@ -853,8 +881,8 @@ _loop8_breakloop:				;
 			case VALUE:
 			case FUNCTION:
 			case LIST:
-			case PLUS:
 			case ID:
+			case PLUS:
 			case DOT:
 			case ANONYMOUS_TEMPLATE:
 			case STRING:
@@ -868,7 +896,7 @@ _loop8_breakloop:				;
 			case NOT:
 			{
 				AST __t30 = _t;
-				Antlr.StringTemplate.Language.StringTemplateAST tmp18_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp21_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,NOT);
 				_t = _t.getFirstChild();
 				a=expr(_t);
@@ -923,7 +951,7 @@ _loop8_breakloop:				;
 			case ARGS:
 			{
 				AST __t36 = _t;
-				Antlr.StringTemplate.Language.StringTemplateAST tmp19_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp22_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ARGS);
 				_t = _t.getFirstChild();
 				{    // ( ... )*
@@ -991,7 +1019,7 @@ _loop38_breakloop:					;
 			case ASSIGN:
 			{
 				AST __t42 = _t;
-				Antlr.StringTemplate.Language.StringTemplateAST tmp20_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp23_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,ASSIGN);
 				_t = _t.getFirstChild();
 				arg = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
@@ -1010,7 +1038,7 @@ _loop38_breakloop:					;
 			}
 			case DOTDOTDOT:
 			{
-				Antlr.StringTemplate.Language.StringTemplateAST tmp21_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+				Antlr.StringTemplate.Language.StringTemplateAST tmp24_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 				match((AST)_t,DOTDOTDOT);
 				_t = _t.getNextSibling();
 				embedded.PassThroughAttributes = true;
@@ -1045,7 +1073,7 @@ _loop38_breakloop:					;
 		
 		try {      // for error handling
 			AST __t40 = _t;
-			Antlr.StringTemplate.Language.StringTemplateAST tmp22_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
+			Antlr.StringTemplate.Language.StringTemplateAST tmp25_AST_in = (_t==ASTNULL) ? null : (Antlr.StringTemplate.Language.StringTemplateAST)_t;
 			match((AST)_t,SINGLEVALUEARG);
 			_t = _t.getFirstChild();
 			e=expr(_t);
@@ -1119,18 +1147,20 @@ _loop38_breakloop:					;
 		@"""SEMI""",
 		@"""LPAREN""",
 		@"""RPAREN""",
-		@"""separator""",
-		@"""ASSIGN""",
 		@"""COMMA""",
+		@"""ID""",
+		@"""ASSIGN""",
 		@"""COLON""",
 		@"""NOT""",
 		@"""PLUS""",
-		@"""ID""",
 		@"""super""",
 		@"""DOT""",
 		@"""first""",
 		@"""rest""",
 		@"""last""",
+		@"""length""",
+		@"""strip""",
+		@"""trunc""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""STRING""",
 		@"""INT""",
@@ -1146,7 +1176,7 @@ _loop38_breakloop:					;
 	
 	private static long[] mk_tokenSet_0_()
 	{
-		long[] data = { 3804244656L, 0L};
+		long[] data = { 15053630128L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_0_ = new BitSet(mk_tokenSet_0_());

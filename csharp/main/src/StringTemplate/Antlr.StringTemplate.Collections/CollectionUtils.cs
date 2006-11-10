@@ -109,5 +109,37 @@ namespace Antlr.StringTemplate.Collections
 
 			return sb.ToString();
 		}
+
+		/// <summary>
+		/// Tests whether an IEnumerator is "empty", leaving IEnumerator at same position
+		/// </summary>
+		/// <param name="enumerator">IEnumerator instance to test</param>
+		/// <returns>True if enumerator is empty, false otherwise</returns>
+		public static bool IsEmptyEnumerator(IEnumerator enumerator)
+		{
+			try
+			{
+				object o = enumerator.Current;
+				return false;
+			}
+			catch (InvalidOperationException)
+			{
+				// We are either at the start of a collection or, lumbered with an invalid enumerator
+				try
+				{
+					if (enumerator.MoveNext())
+					{
+						// put it back to start of list
+						enumerator.Reset();
+						return false;
+					}
+				}
+				catch (InvalidOperationException)
+				{
+					// lumbered with a dead duck
+				}
+			}
+			return true;
+		}
 	}
 }

@@ -106,6 +106,16 @@ namespace Antlr.StringTemplate.Language
 			else
 			{
 				ArrayList list = new ArrayList();
+				//try
+				//{
+				//    object o = enumerator.Current;
+				//    list.Add(o);
+				//}
+				//catch (InvalidOperationException)
+				//{
+				//    // Just means there's no current object
+				//}
+
 				while (enumerator.MoveNext())
 				{
 					list.Add(enumerator.Current);

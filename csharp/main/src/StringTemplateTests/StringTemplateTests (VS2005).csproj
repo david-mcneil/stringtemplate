@@ -119,6 +119,6 @@
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>MKDIR $(TargetDir)\tests
-XCPOPY $(ProjectDir)\TestInput\*.st $(TargetDir)\tests /Y /C</PostBuildEvent>
+XCOPY $(ProjectDir)\TestInput\*.st $(TargetDir)\tests /Y /C</PostBuildEvent>
   </PropertyGroup>
 </Project>

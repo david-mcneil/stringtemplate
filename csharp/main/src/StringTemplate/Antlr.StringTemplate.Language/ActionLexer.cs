@@ -76,29 +76,31 @@ namespace Antlr.StringTemplate.Language
 		public const int SEMI = 14;
 		public const int LPAREN = 15;
 		public const int RPAREN = 16;
-		public const int LITERAL_separator = 17;
-		public const int ASSIGN = 18;
-		public const int COMMA = 19;
+		public const int COMMA = 17;
+		public const int ID = 18;
+		public const int ASSIGN = 19;
 		public const int COLON = 20;
 		public const int NOT = 21;
 		public const int PLUS = 22;
-		public const int ID = 23;
-		public const int LITERAL_super = 24;
-		public const int DOT = 25;
-		public const int LITERAL_first = 26;
-		public const int LITERAL_rest = 27;
-		public const int LITERAL_last = 28;
-		public const int ANONYMOUS_TEMPLATE = 29;
-		public const int STRING = 30;
-		public const int INT = 31;
-		public const int LBRACK = 32;
-		public const int RBRACK = 33;
-		public const int DOTDOTDOT = 34;
-		public const int TEMPLATE_ARGS = 35;
-		public const int NESTED_ANONYMOUS_TEMPLATE = 36;
-		public const int ESC_CHAR = 37;
-		public const int WS = 38;
-		public const int WS_CHAR = 39;
+		public const int LITERAL_super = 23;
+		public const int DOT = 24;
+		public const int LITERAL_first = 25;
+		public const int LITERAL_rest = 26;
+		public const int LITERAL_last = 27;
+		public const int LITERAL_length = 28;
+		public const int LITERAL_strip = 29;
+		public const int LITERAL_trunc = 30;
+		public const int ANONYMOUS_TEMPLATE = 31;
+		public const int STRING = 32;
+		public const int INT = 33;
+		public const int LBRACK = 34;
+		public const int RBRACK = 35;
+		public const int DOTDOTDOT = 36;
+		public const int TEMPLATE_ARGS = 37;
+		public const int NESTED_ANONYMOUS_TEMPLATE = 38;
+		public const int ESC_CHAR = 39;
+		public const int WS = 40;
+		public const int WS_CHAR = 41;
 		
 		public ActionLexer(Stream ins) : this(new ByteBuffer(ins))
 		{
@@ -122,11 +124,13 @@ namespace Antlr.StringTemplate.Language
 			setCaseSensitive(true);
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
 			literals.Add("if", 8);
-			literals.Add("separator", 17);
-			literals.Add("rest", 27);
-			literals.Add("last", 28);
-			literals.Add("first", 26);
-			literals.Add("super", 24);
+			literals.Add("rest", 26);
+			literals.Add("last", 27);
+			literals.Add("length", 28);
+			literals.Add("strip", 29);
+			literals.Add("trunc", 30);
+			literals.Add("first", 25);
+			literals.Add("super", 23);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException
@@ -372,11 +376,11 @@ tryAgain:
 				}
 				default:
 				{
-					goto _loop50_breakloop;
+					goto _loop54_breakloop;
 				}
 				 }
 			}
-_loop50_breakloop:			;
+_loop54_breakloop:			;
 		}    // ( ... )*
 		_ttype = testLiteralsTable(_ttype);
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -393,7 +397,7 @@ _loop50_breakloop:			;
 		_ttype = INT;
 		
 		{ // ( ... )+
-			int _cnt53=0;
+			int _cnt57=0;
 			for (;;)
 			{
 				if (((cached_LA1 >= '0' && cached_LA1 <= '9')))
@@ -402,12 +406,12 @@ _loop50_breakloop:			;
 				}
 				else
 				{
-					if (_cnt53 >= 1) { goto _loop53_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt57 >= 1) { goto _loop57_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				
-				_cnt53++;
+				_cnt57++;
 			}
-_loop53_breakloop:			;
+_loop57_breakloop:			;
 		}    // ( ... )+
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -438,11 +442,11 @@ _loop53_breakloop:			;
 				}
 				else
 				{
-					goto _loop56_breakloop;
+					goto _loop60_breakloop;
 				}
 				
 			}
-_loop56_breakloop:			;
+_loop60_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match('"');
@@ -540,11 +544,11 @@ _loop56_breakloop:			;
 		match('{');
 		text.Length = _saveIndex;
 		{
-			bool synPredMatched60 = false;
+			bool synPredMatched64 = false;
 			if (((tokenSet_1_.member(cached_LA1)) && (tokenSet_2_.member(cached_LA2))))
 			{
-				int _m60 = mark();
-				synPredMatched60 = true;
+				int _m64 = mark();
+				synPredMatched64 = true;
 				inputState.guessing++;
 				try {
 					{
@@ -553,12 +557,12 @@ _loop56_breakloop:			;
 				}
 				catch (RecognitionException)
 				{
-					synPredMatched60 = false;
+					synPredMatched64 = false;
 				}
-				rewind(_m60);
+				rewind(_m64);
 				inputState.guessing--;
 			}
-			if ( synPredMatched60 )
+			if ( synPredMatched64 )
 			{
 				args=mTEMPLATE_ARGS(false);
 				{
@@ -596,8 +600,14 @@ _loop56_breakloop:			;
 		{    // ( ... )*
 			for (;;)
 			{
-				if ((cached_LA1=='\\') && (cached_LA2=='}'))
+				if ((cached_LA1=='\\') && (cached_LA2=='{'))
 				{
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('{');
+				}
+				else if ((cached_LA1=='\\') && (cached_LA2=='}')) {
 					_saveIndex = text.Length;
 					match('\\');
 					text.Length = _saveIndex;
@@ -614,11 +624,11 @@ _loop56_breakloop:			;
 				}
 				else
 				{
-					goto _loop63_breakloop;
+					goto _loop67_breakloop;
 				}
 				
 			}
-_loop63_breakloop:			;
+_loop67_breakloop:			;
 		}    // ( ... )*
 		if (0==inputState.guessing)
 		{
@@ -761,11 +771,11 @@ _loop63_breakloop:			;
 				}
 				else
 				{
-					goto _loop69_breakloop;
+					goto _loop73_breakloop;
 				}
 				
 			}
-_loop69_breakloop:			;
+_loop73_breakloop:			;
 		}    // ( ... )*
 		{
 			switch ( cached_LA1 )
@@ -852,8 +862,15 @@ _loop69_breakloop:			;
 		{    // ( ... )*
 			for (;;)
 			{
-				if ((cached_LA1=='\\') && (cached_LA2=='}'))
+				if ((cached_LA1=='\\') && (cached_LA2=='{'))
 				{
+					int _saveIndex = 0;
+					_saveIndex = text.Length;
+					match('\\');
+					text.Length = _saveIndex;
+					match('{');
+				}
+				else if ((cached_LA1=='\\') && (cached_LA2=='}')) {
 					int _saveIndex = 0;
 					_saveIndex = text.Length;
 					match('\\');
@@ -871,11 +888,11 @@ _loop69_breakloop:			;
 				}
 				else
 				{
-					goto _loop73_breakloop;
+					goto _loop77_breakloop;
 				}
 				
 			}
-_loop73_breakloop:			;
+_loop77_breakloop:			;
 		}    // ( ... )*
 		match('}');
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
@@ -1060,7 +1077,7 @@ _loop73_breakloop:			;
 		_ttype = WS;
 		
 		{ // ( ... )+
-			int _cnt90=0;
+			int _cnt94=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -1091,12 +1108,12 @@ _loop73_breakloop:			;
 				}
 				default:
 				{
-					if (_cnt90 >= 1) { goto _loop90_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt94 >= 1) { goto _loop94_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt90++;
+				_cnt94++;
 			}
-_loop90_breakloop:			;
+_loop94_breakloop:			;
 		}    // ( ... )+
 		if (0==inputState.guessing)
 		{

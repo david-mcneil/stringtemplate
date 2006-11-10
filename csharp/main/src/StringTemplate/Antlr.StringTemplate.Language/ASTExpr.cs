@@ -91,9 +91,58 @@ namespace Antlr.StringTemplate.Language
 		// Used to indicate "default:key" in maps within groups
 		public static readonly StringTemplate MAP_KEY_VALUE = new StringTemplate();
 
+		/// <summary>
+		/// Using an expr option w/o value, makes options table hold EMPTY_OPTION
+		/// value for that key.
+		/// </summary>
+	public static readonly string EMPTY_OPTION = "empty expr option";
+
+	public static readonly IDictionary defaultOptionValues = new HybridDictionary();
+
 		// used temporarily for checking obj.prop cache
 		public static int totalObjPropRefs = 0;
 		public static int totalReflectionLookups = 0;
+
+		protected AST exprTree = null;
+
+		/// <summary>store separator etc... </summary>
+		private IDictionary options = null;
+
+		/// <summary>
+		/// A cached value of wrap=expr from the <![CDATA[<...>]]> expression.
+		/// Computed in Write(StringTemplate, IStringTemplateWriter) and used
+		/// in WriteAttribute.
+		/// </summary>
+		string wrapString = null;
+
+		/// <summary>
+		/// For null values in iterated attributes and single attributes that
+		/// are null, use this value instead of skipping.
+		/// 
+		/// For single valued
+		/// attributes like <![CDATA[<name; null="n/a">]]> it's a shorthand for
+		/// <![CDATA[<if(name)><name><else>n/a<endif>]]>
+		/// 
+		/// For iterated values <![CDATA[<values; null="0", separator=",">]]>, 
+		/// you get 0 for for null list values.  
+		/// 
+		/// Works for template application like: 
+		/// <![CDATA[<values:{v| <v>}; null="0">]]> also.
+		/// </summary>
+		string nullValue = null;
+
+		/// <summary>
+		/// A cached value of separator=expr from the <![CDATA[<...>]]> expression.
+		/// Computed in Write(StringTemplate, IStringTemplateWriter) and used in
+		/// WriteAttribute.
+		/// </summary>
+		string separatorString = null;
+
+		static ASTExpr()
+		{
+			defaultOptionValues.Add("anchor", new StringTemplateAST(ActionEvaluator.STRING, "true"));
+			defaultOptionValues.Add("wrap",   new StringTemplateAST(ActionEvaluator.STRING, "\n"));
+		}
 
 		public ASTExpr(StringTemplate enclosingTemplate, AST exprTree, IDictionary options)
 			: base(enclosingTemplate)
@@ -110,15 +159,16 @@ namespace Antlr.StringTemplate.Language
 			get { return exprTree; }
 		}
 		
-		protected AST exprTree = null;
-		
-		/// <summary>store separator etc... </summary>
-		private IDictionary options = null;
-		
 		/// <summary>
 		/// To write out the value of an ASTExpr, invoke the evaluator in eval.g
 		/// to walk the tree writing out the values.  For efficiency, don't
 		/// compute a bunch of strings and then pack them together.  Write out directly.
+		/// 
+		/// Compute separator and wrap expressions, save as strings so we don't
+		/// recompute for each value in a multi-valued attribute or expression.
+		/// 
+		/// If they set anchor option, then inform the writer to push current
+		/// char position.
 		/// </summary>
 		public override int Write(StringTemplate self, IStringTemplateWriter output)
 		{
@@ -127,7 +177,13 @@ namespace Antlr.StringTemplate.Language
 				return 0;
 			}
 			output.PushIndentation(Indentation);
-			//System.out.println("evaluating tree: "+exprTree.toStringList());
+			// handle options, anchor, wrap, separator...
+			StringTemplateAST anchorAST = (StringTemplateAST)GetOption("anchor");
+			if (anchorAST != null)	// any non-empty expr means true; check presence
+			{
+				output.PushAnchorPoint();
+			}
+			HandleExprOptions(self);
 			ActionEvaluator eval = new ActionEvaluator(self, this, output);
 			ActionParser.initializeASTFactory(eval.getASTFactory());
 			int n = 0;
@@ -140,9 +196,32 @@ namespace Antlr.StringTemplate.Language
 				self.Error("can't evaluate tree: " + exprTree.ToStringList(), re);
 			}
 			output.PopIndentation();
+			if (anchorAST != null)
+			{
+				output.PopAnchorPoint();
+			}
 			return n;
 		}
-		
+
+		private void HandleExprOptions(StringTemplate self)
+		{
+			StringTemplateAST wrapAST = (StringTemplateAST)GetOption("wrap");
+			if (wrapAST != null)
+			{
+				wrapString = EvaluateExpression(self, wrapAST);
+			}
+			StringTemplateAST nullValueAST = (StringTemplateAST)GetOption("null");
+			if (nullValueAST != null)
+			{
+				nullValue = EvaluateExpression(self, nullValueAST);
+			}
+			StringTemplateAST separatorAST = (StringTemplateAST)GetOption("separator");
+			if (separatorAST != null)
+			{
+				separatorString = EvaluateExpression(self, separatorAST);
+			}
+		}
+
 		// HELP ROUTINES CALLED BY EVALUATOR TREE WALKER
 		
 		/// <summary>
@@ -240,6 +319,7 @@ namespace Antlr.StringTemplate.Language
 			
 			// normalize collections and such to use iterators
 			// anything iteratable can be used for "APPLY"
+			// TODO: 2006-08-05 - Needed?: attributeValue = convertArrayToList(attributeValue);
 			attributeValue = ConvertAnythingIteratableToIterator(attributeValue);
 			
 			bool isAnonymous;
@@ -255,8 +335,11 @@ namespace Antlr.StringTemplate.Language
 					object ithValue = iter.Current;
 					if (ithValue == null)
 					{
-						// weird...a null value in the list; ignore
-						continue;
+						if (nullValue == null)
+						{
+							continue;
+						}
+						ithValue = nullValue;
 					}
 					int templateIndex = i % templatesToApply.Count; // rotate through
 					embedded = (StringTemplate) templatesToApply[templateIndex];
@@ -370,7 +453,7 @@ namespace Antlr.StringTemplate.Language
             if (strategy != null && strategy.UseCustomGetObjectProperty)
                 valueObj = strategy.GetObjectProperty(self, o, propertyName);
             else
-                valueObj = rawGetObjectProperty(self, o, propertyName);
+                valueObj = RawGetObjectProperty(self, o, propertyName);
 			// take care of array properties...convert to a List so we can
 			// apply templates to the elements etc...
 
@@ -383,7 +466,7 @@ namespace Antlr.StringTemplate.Language
 			return valueObj;
 		}
 
-		protected object rawGetObjectProperty(StringTemplate self, object o, string propertyName) 
+		protected object RawGetObjectProperty(StringTemplate self, object o, string propertyName) 
 		{
 			Type c = o.GetType();
 			object val = null;
@@ -417,7 +500,15 @@ namespace Antlr.StringTemplate.Language
 			if (typeof(IDictionary).IsAssignableFrom(c))
 			{
 				IDictionary map = (IDictionary) o;
-				if ( map.Contains(propertyName) ) 
+				if (propertyName.Equals("keys"))
+				{
+					val = map.Keys;
+				}
+				else if (propertyName.Equals("values"))
+				{
+					val = map.Values;
+				}
+				else if (map.Contains(propertyName)) 
 				{
 					val = map[propertyName];
 				}
@@ -439,37 +530,37 @@ namespace Antlr.StringTemplate.Language
 
 			// check cache
 			PropertyLookupParams paramBag;
-			MemberInfo cachedMember = self.Group.GetCachedClassProperty(c, propertyName);
-			if ( cachedMember != null ) 
-			{
-				try 
-				{
-					paramBag = new PropertyLookupParams(self, c, o, propertyName, null);
-					if ( cachedMember is PropertyInfo ) 
-					{
-						// non-indexed property (since we don't cache indexers)
-						PropertyInfo pi = (PropertyInfo)cachedMember;
-						GetPropertyValue(pi, paramBag, ref val);
-					}
-					else if ( cachedMember is MethodInfo ) 
-					{
-						MethodInfo mi = (MethodInfo)cachedMember;
-						GetMethodValue(mi, paramBag, ref val);
-					}
-					else if ( cachedMember is FieldInfo ) 
-					{
-						// must be a field
-						FieldInfo fi = (FieldInfo)cachedMember;
-						GetFieldValue(fi, paramBag, ref val);
-					}
-				}
-				catch (Exception e) 
-				{
-					self.Error("Can't get property '" + propertyName +
-						"' from '" + c.FullName + "' instance", e);
-				}
-				return val;
-			}
+			//MemberInfo cachedMember = self.Group.GetCachedClassProperty(c, propertyName);
+			//if ( cachedMember != null ) 
+			//{
+			//    try 
+			//    {
+			//        paramBag = new PropertyLookupParams(self, c, o, propertyName, null);
+			//        if ( cachedMember is PropertyInfo ) 
+			//        {
+			//            // non-indexed property (since we don't cache indexers)
+			//            PropertyInfo pi = (PropertyInfo)cachedMember;
+			//            GetPropertyValue(pi, paramBag, ref val);
+			//        }
+			//        else if ( cachedMember is MethodInfo ) 
+			//        {
+			//            MethodInfo mi = (MethodInfo)cachedMember;
+			//            GetMethodValue(mi, paramBag, ref val);
+			//        }
+			//        else if ( cachedMember is FieldInfo ) 
+			//        {
+			//            // must be a field
+			//            FieldInfo fi = (FieldInfo)cachedMember;
+			//            GetFieldValue(fi, paramBag, ref val);
+			//        }
+			//    }
+			//    catch (Exception e) 
+			//    {
+			//        self.Error("Can't get property '" + propertyName +
+			//            "' from '" + c.FullName + "' instance", e);
+			//    }
+			//    return val;
+			//}
 
 			// must look up using reflection
 			// Search for propertyName as: 
@@ -520,7 +611,8 @@ namespace Antlr.StringTemplate.Language
 			return val;
 		}
 		
-		/// <summary>Normally StringTemplate tests presence or absence of attributes
+		/// <summary>
+		/// Normally StringTemplate tests presence or absence of attributes
 		/// for adherence to my principles of separation, but some people
 		/// disagree and want to change.
 		/// 
@@ -562,7 +654,7 @@ namespace Antlr.StringTemplate.Language
 				}
 				if (a is IEnumerator)
 				{
-					return ((IEnumerator) a).MoveNext();
+					return !CollectionUtils.IsEmptyEnumerator((IEnumerator)a);
 				}
 				return true; // any other non-null object, return true--it's present
             }
@@ -617,19 +709,19 @@ namespace Antlr.StringTemplate.Language
 		/// </summary>
 		public virtual int WriteAttribute(StringTemplate self, object o, IStringTemplateWriter output)
 		{
-			object separator = null;
-			if (options != null)
-			{
-				separator = options["separator"];
-			}
-			return Write(self, o, output, separator);
+			return Write(self, o, output);
 		}
 		
-		protected internal virtual int Write(StringTemplate self, object o, IStringTemplateWriter output, object separator)
+		protected internal virtual int Write(StringTemplate self, object o, IStringTemplateWriter output)
 		{
 			if (o == null)
 			{
-				return 0;
+				if (nullValue == null)
+				{
+					return 0;
+				}
+				// continue with null option if specified
+				o = nullValue;
 			}
 			int n = 0;
 			try
@@ -654,6 +746,12 @@ namespace Antlr.StringTemplate.Language
 					}
 					else
 					{
+						// if we have a wrap string, then inform writer it
+						// might need to wrap
+						if (wrapString != null)
+						{
+							n = output.WriteWrapSeparator(wrapString);
+						}
 						n = stToWrite.Write(output);
 					}
 					return n;
@@ -662,48 +760,49 @@ namespace Antlr.StringTemplate.Language
 				o = ConvertAnythingIteratableToIterator(o);
 				if (o is IEnumerator)
 				{
-					IEnumerator iter = (IEnumerator) o;
-					bool processingFirstItem = true;
-					int charWrittenForValue = 0;
-					string separatorString = null;
-					if (separator != null)
-					{
-						separatorString = ComputeSeparator(self, output, separator);
-					}
+					IEnumerator iter = (IEnumerator)o;
+					object prevIterValue = null;
+					bool seenPrevValue = false;
 					while (iter.MoveNext())
 					{
 						object iterValue = iter.Current;
-						if (!processingFirstItem)
+						if (iterValue == null)
 						{
-							bool valueIsPureConditional = false;
-							if (iterValue is StringTemplate)
-							{
-								StringTemplate iterValueST = (StringTemplate) iterValue;
-								IList chunks = (IList) iterValueST.Chunks;
-								Expr firstChunk = (Expr) chunks[0];
-								valueIsPureConditional = firstChunk is ConditionalExpr && ((ConditionalExpr) firstChunk).ElseSubtemplate == null;
-							}
-							bool emptyIteratedValue = valueIsPureConditional && charWrittenForValue == 0;
-							if (!emptyIteratedValue && separator != null)
-							{
-								n += output.Write(separatorString);
-							}
+							iterValue = nullValue;
 						}
-						charWrittenForValue = Write(self, iterValue, output, separator);
-						n += charWrittenForValue;
-						processingFirstItem = false;
+						if (iterValue != null)
+						{
+							if (seenPrevValue /*prevIterValue!=null*/ && (separatorString != null))
+							{
+								n += output.WriteSeparator(separatorString);
+							}
+							seenPrevValue = true;
+							int nw = Write(self, iterValue, output);
+							n += nw;
+						}
+						prevIterValue = iterValue;
 					}
 				}
 				else
 				{
 					IAttributeRenderer renderer = self.GetAttributeRenderer(o.GetType());
+					string v = null;
 					if (renderer != null)
 					{
-						n = output.Write(renderer.ToString(o));
+						v = renderer.ToString(o);
 					}
 					else
 					{
-						n = output.Write(o.ToString());
+						v = o.ToString();
+					}
+
+					if (wrapString != null)
+					{
+						n = output.Write(v, wrapString);
+					}
+					else
+					{
+						n = output.Write(v);
 					}
 					return n;
 				}
@@ -715,54 +814,45 @@ namespace Antlr.StringTemplate.Language
 			return n;
 		}
 		
-		/// <summary>A separator is normally just a string literal, but is still an AST that
-		/// we must evaluate.  The separator can be any expression such as a template
+		/// <summary>
+		/// An EXPR is normally just a string literal, but is still an AST that
+		/// we must evaluate.  The EXPR can be any expression such as a template
 		/// include or string cat expression etc...
+		/// 
+		/// Evaluate with its own writer so that we can convert to string and then 
+		/// reuse, don't want to compute all the time; must precompute w/o writing 
+		/// to output buffer.
 		/// </summary>
-		protected internal virtual string ComputeSeparator(StringTemplate self, IStringTemplateWriter output, object separator)
+		protected internal string EvaluateExpression(StringTemplate self, object expr)
 		{
-			if (separator == null)
+			if (expr == null)
 			{
 				return null;
 			}
-			if (separator is StringTemplateAST)
+			if (expr is StringTemplateAST)
 			{
-				StringTemplateAST separatorTree = (StringTemplateAST) separator;
+				StringTemplateAST exprTree = (StringTemplateAST) expr;
 				// must evaluate, writing to a string so we can hand on to it
-				ASTExpr e = new ASTExpr(EnclosingTemplate, separatorTree, null);
 				StringWriter buf = new StringWriter();
-				// create a new instance of whatever IStringTemplateWriter
-				// implementation they are using.  Default is AutoIndentWriter.
-				// Defalut behavior is to indent but without
-				// any prior indents surrounding this attribute expression
-				IStringTemplateWriter sw = null;
-				Type writerClass = output.GetType();
-				try
-				{
-					ConstructorInfo ctor = writerClass.GetConstructor(new Type[]{typeof(TextWriter)});
-					sw = (IStringTemplateWriter) ctor.Invoke(new object[]{buf});
-				}
-				catch (Exception exc)
-				{
-					// default new AutoIndentWriter(buf)
-					self.Error("cannot make implementation of IStringTemplateWriter", exc);
-					sw = new AutoIndentWriter(buf);
-				}
+				IStringTemplateWriter sw = self.group.CreateInstanceOfTemplateWriter(buf);
+				ActionEvaluator eval = new ActionEvaluator(self, this, sw);
+				int n = 0;
+
 				
 				try
 				{
-					e.Write(self, sw);
+					n = eval.action(exprTree);	// eval tree
 				}
-				catch (IOException ioe)
+				catch (RecognitionException ex)
 				{
-					self.Error("can't evaluate separator expression", ioe);
+					self.Error("can't evaluate tree: " + exprTree.ToStringList(), ex);
 				}
 				return buf.ToString();
 			}
 			else
 			{
 				// just in case we expand in the future and it's something else
-				return separator.ToString();
+				return expr.ToString();
 			}
 		}
 		
@@ -891,25 +981,7 @@ namespace Antlr.StringTemplate.Language
 			{
 				return null;
 			}
-//			object theRest = attribute;
-//			attribute = ConvertAnythingIteratableToIterator(attribute);
-//			if (attribute is IEnumerator)
-//			{
-//				IEnumerator it = (IEnumerator) attribute;
-//				if (!it.MoveNext())
-//				{
-//					return null; // if not even one value return null
-//				}
-//				theRest = it; // return suitably altered iterator
-//				//				theRest = new ArrayList();
-//				//				while (it.MoveNext())
-//				//					((ArrayList) theRest).Add(it.Current);
-//			}
-//			else
-//			{
-//				theRest = null; // rest of single-valued attribute is null
-//			}
-			
+
 			if (attribute is ICollection)
 			{
 				if ( ((ICollection) attribute).Count > 1 )
@@ -920,13 +992,13 @@ namespace Antlr.StringTemplate.Language
 				return new RestCollection((IEnumerator) attribute);
 			}
 			return null; // rest of single-valued (i.e. all non-ICollection object) attribute is null
-//			return theRest;
 		}
 		
-		/// <summary>Return the last attribute if multiple valued or the attribute
-		/// itself if single-valued.  Used in <names:last()>.  This is pretty
-		/// slow as it iterates until the last element.  Ultimately, I could
-		/// make a special case for a List or Vector.
+		/// <summary>
+		/// Return the last attribute if multiple valued or the attribute
+		/// itself if single-valued.  Used in <![CDATA[<names:last()>]]>.
+		/// This is pretty slow as it iterates until the last element.  
+		/// Ultimately, I could make a special case for a List or Vector.
 		/// </summary>
 		public virtual object Last(object attribute)
 		{
@@ -945,6 +1017,77 @@ namespace Antlr.StringTemplate.Language
 				}
 			}
 			return last;
+		}
+
+		/// <summary>
+		/// Return an iterator that skips all null values.
+		/// </summary>
+		public object Strip(object attribute)
+		{
+			if (attribute == null)
+			{
+				return null;
+			}
+			attribute = ConvertAnythingIteratableToIterator(attribute);
+			if (attribute is IEnumerator)
+			{
+				return new NullSkippingIterator((IEnumerator)attribute);
+			}
+			return attribute; // strip(x)==x when x single-valued attribute
+		}
+
+		/// <summary>
+		/// Return all but the last element.  trunc(x)=null if x is single-valued.
+		/// </summary>
+		public object Trunc(object attribute)
+		{
+			return null; // not impl.
+		}
+
+		/// <summary>
+		/// Return the length of a multiple valued attribute or 1 if it is a
+		/// single attribute. If attribute is null return 0.
+		/// Special case several common collections and primitive arrays for
+		/// speed.  This method by Kay Roepke.
+		/// </summary>
+		/// <param name="attribute"></param>
+		/// <returns></returns>
+		public object Length(object attribute)
+		{
+			if (attribute == null)
+			{
+				return 0;
+			}
+
+			int i = 1;		// we have at least one of something. Iterator and arrays might be empty.
+			if (attribute is ICollection)
+			{
+				i = ((ICollection)attribute).Count;
+			}
+			else if (attribute is IEnumerator)
+			{
+				IEnumerator theEnumerator = (IEnumerator)attribute;
+				i = 0;
+				while (theEnumerator.MoveNext())
+				{
+					i++;
+				}
+			}
+			return i;
+		}
+
+		public object GetOption(string name)
+		{
+			object value = null;
+			if (options != null)
+			{
+				value = options[name];
+				if (value == EMPTY_OPTION)
+				{
+					return defaultOptionValues[name];
+				}
+			}
+			return value;
 		}
 
 		public override string ToString()
@@ -970,7 +1113,7 @@ namespace Antlr.StringTemplate.Language
 				if (mi != null)
 				{
 					// save to avoid [another expensive] lookup later
-					paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, mi);
+					//paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, mi);
 					return GetMethodValue(mi, paramBag, ref val);
 				}
 			}
@@ -1016,7 +1159,7 @@ namespace Antlr.StringTemplate.Language
 					if (pi.CanRead)
 					{
 						// save to avoid [another expensive] lookup later
-						paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, pi);
+						//paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, pi);
 						return GetPropertyValue(pi, paramBag, ref val);
 					}
 					else
@@ -1063,7 +1206,7 @@ namespace Antlr.StringTemplate.Language
 				if (fi != null)
 				{
 					// save to avoid [another expensive] lookup later
-					paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, fi);
+					//paramBag.self.Group.CacheClassProperty(paramBag.prototype, paramBag.propertyName, fi);
 					return GetFieldValue(fi, paramBag, ref val);
 				}
 			}

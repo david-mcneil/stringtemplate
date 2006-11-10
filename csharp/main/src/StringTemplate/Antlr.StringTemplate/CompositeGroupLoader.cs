@@ -65,7 +65,7 @@ namespace Antlr.StringTemplate
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
 		public StringTemplateGroup LoadGroup(string groupName) 
 		{
-			return LoadGroup(groupName, null);
+			return LoadGroup(groupName, null, null);
 		}
 
 		/// <summary>
@@ -79,11 +79,28 @@ namespace Antlr.StringTemplate
 		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
 		/// <param name="superGroup">Super group</param>
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
-		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup) 
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup)
 		{
-			foreach(IStringTemplateGroupLoader loader in loaders)
+			return LoadGroup(groupName, superGroup, null);
+		}
+
+		/// <summary>
+		/// Loads the named StringTemplateGroup instance with the specified super 
+		/// group from somewhere. Configure to use specified lexer.
+		/// </summary>
+		/// <remarks>
+		/// Groups with region definitions must know their supergroup to find 
+		/// templates during parsing.
+		/// </remarks>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <param name="superGroup">Super group</param>
+		/// <param name="lexer">Type of lexer to use to break up templates into chunks</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup, Type lexer)
+		{
+			foreach (IStringTemplateGroupLoader loader in loaders)
 			{
-				StringTemplateGroup group = loader.LoadGroup(groupName, superGroup);
+				StringTemplateGroup group = loader.LoadGroup(groupName, superGroup, lexer);
 				if (group != null)
 					return group;
 			}

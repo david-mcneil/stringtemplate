@@ -1,8 +1,8 @@
 StringTemplate.NET - A C# implementation of the StringTemplate Library
 
-Version 2.3 beta 7
+Version 3.0.1
 
-11 May, 2006
+8 November, 2006
 
 Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
 Micheal Jordan
@@ -58,13 +58,13 @@ build them with Microsoft Visual Studio 2003 and 2005. The projects are:
 	5. StringTemplate.Benchmark	- embryonic effort to provide ST# benchmarks
 					[Currently empty]
 	
-In addition the Lib sub-directory contains copies of the ANTLR 2.7.6 runtime 
+In addition the Lib sub-directory contains copies of the ANTLR 2.7.7 runtime 
 assemblies. ST# *needs* ANTLR version 2.7.6 or later but, you should probably 
-use your own versions of these assemblies if you already have ANTLR 2.7.6.
+use your own versions of these assemblies if you already have ANTLR 2.7.7.
 
 3.1 Dependenicies
 
-All projects have a dependence on ANTLR 2.7.6 as stated above. In addition, 
+All projects have a dependence on ANTLR 2.7.6+ as stated above. In addition, 
 StringTemplateTests has a dependency on NUnit v2.2+.
 
 
@@ -80,13 +80,14 @@ your projects:
 
 If you wish to re-build ST# for any reason, this is what you need to know.
 
-a) This release of ST# was built with ANTLR 2.7.6. If you change any of the 
+a) This release of ST# was built with ANTLR 2.7.7. If you change any of the 
 ANTLR grammar files supplied with ST#, you will need to use the ANTLR tool to 
 regenerate the corresponding C# source files for the Lexer/Parser/TreeParsers. 
 The grammar files - all named <something>.g - are in:
 	%ST_DIR%\StringTemplate\Antlr.StringTemplate.Language\
 
-  The ANTLR tool is included in the Tools subdirectory.
+  An executable version of v2.7.6 of the ANTLR tool is included in the Tools 
+  subdirectory.
   
 b) Once you've regenerated the Lexers/Parsers/Treeparsers, you can then use the 
 supplied VS.NET project files to build the projects. 
@@ -104,18 +105,21 @@ of error/warning messages you get may be more than that. Errors are:
 Using NAnt:
 Alternatively, if you have Nant just type the following in the root directory of 
 the StringTemplate source tree on your computer to regenerate the sources:
-	nant rebuild
+
+	nant regenerate
 
 You will get builds error due to the ANTLR issue described above. Once you've 
 fixed those issues in the generated source files, type the following:
-	nant build
-	
+
+	nant release -t:net-1.1
+or
+	nant release -t:net-2.0
+
 
 6. StringTemplate.NET STATUS
 
-This release of StringTemplate.NET is a beta release (ST# TreeView visualizer 
-is an Alpha release). StringTemplate.NET itself is mostly feature complete 
-for the upcoming 2.3 release but expect a few rough edges. 
+This release of StringTemplate.NET is a stable release (ST# TreeView visualizer 
+is an Alpha release).
 
 There are currently 0 failures in the unit test suite.
 
@@ -130,6 +134,7 @@ We'd like to hear about how you're using ST#.
 Kunle Odutola		-- primary developer
 Micheal Jordan		-- template loader abstraction, unit tests
 Anthony Oguntimehin	-- developer/tester
+Luis Leal			-- IAttributeStrategy abstraction
 
 
 Enjoy!

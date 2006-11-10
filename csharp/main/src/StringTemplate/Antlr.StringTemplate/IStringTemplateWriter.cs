@@ -31,16 +31,58 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
-	
+
 	/// <summary>
 	/// Generic StringTemplate output writer filter
 	/// </summary>
+	/// <remarks>
+	/// Literals and the elements of expressions are emitted via Write().
+	/// Separators are emitted via WriteSeparator() because they must be
+	/// handled specially when wrapping lines (we don't want to wrap
+	/// in between an element and it's separator).
+	/// </remarks>
 	public interface IStringTemplateWriter
 	{
-		void  PushIndentation(string indent);
-		
+		void PushIndentation(string indent);
+
 		string PopIndentation();
-		
+
+		void PushAnchorPoint();
+
+		void PopAnchorPoint();
+
+		int LineWidth		{ set; }
+
+		/// <summary>
+		/// Write the string and return how many actual chars were written.
+		/// </summary>
+		/// <remarks>
+		/// With autoindentation and wrapping, more chars than length(str)
+		/// can be emitted.  No wrapping is done.
+		/// </remarks>
 		int Write(string str);
+
+		/// <summary>
+		/// Same as write, but wrap lines using the indicated string as the 
+		/// wrap character (such as "\n").
+		/// </summary>
+		/// <exception cref="IOException" />
+		int Write(string str, string wrap);
+
+		/// <summary>
+		/// Because we might need to wrap at a non-atomic string boundary
+		/// (such as when we wrap in between template applications
+		/// <data:{v|[<v>]}; wrap>) we need to expose the wrap string
+		/// writing just like for the separator.
+		/// </summary>
+		/// <exception cref="IOException" />
+		int WriteWrapSeparator(string wrap);
+
+		/// <summary>
+		/// Write a separator.  Same as write() except that a \n cannot
+		/// be inserted before emitting a separator.
+		/// </summary>
+		/// <exception cref="IOException" />
+		int WriteSeparator(string str);
 	}
 }

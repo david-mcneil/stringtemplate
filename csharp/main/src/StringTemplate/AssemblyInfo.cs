@@ -26,7 +26,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("2.3.0.7")]
+[assembly: AssemblyVersion("3.0.1.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
@@ -66,7 +66,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("../StringTemplate_KeyPair.snk")]
 #else
-// This should happen as the assembly should always be strong named.
+// This should never happen as the assembly should always be strong named.
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
 #endif

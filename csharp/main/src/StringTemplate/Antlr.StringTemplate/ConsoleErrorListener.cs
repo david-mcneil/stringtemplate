@@ -31,6 +31,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
+	using TargetInvocationException = System.Reflection.TargetInvocationException;
 	
 	/// <summary>
 	/// A Listener that sends it's output to the console.
@@ -47,6 +48,9 @@ namespace Antlr.StringTemplate
 			Console.Error.WriteLine(s);
 			if (e != null)
 			{
+				if (e is TargetInvocationException) {
+					e = ((TargetInvocationException)e).InnerException;
+				}
 				Console.Error.WriteLine(e.StackTrace);
 			}
 		}

@@ -31,26 +31,26 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Antlr.StringTemplate
 {
 	using System;
-	using IList							= System.Collections.IList;
-	using ICollection					= System.Collections.ICollection;
-	using IEnumerator					= System.Collections.IEnumerator;
-	using IDictionary					= System.Collections.IDictionary;
-	using DictionaryEntry				= System.Collections.DictionaryEntry;
-	using ArrayList						= System.Collections.ArrayList;
-	using Hashtable						= System.Collections.Hashtable;
-	using SortedList					= System.Collections.SortedList;
-	using TextReader					= System.IO.TextReader;
-	using TextWriter					= System.IO.TextWriter;
-	using StringBuilder					= System.Text.StringBuilder;
-	using ConstructorInfo				= System.Reflection.ConstructorInfo;
-	using MemberInfo					= System.Reflection.MemberInfo;
-	using DefaultTemplateLexer			= Antlr.StringTemplate.Language.DefaultTemplateLexer;
-	using AngleBracketTemplateLexer		= Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
-	using GroupLexer					= Antlr.StringTemplate.Language.GroupLexer;
-	using GroupParser					= Antlr.StringTemplate.Language.GroupParser;
-	using HashList						= Antlr.StringTemplate.Collections.HashList;
-	using CollectionUtils				= Antlr.StringTemplate.Collections.CollectionUtils;
-	
+	using IList = System.Collections.IList;
+	using ICollection = System.Collections.ICollection;
+	using IEnumerator = System.Collections.IEnumerator;
+	using IDictionary = System.Collections.IDictionary;
+	using DictionaryEntry = System.Collections.DictionaryEntry;
+	using ArrayList = System.Collections.ArrayList;
+	using Hashtable = System.Collections.Hashtable;
+	using SortedList = System.Collections.SortedList;
+	using TextReader = System.IO.TextReader;
+	using TextWriter = System.IO.TextWriter;
+	using StringBuilder = System.Text.StringBuilder;
+	using ConstructorInfo = System.Reflection.ConstructorInfo;
+	using MemberInfo = System.Reflection.MemberInfo;
+	using DefaultTemplateLexer = Antlr.StringTemplate.Language.DefaultTemplateLexer;
+	using AngleBracketTemplateLexer = Antlr.StringTemplate.Language.AngleBracketTemplateLexer;
+	using GroupLexer = Antlr.StringTemplate.Language.GroupLexer;
+	using GroupParser = Antlr.StringTemplate.Language.GroupParser;
+	using HashList = Antlr.StringTemplate.Collections.HashList;
+	using CollectionUtils = Antlr.StringTemplate.Collections.CollectionUtils;
+
 	/// <summary>
 	/// Manages a group of named mutually-referential StringTemplate objects.
 	/// Currently the templates must all live under a directory so that you
@@ -85,7 +85,7 @@ namespace Antlr.StringTemplate
 			: this(name, new FileSystemTemplateLoader(string.Empty, false), null, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-		
+
 		/// <summary>
 		/// Create a group manager for some templates, all of which are
 		/// loaded relative to the current Application BasePath and use
@@ -95,7 +95,7 @@ namespace Antlr.StringTemplate
 			: this(name, new FileSystemTemplateLoader(string.Empty, false), lexer, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-		
+
 		/// <summary>
 		/// Create a group manager for some templates, all of which are
 		/// at or below the indicated directory.
@@ -104,7 +104,7 @@ namespace Antlr.StringTemplate
 			: this(name, new FileSystemTemplateLoader(rootDir, false), typeof(DefaultTemplateLexer), DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-		
+
 		/// <summary>
 		/// Create a group manager for some templates, all of which are
 		/// at or below the indicated directory and use the specified 
@@ -133,7 +133,7 @@ namespace Antlr.StringTemplate
 			: this(name, templateLoader, lexer, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-		
+
 		/// <summary>
 		/// Creates a group manager for some templates, all of which are
 		/// loaded via a <see cref="StringTemplateLoader"/>.
@@ -143,9 +143,9 @@ namespace Antlr.StringTemplate
 		/// <param name="lexer"></param>
 		/// <param name="errorListener"></param>
 		public StringTemplateGroup(
-			string name, 
-			StringTemplateLoader templateLoader, 
-			Type lexer, 
+			string name,
+			StringTemplateLoader templateLoader,
+			Type lexer,
 			IStringTemplateErrorListener errorListener,
 			StringTemplateGroup superGroup)
 		{
@@ -162,7 +162,7 @@ namespace Antlr.StringTemplate
 				this.errorListener = errorListener;
 			this.superGroup = superGroup;
 		}
-		
+
 		/// <summary>
 		/// Create a group from the template group defined by a input stream.
 		/// The name is pulled from the file.  The format is
@@ -178,35 +178,35 @@ namespace Antlr.StringTemplate
 			: this(r, null, DEFAULT_ERROR_LISTENER, null)
 		{
 		}
-		
+
 		public StringTemplateGroup(TextReader r, IStringTemplateErrorListener errorListener)
 			: this(r, null, errorListener, null)
 		{
 		}
-		
+
 		public StringTemplateGroup(TextReader r, Type lexer)
 			: this(r, lexer, null, null)
 		{
 		}
-		
+
 		public StringTemplateGroup(TextReader r, Type lexer, IStringTemplateErrorListener errorListener)
 			: this(r, lexer, errorListener, null)
 		{
 		}
-		
+
 		public StringTemplateGroup(TextReader r, IStringTemplateErrorListener errorListener, StringTemplateGroup superGroup)
 			: this(r, null, errorListener, superGroup)
 		{
 		}
-		
+
 		/// <summary>
 		/// Create a group from the input stream, but use a nondefault lexer
 		/// to break the templates up into chunks.  This is usefor changing
 		/// the delimiter from the default $...$ to <...>, for example.
 		/// </summary>
 		public StringTemplateGroup(
-			TextReader r, 
-			Type lexer, 
+			TextReader r,
+			Type lexer,
 			IStringTemplateErrorListener errorListener,
 			StringTemplateGroup superGroup)
 		{
@@ -218,38 +218,38 @@ namespace Antlr.StringTemplate
 			ParseGroup(r);
 			VerifyInterfaceImplementations();
 		}
-		
+
 		#endregion
 
 		#region Static Public API
 
-		public static void RegisterDefaultLexer(Type lexerClass) 
+		public static void RegisterDefaultLexer(Type lexerClass)
 		{
 			DEFAULT_TEMPLATE_LEXER_TYPE = lexerClass;
 		}
 
-		public static void RegisterGroupLoader(IStringTemplateGroupLoader loader) 
+		public static void RegisterGroupLoader(IStringTemplateGroupLoader loader)
 		{
 			groupLoader = loader;
 		}
 
-		public static StringTemplateGroup LoadGroup(string name) 
+		public static StringTemplateGroup LoadGroup(string name)
 		{
 			return LoadGroup(name, null);
 		}
 
-		public static StringTemplateGroup LoadGroup(string name, StringTemplateGroup superGroup) 
+		public static StringTemplateGroup LoadGroup(string name, StringTemplateGroup superGroup)
 		{
-			if ( groupLoader!=null ) 
+			if (groupLoader != null)
 			{
 				return groupLoader.LoadGroup(name, superGroup);
 			}
 			return null;
 		}
 
-		public static StringTemplateGroupInterface LoadInterface(string name) 
+		public static StringTemplateGroupInterface LoadInterface(string name)
 		{
-			if ( groupLoader!=null ) 
+			if (groupLoader != null)
 			{
 				return groupLoader.LoadInterface(name);
 			}
@@ -265,13 +265,13 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		virtual public Type TemplateLexerClass
 		{
-			get 
+			get
 			{
 				if (templateLexerClass != null)
 				{
 					return templateLexerClass;
 				}
-				return DEFAULT_TEMPLATE_LEXER_TYPE; 
+				return DEFAULT_TEMPLATE_LEXER_TYPE;
 			}
 		}
 
@@ -297,42 +297,42 @@ namespace Antlr.StringTemplate
 			set { this.attributeRenderers = value; }
 		}
 
-		public virtual void  SetSuperGroup(string groupName)
+		public virtual void SetSuperGroup(string groupName)
 		{
-			StringTemplateGroup group = (StringTemplateGroup) nameToGroupMap[groupName];
-			if ( group!=null ) 
+			StringTemplateGroup group = (StringTemplateGroup)nameToGroupMap[groupName];
+			if (group != null)
 			{ // we've seen before; just use it
 				this.SuperGroup = group;
 				return;
 			}
 			group = LoadGroup(groupName); // else load it
-			if ( group!=null ) 
+			if (group != null)
 			{
 				nameToGroupMap[groupName] = group;
 				this.SuperGroup = group;
 			}
-			else 
+			else
 			{
-				if ( groupLoader==null ) 
+				if (groupLoader == null)
 				{
 					Error("no group loader registered", null);
 				}
 			}
 		}
-		
+
 		public virtual StringTemplateGroup SuperGroup
 		{
 			get { return superGroup; }
 			set { superGroup = value; }
 		}
-		
+
 		/// <summary>
 		/// Just track the new interface; check later.  Allows dups, but no biggie.
 		/// </summary>
 		/// <param name="iface"></param>
-		public void ImplementInterface(StringTemplateGroupInterface iface) 
+		public void ImplementInterface(StringTemplateGroupInterface iface)
 		{
-			if ( interfaces==null ) 
+			if (interfaces == null)
 			{
 				interfaces = new ArrayList();
 			}
@@ -344,23 +344,23 @@ namespace Antlr.StringTemplate
 		/// if not in the nameToInterfaceMap.
 		/// </summary>
 		/// <param name="interfaceName"></param>
-		public void ImplementInterface(string interfaceName) 
+		public void ImplementInterface(string interfaceName)
 		{
 			StringTemplateGroupInterface iface = (StringTemplateGroupInterface)nameToInterfaceMap[interfaceName];
-			if ( iface!=null ) 
+			if (iface != null)
 			{ // we've seen before; just use it
 				ImplementInterface(iface);
 				return;
 			}
 			iface = LoadInterface(interfaceName); // else load it
-			if ( iface!=null ) 
+			if (iface != null)
 			{
 				nameToInterfaceMap[interfaceName] = iface;
 				ImplementInterface(iface);
 			}
-			else 
+			else
 			{
-				if ( groupLoader==null ) 
+				if (groupLoader == null)
 				{
 					Error("no group loader registered", null);
 				}
@@ -372,7 +372,7 @@ namespace Antlr.StringTemplate
 		{
 			return new StringTemplate();
 		}
-		
+
 		/// <summary>
 		/// A support routine that gets an instance of the StringTemplate with the 
 		/// specified name knowing which ST encloses it for error messages.
@@ -400,7 +400,7 @@ namespace Antlr.StringTemplate
 		{
 			return GetInstanceOf(null, name);
 		}
-		
+
 		/// <summary>
 		/// The primary means of getting an instance of a template from this
 		/// group when you have a predefined set of attributes you want to
@@ -409,7 +409,7 @@ namespace Antlr.StringTemplate
 		/// <param name="name"></param>
 		/// <param name="attributes"></param>
 		/// <returns></returns>
-		public StringTemplate GetInstanceOf(string name, IDictionary attributes) 
+		public StringTemplate GetInstanceOf(string name, IDictionary attributes)
 		{
 			StringTemplate st = GetInstanceOf(name);
 			st.Attributes = attributes;
@@ -420,7 +420,7 @@ namespace Antlr.StringTemplate
 		{
 			StringTemplate st = null;
 			// TODO: seems like this should go into LookupTemplate
-			if ( name.StartsWith("super.") ) 
+			if (name.StartsWith("super."))
 			{
 				// for super.foo() refs, ensure that we look at the native
 				// group for the embedded instance not the current evaluation
@@ -428,7 +428,7 @@ namespace Antlr.StringTemplate
 				// from which somebody did group.getInstanceOf("foo");
 				st = enclosingInstance.NativeGroup.GetInstanceOf(enclosingInstance, name);
 			}
-			else 
+			else
 			{
 				st = GetInstanceOf(enclosingInstance, name);
 			}
@@ -438,7 +438,7 @@ namespace Antlr.StringTemplate
 			st.EnclosingInstance = enclosingInstance;
 			return st;
 		}
-		
+
 		/// <summary>
 		/// Get the template called 'name' from the group.  If not found,
 		/// attempt to load.  If not found on disk, then try the superGroup
@@ -450,75 +450,78 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public virtual StringTemplate LookupTemplate(StringTemplate enclosingInstance, string name)
 		{
-			if (name.StartsWith("super."))
+			lock (this)
 			{
-				if (superGroup != null)
+				if (name.StartsWith("super."))
 				{
-					int dot = name.IndexOf('.');
-					name = name.Substring(dot + 1, (name.Length) - (dot + 1));
-					StringTemplate superScopeST =
-						superGroup.LookupTemplate(enclosingInstance,name);
-					return superScopeST;
-				}
-				throw new StringTemplateException(Name + " has no super group; invalid template: " + name);
-			}
-			StringTemplate st = (StringTemplate) templates[name];
-			if (st != null)
-			{
-				// Discard cached template?
-				if (st.NativeGroup.TemplateHasChanged(name))
-				{
-					templates.Remove(name);
-					st = null;
-				}
-			}
-			if (st == null)
-			{
-				// not there?  Attempt to load
-				if (!templatesDefinedInGroupFile)
-				{
-					// only check the disk for individual template
-					st = LoadTemplate(name);
-				}
-				if (st == null && superGroup != null)
-				{
-					// try to resolve in super group
-					//st = superGroup.GetInstanceOf(name);
-					st = superGroup.GetInstanceOf(enclosingInstance, name);
-					// make sure that when we inherit a template, that it's
-					// group is reset; it's nativeGroup will remain where it was
-					if (st != null)
+					if (superGroup != null)
 					{
-						st.Group = this;
+						int dot = name.IndexOf('.');
+						name = name.Substring(dot + 1, (name.Length) - (dot + 1));
+						StringTemplate superScopeST =
+							superGroup.LookupTemplate(enclosingInstance, name);
+						return superScopeST;
 					}
+					throw new StringTemplateException(Name + " has no super group; invalid template: " + name);
 				}
+				StringTemplate st = (StringTemplate)templates[name];
 				if (st != null)
 				{
-					// found in superGroup
-					// insert into this group; refresh will allow super
-					// to change it's def later or this group to add
-					// an override.
-					templates[name] = st;
-				}
-				else
-				{
-					// not found; remember that this sucker doesn't exist
-					templates[name] = NOT_FOUND_ST;
-					string context = "";
-					if ( enclosingInstance!=null ) 
+					// Discard cached template?
+					if (st.NativeGroup.TemplateHasChanged(name))
 					{
-						context = "; context is "+ enclosingInstance.GetEnclosingInstanceStackString();
+						templates.Remove(name);
+						st = null;
 					}
-					throw new TemplateLoadException(this, "Can't load template '"+ GetLocationFromTemplateName(name) + "'" + context);
 				}
+				if (st == null)
+				{
+					// not there?  Attempt to load
+					if (!templatesDefinedInGroupFile)
+					{
+						// only check the disk for individual template
+						st = LoadTemplate(name);
+					}
+					if (st == null && superGroup != null)
+					{
+						// try to resolve in super group
+						//st = superGroup.GetInstanceOf(name);
+						st = superGroup.GetInstanceOf(enclosingInstance, name);
+						// make sure that when we inherit a template, that it's
+						// group is reset; it's nativeGroup will remain where it was
+						if (st != null)
+						{
+							st.Group = this;
+						}
+					}
+					if (st != null)
+					{
+						// found in superGroup
+						// insert into this group; refresh will allow super
+						// to change it's def later or this group to add
+						// an override.
+						templates[name] = st;
+					}
+					else
+					{
+						// not found; remember that this sucker doesn't exist
+						templates[name] = NOT_FOUND_ST;
+						string context = "";
+						if (enclosingInstance != null)
+						{
+							context = "; context is " + enclosingInstance.GetEnclosingInstanceStackString();
+						}
+						throw new TemplateLoadException(this, "Can't load template '" + GetLocationFromTemplateName(name) + "'" + context);
+					}
+				}
+				else if (st == NOT_FOUND_ST)
+				{
+					return null;
+				}
+				return st;
 			}
-			else if (st == NOT_FOUND_ST)
-			{
-				return null;
-			}
-			return st;
 		}
-		
+
 		public virtual StringTemplate LookupTemplate(string name)
 		{
 			return LookupTemplate(null, name);
@@ -528,7 +531,7 @@ namespace Antlr.StringTemplate
 		{
 			return templateLoader.GetLocationFromTemplateName(templateName);
 		}
-		
+
 		/// <summary>
 		/// Loads and returns the named [external] template.
 		/// </summary>
@@ -543,37 +546,40 @@ namespace Antlr.StringTemplate
 			}
 			return null;
 		}
-		
+
 		/// <summary>
 		/// Define an examplar template; precompiled and stored
 		/// with no attributes.  Remove any previous definition.
 		/// </summary>
 		public virtual StringTemplate DefineTemplate(string name, string template)
 		{
-			if ((name != null) && (name.IndexOf('.') != -1)) 
+			lock (this)
 			{
-				throw new ArgumentException("cannot have '.' in template names", "name");
+				if ((name != null) && (name.IndexOf('.') != -1))
+				{
+					throw new ArgumentException("cannot have '.' in template names", "name");
+				}
+				StringTemplate st = CreateStringTemplate();
+				st.Name = name;
+				st.Group = this;
+				st.NativeGroup = this;
+				st.Template = template;
+				st.ErrorListener = errorListener;
+				templates[name] = st;
+				return st;
 			}
-			StringTemplate st = CreateStringTemplate();
-			st.Name = name;
-			st.Group = this;
-			st.NativeGroup = this;
-			st.Template = template;
-			st.ErrorListener = errorListener;
-			templates[name] = st;
-			return st;
 		}
-		
+
 		/// <summary>
 		/// Track all references to regions &lt;@foo&gt;...&lt;@end&gt; or &lt;@foo()&gt;.
 		/// </summary>
 		public StringTemplate DefineRegionTemplate(
-			string enclosingTemplateName, 
-			string regionName, 
-			string template, 
+			string enclosingTemplateName,
+			string regionName,
+			string template,
 			int type)
 		{
-			string mangledName = GetMangledRegionName(enclosingTemplateName,regionName);
+			string mangledName = GetMangledRegionName(enclosingTemplateName, regionName);
 			StringTemplate regionST = DefineTemplate(mangledName, template);
 			regionST.IsRegion = true;
 			regionST.RegionDefType = type;
@@ -584,9 +590,9 @@ namespace Antlr.StringTemplate
 		/// Track all references to regions &lt;@foo&gt;...&lt;@end&gt; or &lt;@foo()&gt;.
 		/// </summary>
 		public StringTemplate DefineRegionTemplate(
-			StringTemplate enclosingTemplate, 
-			string regionName, 
-			string template, 
+			StringTemplate enclosingTemplate,
+			string regionName,
+			string template,
 			int type)
 		{
 			StringTemplate regionST =
@@ -620,7 +626,7 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public string GetMangledRegionName(string enclosingTemplateName, string name)
 		{
-			return "region__"+enclosingTemplateName+"__"+name;
+			return "region__" + enclosingTemplateName + "__" + name;
 		}
 
 		/// <summary>
@@ -636,34 +642,40 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public virtual StringTemplate DefineTemplateAlias(string name, string target)
 		{
-			StringTemplate targetST = GetTemplateDefinition(target);
-			if (targetST == null)
+			lock (this)
 			{
-				Error("cannot alias " + name + " to undefined template: " + target);
-				return null;
+				StringTemplate targetST = GetTemplateDefinition(target);
+				if (targetST == null)
+				{
+					Error("cannot alias " + name + " to undefined template: " + target);
+					return null;
+				}
+				templates[name] = targetST;
+				return targetST;
 			}
-			templates[name] = targetST;
-			return targetST;
 		}
-		
+
 		public virtual bool IsDefinedInThisGroup(string name)
 		{
-			StringTemplate st = (StringTemplate)templates[name];
-			if ( st!=null ) 
+			lock (this)
 			{
-				if ( st.IsRegion ) 
+				StringTemplate st = (StringTemplate)templates[name];
+				if (st != null)
 				{
-					// don't allow redef of @t.r() ::= "..." or <@r>...<@end>
-					if ( st.RegionDefType == StringTemplate.REGION_IMPLICIT ) 
+					if (st.IsRegion)
 					{
-						return false;
+						// don't allow redef of @t.r() ::= "..." or <@r>...<@end>
+						if (st.RegionDefType == StringTemplate.REGION_IMPLICIT)
+						{
+							return false;
+						}
 					}
+					return true;
 				}
-				return true;
+				return false;
 			}
-			return false;
 		}
-		
+
 		public virtual bool TemplateHasChanged(string templateName)
 		{
 			if (templatesDefinedInGroupFile)
@@ -671,15 +683,18 @@ namespace Antlr.StringTemplate
 			else
 				return templateLoader.HasChanged(templateName);
 		}
-		
+
 		/// <summary>
 		/// Get the ST for 'name' in this group only 
 		/// </summary>
 		public virtual StringTemplate GetTemplateDefinition(string name)
 		{
-			return (StringTemplate) templates[name];
+			lock (this)
+			{
+				return (StringTemplate)templates[name];
+			}
 		}
-		
+
 		/// <summary>Is there *any* definition for template 'name' in this template
 		/// or above it in the group hierarchy?
 		/// </summary>
@@ -694,16 +709,16 @@ namespace Antlr.StringTemplate
 				return false;
 			}
 		}
-		
+
 		/// <summary>
 		/// Specify a IStringTemplateWriter implementing class to use for
 		/// filtering output
 		/// </summary>
-		public virtual void  SetTemplateWriterType(Type c)
+		public virtual void SetTemplateWriterType(Type c)
 		{
 			userSpecifiedWriter = c;
 		}
-		
+
 		/// <summary>
 		/// Return an instance of a IStringTemplateWriter that spits output to w.
 		/// If a writer is specified, use it instead of the default.
@@ -715,8 +730,8 @@ namespace Antlr.StringTemplate
 			{
 				try
 				{
-					ConstructorInfo ctor = userSpecifiedWriter.GetConstructor(new Type[]{typeof(TextWriter)});
-					stw = (IStringTemplateWriter) ctor.Invoke(new object[]{w});
+					ConstructorInfo ctor = userSpecifiedWriter.GetConstructor(new Type[] { typeof(TextWriter) });
+					stw = (IStringTemplateWriter)ctor.Invoke(new object[] { w });
 				}
 				catch (Exception e)
 				{
@@ -729,19 +744,19 @@ namespace Antlr.StringTemplate
 			}
 			return stw;
 		}
-		
+
 		/// <summary>Register a renderer for all objects of a particular type for all
 		/// templates in this group.
 		/// </summary>
-		public virtual void  RegisterAttributeRenderer(Type attributeClassType, object renderer)
+		public virtual void RegisterAttributeRenderer(Type attributeClassType, object renderer)
 		{
 			if (attributeRenderers == null)
 			{
-				attributeRenderers = new Hashtable();
+				attributeRenderers = Hashtable.Synchronized(new Hashtable());
 			}
 			attributeRenderers[attributeClassType] = renderer;
 		}
-		
+
 		/// <summary>What renderer is registered for this attributeClassType for
 		/// this group?  If not found, as superGroup if it has one.
 		/// </summary>
@@ -756,8 +771,8 @@ namespace Antlr.StringTemplate
 				// no renderers; consult super group
 				return superGroup.GetAttributeRenderer(attributeClassType);
 			}
-			
-			IAttributeRenderer renderer = (IAttributeRenderer) attributeRenderers[attributeClassType];
+
+			IAttributeRenderer renderer = (IAttributeRenderer)attributeRenderers[attributeClassType];
 			if (renderer == null)
 			{
 				if (superGroup != null)
@@ -768,18 +783,18 @@ namespace Antlr.StringTemplate
 			}
 			return renderer;
 		}
-		
-		public void CacheClassProperty(Type t, string propertyName, MemberInfo member) 
-		{
-			object key = new ClassPropCacheKey(t, propertyName);
-			classPropertyCache[key] = member;
-		}
 
-		public MemberInfo GetCachedClassProperty(Type t, string propertyName) 
-		{
-			object key = new ClassPropCacheKey(t, propertyName);
-			return (MemberInfo)classPropertyCache[key];
-		}
+		//public void CacheClassProperty(Type t, string propertyName, MemberInfo member) 
+		//{
+		//    object key = new ClassPropCacheKey(t, propertyName);
+		//    classPropertyCache[key] = member;
+		//}
+
+		//public MemberInfo GetCachedClassProperty(Type t, string propertyName) 
+		//{
+		//    object key = new ClassPropCacheKey(t, propertyName);
+		//    return (MemberInfo)classPropertyCache[key];
+		//}
 
 		public virtual IDictionary GetMap(string name)
 		{
@@ -791,32 +806,78 @@ namespace Antlr.StringTemplate
 				}
 				return superGroup.GetMap(name);
 			}
-			IDictionary m = (IDictionary) maps[name];
+			IDictionary m = (IDictionary)maps[name];
 			if (m == null && superGroup != null)
 			{
 				m = superGroup.GetMap(name);
 			}
 			return m;
 		}
-		
-		public virtual void  DefineMap(string name, IDictionary mapping)
+
+		/// <summary>
+		/// Define a map for this group.
+		/// </summary>
+		/// <remarks>
+		///  Not thread safe...do not keep adding these while you reference them.
+		/// </remarks>
+		public virtual void DefineMap(string name, IDictionary mapping)
 		{
 			maps[name] = mapping;
 		}
-		
-		public virtual void  Error(string msg)
+
+		public virtual void Error(string msg)
 		{
 			errorListener.Error(msg, null);
 		}
-		
-		public virtual void  Error(string msg, Exception e)
+
+		public virtual void Error(string msg, Exception e)
 		{
 			errorListener.Error(msg, e);
 		}
-		
-		public ICollection GetTemplateNames() 
+
+		public ICollection GetTemplateNames()
 		{
-			return templates.Keys;
+			lock (this)
+			{
+				return templates.Keys;
+			}
+		}
+
+		/// <summary>
+		/// Indicate whether ST should emit <![CDATA[<templatename>...</templatename>]]>
+		/// strings for debugging around output for templates from this group.
+		/// </summary>
+		/// <param name="emit"></param>
+		public virtual void EmitDebugStartStopStrings(bool emit)
+		{
+			this.debugTemplateOutput = emit;
+		}
+
+		public virtual void DoNotEmitDebugStringsForTemplate(string templateName)
+		{
+			if (noDebugStartStopStrings == null)
+			{
+				noDebugStartStopStrings = new Hashtable();
+			}
+			noDebugStartStopStrings[templateName] = templateName;
+		}
+
+		/// <exception cref="IOException"/>
+		public virtual void EmitTemplateStartDebugString(StringTemplate st, IStringTemplateWriter writer)
+		{
+			if ((noDebugStartStopStrings == null) || !noDebugStartStopStrings.Contains(st.Name))
+			{
+				writer.Write("<" + st.Name + ">");
+			}
+		}
+
+		/// <exception cref="IOException" />
+		public virtual void EmitTemplateStopDebugString(StringTemplate st, IStringTemplateWriter writer)
+		{
+			if ((noDebugStartStopStrings == null) || !noDebugStartStopStrings.Contains(st.Name))
+			{
+				writer.Write("</" + st.Name + ">");
+			}
 		}
 
 		public override string ToString()
@@ -831,14 +892,14 @@ namespace Antlr.StringTemplate
 			StringTemplate formalArgs = new StringTemplate("$args;separator=\",\"$");
 			foreach (DictionaryEntry e in new SortedList(templates))
 			{
-				string tname = (string) e.Key;
-				StringTemplate st = (StringTemplate) templates[tname];
+				string tname = (string)e.Key;
+				StringTemplate st = (StringTemplate)templates[tname];
 				if (st != NOT_FOUND_ST)
 				{
 					formalArgs = formalArgs.GetInstanceOf();
 					formalArgs.SetAttribute("args", st.FormalArguments);
 					buf.Append(tname + "(" + formalArgs + ")");
-					if ( showTemplatePatterns ) 
+					if (showTemplatePatterns)
 					{
 						buf.Append(" ::= ");
 						buf.Append("<<");
@@ -853,14 +914,14 @@ namespace Antlr.StringTemplate
 			}
 			return buf.ToString();
 		}
-        /// <summary>
-        /// Gets or sets this group's IAttributeStrategy.
-        /// </summary>
-        public IAttributeStrategy AttributeStrategy
-        {
-            get { return attributeStrategy; }
-            set { attributeStrategy = value; }
-        }
+		/// <summary>
+		/// Gets or sets this group's IAttributeStrategy.
+		/// </summary>
+		public IAttributeStrategy AttributeStrategy
+		{
+			get { return attributeStrategy; }
+			set { attributeStrategy = value; }
+		}
 
 		#endregion
 
@@ -874,10 +935,10 @@ namespace Antlr.StringTemplate
 		protected static Type DEFAULT_TEMPLATE_LEXER_TYPE = typeof(DefaultTemplateLexer);
 
 		/// <summary>Track all groups by name; maps name to StringTemplateGroup </summary>
-		protected static IDictionary nameToGroupMap = new Hashtable();
-		
+		protected static IDictionary nameToGroupMap = Hashtable.Synchronized(new Hashtable());
+
 		/// <summary>Track all interfaces by name; maps name to StringTemplateGroupInterface</summary>
-		protected static IDictionary nameToInterfaceMap = new Hashtable();
+		protected static IDictionary nameToInterfaceMap = Hashtable.Synchronized(new Hashtable());
 
 		/// <summary>
 		/// Maps obj.prop to a value to avoid reflection costs; track one
@@ -885,7 +946,7 @@ namespace Antlr.StringTemplate
 		/// AppDomain 
 		/// TODO: Threading implications?
 		/// </summary>
-		protected static IDictionary classPropertyCache = new Hashtable();
+		//protected static IDictionary classPropertyCache = new Hashtable();
 
 		/// <summary>
 		/// If a group file indicates it derives from a supergroup, how do we
@@ -896,42 +957,42 @@ namespace Antlr.StringTemplate
 		private static IStringTemplateGroupLoader groupLoader = null;
 
 		public static IStringTemplateErrorListener DEFAULT_ERROR_LISTENER = ConsoleErrorListener.DefaultConsoleListener;
-		
+
 		/// <summary>
 		/// Used to indicate that the template doesn't exist.
 		/// We don't have to check disk for it; we know it's not there.
 		/// </summary>
 		protected static readonly StringTemplate NOT_FOUND_ST = new StringTemplate();
-		
+
 		#endregion
 
 		#region Data Members
 
 		/// <summary>What is the group name </summary>
 		protected string name;
-		
+
 		/// <summary>Maps template name to StringTemplate object </summary>
 		protected IDictionary templates = new HashList();
-		
+
 		/// <summary>
 		/// Maps map names to HashMap objects.  This is the list of maps
 		/// defined by the user like typeInitMap ::= ["int":"0"]
 		/// </summary>
 		protected IDictionary maps = new Hashtable();
-		
+
 		/// <summary>How to pull apart a template into chunks? </summary>
 		protected Type templateLexerClass = null;
-		
+
 		/// <summary>
 		/// Encapsulates the logic for finding and loading [external] templates.
 		/// </summary>
 		protected StringTemplateLoader templateLoader;
-		
+
 		/// <summary>Are we derived from another group?  Templates not found in this group
 		/// will be searched for in the superGroup recursively.
 		/// </summary>
 		protected StringTemplateGroup superGroup = null;
-		
+
 		/// <summary>Keep track of all interfaces implemented by this group.</summary>
 		protected IList interfaces = null;
 
@@ -948,13 +1009,20 @@ namespace Antlr.StringTemplate
 		/// If not in the super group, report no such template.
 		/// </summary>
 		protected bool templatesDefinedInGroupFile = false;
-		
+
 		/// <summary>
 		/// Normally AutoIndentWriter is used to filter output, but user can
 		/// specify a new one.
 		/// </summary>
 		protected Type userSpecifiedWriter;
-		
+
+		protected internal bool debugTemplateOutput = false;
+
+		/// <summary>
+		/// The set of templates to ignore when dumping start/stop debug strings
+		/// </summary>
+		protected IDictionary noDebugStartStopStrings;
+
 		/// <summary>
 		/// A Map<Class,Object> that allows people to register a renderer for
 		/// a particular kind of object to be displayed for any template in this
@@ -967,24 +1035,26 @@ namespace Antlr.StringTemplate
 		/// These render objects are used way down in the evaluation chain
 		/// right before an attribute's toString() method would normally be
 		/// called in ASTExpr.write().
+		/// 
+		/// Synchronized at creation time.
 		/// </summary>
 		protected IDictionary attributeRenderers;
-		
+
 		/// <summary>
 		/// Where to report errors.  All string templates in this group
 		/// use this error handler by default.
 		/// </summary>
 		protected IStringTemplateErrorListener errorListener = DEFAULT_ERROR_LISTENER;
-        /// <summary>
-        /// Hold reference to AttributeStrategy, if any.
-        /// </summary>
-        protected IAttributeStrategy attributeStrategy = null;
-		
+		/// <summary>
+		/// Hold reference to AttributeStrategy, if any.
+		/// </summary>
+		protected IAttributeStrategy attributeStrategy = null;
+
 		#endregion
 
 		#region Non-Public Helpers
 
-		protected internal virtual void  ParseGroup(TextReader r)
+		protected internal virtual void ParseGroup(TextReader r)
 		{
 			try
 			{
@@ -999,29 +1069,29 @@ namespace Antlr.StringTemplate
 				{
 					name = Name;
 				}
-				Error("problem parsing group '" + name + "': "+e, e);
+				Error("problem parsing group '" + name + "': " + e, e);
 			}
 		}
-		
+
 		/// <summary>
 		/// Verify that this group satisfies its interfaces
 		/// </summary>
-		protected void VerifyInterfaceImplementations() 
+		protected void VerifyInterfaceImplementations()
 		{
-			for (int i = 0; interfaces!=null && i < interfaces.Count; i++) 
+			for (int i = 0; interfaces != null && i < interfaces.Count; i++)
 			{
 				StringTemplateGroupInterface iface = (StringTemplateGroupInterface)interfaces[i];
 				IList missing = iface.GetMissingTemplates(this);
 				IList mismatched = iface.GetMismatchedTemplates(this);
-				if ( missing!=null ) 
+				if (missing != null)
 				{
-					Error("group '" +Name+ "' does not satisfy interface '" +
-						iface.Name+ "': missing templates " +CollectionUtils.ListToString(missing));
+					Error("group '" + Name + "' does not satisfy interface '" +
+						iface.Name + "': missing templates " + CollectionUtils.ListToString(missing));
 				}
-				if ( mismatched!=null ) 
+				if (mismatched != null)
 				{
-					Error("group '" +Name+ "' does not satisfy interface '" +
-						iface.Name+ "': mismatched arguments on these templates " +CollectionUtils.ListToString(mismatched));
+					Error("group '" + Name + "' does not satisfy interface '" +
+						iface.Name + "': mismatched arguments on these templates " + CollectionUtils.ListToString(mismatched));
 				}
 			}
 		}
@@ -1030,28 +1100,28 @@ namespace Antlr.StringTemplate
 
 		#region Helper classes
 
-		internal sealed class ClassPropCacheKey 
-		{
-			Type t;
-			string propertyName;
-			public ClassPropCacheKey(Type t, string propertyName) 
-			{
-				this.t = t;
-				this.propertyName = propertyName;
-			}
+		//internal sealed class ClassPropCacheKey 
+		//{
+		//    Type t;
+		//    string propertyName;
+		//    public ClassPropCacheKey(Type t, string propertyName) 
+		//    {
+		//        this.t = t;
+		//        this.propertyName = propertyName;
+		//    }
 
-			override public bool Equals(object other) 
-			{
-				ClassPropCacheKey otherKey = (ClassPropCacheKey)other;
-				return t.Equals(otherKey.t) &&
-					propertyName.Equals(otherKey.propertyName);
-			}
+		//    override public bool Equals(object other) 
+		//    {
+		//        ClassPropCacheKey otherKey = (ClassPropCacheKey)other;
+		//        return t.Equals(otherKey.t) &&
+		//            propertyName.Equals(otherKey.propertyName);
+		//    }
 
-			override public int GetHashCode() 
-			{
-				return t.GetHashCode() + propertyName.GetHashCode();
-			}
-		}
+		//    override public int GetHashCode() 
+		//    {
+		//        return t.GetHashCode() + propertyName.GetHashCode();
+		//    }
+		//}
 
 		#endregion
 	}

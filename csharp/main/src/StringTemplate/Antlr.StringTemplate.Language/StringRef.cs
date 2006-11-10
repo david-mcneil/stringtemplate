@@ -48,6 +48,10 @@ namespace Antlr.StringTemplate.Language
 		/// <summary>
 		/// Just print out the string; no reference to self because this
 		/// is a literal--not sensitive to attribute values.
+		/// 
+		/// These strings never wrap because they are not part of a 
+		/// <![CDATA[<...> expression. <"foo"; wrap="\n"> ]]> should wrap though 
+		/// if necessary.
 		/// </summary>
 		public override int Write(StringTemplate self, IStringTemplateWriter output)
 		{

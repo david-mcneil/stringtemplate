@@ -68,91 +68,13 @@ namespace Antlr.StringTemplate
 	/// <summary>
 	/// A <TT>StringTemplate</TT> is a "document" with holes in it where you can stick
 	/// values.  <TT>StringTemplate</TT> breaks up your template into chunks of text and
-	/// attribute expressions, which are by default enclosed in angle brackets:
-	/// <TT>&lt;</TT><em>attribute-expression</em><TT>&gt;</TT>.  <TT>StringTemplate</TT>
-	/// ignores everything outside of attribute expressions, treating it as just text to spit
-	/// out when you call <TT>StringTemplate.toString()</TT>.
-	/// 
-	/// <P><TT>StringTemplate</TT> is not a "system" or "engine" or "server"; 
-	/// it's a library with two classes of interest: <TT>StringTemplate</TT> and 
-	/// <TT>StringTemplateGroup</TT>.  You can directly create a <TT>StringTemplate</TT> 
-	/// in Java code or you can load a template from a file.
-	/// <P>
-	/// A StringTemplate describes an output pattern/language like an exemplar.
-	/// <p>
-	/// StringTemplate and associated code is released under the BSD licence.  See
-	/// source.  <br><br>
-	/// Copyright (c) 2003-2005 Terence Parr<br><br>
-	/// A particular instance of a template may have a set of attributes that
-	/// you set programmatically.  A template refers to these single or multi-
-	/// valued attributes when writing itself out.  References within a
-	/// template conform to a simple language with attribute references and
-	/// references to other, embedded, templates.  The references are surrounded
-	/// by user-defined start/stop strings (default of <...>, but $...$ works
-	/// well when referencing attributes in HTML to distinguish from tags).
-	/// 
-	/// <p>StringTemplateGroup is a self-referential group of StringTemplate
-	/// objects kind of like a grammar.  It is very useful for keeping a
-	/// group of templates together.  For example, jGuru.com's premium and
-	/// guest sites are completely separate sets of template files organized
-	/// with a StringTemplateGroup.  Changing "skins" is a simple matter of
-	/// switching groups.  Groups know where to load templates by either
-	/// looking under a rootDir you can specify for the group or by simply
-	/// looking for a resource file in the current class path.  If no rootDir
-	/// is specified, template files are assumed to be resources.  So, if
-	/// you reference template foo() and you have a rootDir, it looks for
-	/// file rootDir/foo.st.  If you don't have a rootDir, it looks for
-	/// file foo.st in the CLASSPATH.  note that you can use org/antlr/misc/foo()
-	/// (qualified template names) as a template ref.
-	/// 
-	/// <p>IStringTemplateErrorListener is an interface you can implement to
-	/// specify where StringTemplate reports errors.  Setting the listener
-	/// for a group automatically makes all associated StringTemplate
-	/// objects use the same listener.  For example,
-	/// 
-	/// <font size=2><pre>
-	/// StringTemplateGroup group = new StringTemplateGroup("loutSyndiags");
-	/// group.setErrorListener(
-	/// new IStringTemplateErrorListener() {
-	/// public void error(String msg, Exception e) {
-	/// System.err.println("StringTemplate error: "+
-	/// msg+((e!=null)?": "+e.getMessage():""));
-	/// }
-	/// }
-	/// );
-	/// </pre></font>
-	/// 
-	/// <p>IMPLEMENTATION
-	/// 
-	/// <p>A StringTemplate is both class and instance like in Self.  Given
-	/// any StringTemplate (even one with attributes filled in), you can
-	/// get a new "blank" instance of it.
-	/// 
-	/// <p>When you define a template, the string pattern is parsed and
-	/// broken up into chunks of either String or attribute/template actions.
-	/// These are typically just attribute references.  If a template is
-	/// embedded within another template either via setAttribute or by
-	/// implicit inclusion by referencing a template within a template, it
-	/// inherits the attribute scope of the enclosing StringTemplate instance.
-	/// All StringTemplate instances with the same pattern point to the same
-	/// list of chunks since they are immutable there is no reason to have
-	/// a copy in every instance of that pattern.  The only thing that differs
-	/// is that every StringTemplate Java object can have its own set of
-	/// attributes.  Each chunk points back at the original StringTemplate
-	/// Java object whence they were constructed.  So, there are multiple
-	/// pointers to the list of chunks (one for each instance with that
-	/// pattern) and only one back ptr from a chunk to the original pattern
-	/// object.  This is used primarily to get the group of that original
-	/// so new templates can be loaded into that group.
-	/// 
-	/// <p>To write out a template, the chunks are walked in order and asked to
-	/// write themselves out.  String chunks are obviously just written out,
-	/// but the attribute expressions/actions are evaluated in light of the
-	/// attributes in that object and possibly in an enclosing instance.
+	/// attribute expressions. <TT>StringTemplate</TT> ignores everything outside of 
+	/// attribute expressions, treating it as just text to spit out when you call 
+	/// <TT>StringTemplate.ToString()</TT>.
 	/// </summary>
 	public class StringTemplate
 	{
-		public const string VERSION = "2.3b7";
+		public const string VERSION = "3.0.1";
 
 		/// <summary><@r()></summary>
 		internal const int REGION_IMPLICIT = 1;
@@ -594,6 +516,11 @@ namespace Antlr.StringTemplate
 				}
 				return returnVal;
 			}
+			public override string ToString()
+			{
+				//return properties.ToString();
+				return CollectionUtils.DictionaryToString(properties);
+			}
 		}
 
 		/// <summary>
@@ -836,6 +763,7 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		protected internal virtual void  dup(StringTemplate from, StringTemplate to)
 		{
+			to.attributeRenderers = from.attributeRenderers;
 			to.pattern = from.pattern;
 			to.chunks = from.chunks;
 			to.formalArguments = from.formalArguments;
@@ -1080,18 +1008,23 @@ namespace Antlr.StringTemplate
 		/// </summary>
 		public virtual int Write(IStringTemplateWriter output)
 		{
+			if (group.debugTemplateOutput)
+			{
+				group.EmitTemplateStartDebugString(this, output);
+			}
+
 			int n = 0;
 			SetPredefinedAttributes();
 			SetDefaultArgumentValues();
 			for (int i = 0; chunks != null && i < chunks.Count; i++)
 			{
-				Expr a = (Expr) chunks[i];
+				Expr a = (Expr)chunks[i];
 				int chunkN = a.Write(this, output);
 				// expr-on-first-line-with-no-output NEWLINE => NEWLINE
-				if ( chunkN==0 
-					&& i==0 
-					&& (i+1)< chunks.Count 
-					&& chunks[i+1] is NewlineRef )
+				if (chunkN == 0
+					&& i == 0
+					&& (i + 1) < chunks.Count
+					&& chunks[i + 1] is NewlineRef)
 				{
 					//System.out.println("found pure first-line-blank \\n pattern");
 					i++; // skip next NEWLINE;
@@ -1106,6 +1039,10 @@ namespace Antlr.StringTemplate
 					i++; // make it skip over the next chunk, the NEWLINE
 				}
 				n += chunkN;
+			}
+			if (group.debugTemplateOutput)
+			{
+				group.EmitTemplateStopDebugString(this, output);
 			}
 			if (lintMode)
 			{
@@ -1403,7 +1340,7 @@ namespace Antlr.StringTemplate
 		/// Register a renderer for all objects of a particular type.  This
 		/// overrides any renderer set in the group for this class type.
 		/// </summary>
-		public virtual void  RegisterAttributeRenderer(Type attributeClassType, object renderer)
+		public virtual void  RegisterAttributeRenderer(Type attributeClassType, IAttributeRenderer renderer)
 		{
 			if (attributeRenderers == null)
 			{
@@ -1865,13 +1802,18 @@ namespace Antlr.StringTemplate
 			}
 			Console.Out.Write("]\n");
 		}
-		
+
 		public override string ToString()
+		{
+			return ToString(Constants.TEMPLATE_WRITER_NO_WRAP);
+		}
+
+		public virtual string ToString(int lineWidth)
 		{
 			StringWriter output = new StringWriter();
 			// Write the output to a StringWriter
-			// TODO seems slow to create all these objects, can I use a singleton?
 			IStringTemplateWriter wr = group.CreateInstanceOfTemplateWriter(output);
+			wr.LineWidth = lineWidth;
 			try
 			{
 				Write(wr);
@@ -1880,6 +1822,10 @@ namespace Antlr.StringTemplate
 			{
 				Error("Got IOException writing to writer " + wr.GetType().FullName);
 			}
+			// reset so next ToString() does not wrap; normally this is a new writer
+			// each time, but just in case they override the group to reuse the
+			// writer.
+			wr.LineWidth = Constants.TEMPLATE_WRITER_NO_WRAP;
 			return output.ToString();
 		}
 	}

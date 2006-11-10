@@ -103,6 +103,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Antlr.StringTemplate\Constants.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Antlr.StringTemplate\DefaultGroupFactory.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -119,6 +124,7 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate\FileSystemTemplateLoader.cs"
+                    SubType = "Code"
                     BuildAction = "Compile"
                 />
                 <File
@@ -324,6 +330,11 @@
                 />
                 <File
                     RelPath = "Antlr.StringTemplate.Language\NewlineRef.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Antlr.StringTemplate.Language\NullSkippingIterator.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

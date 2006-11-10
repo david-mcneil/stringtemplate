@@ -133,7 +133,7 @@ namespace Antlr.StringTemplate
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
 		public StringTemplateGroup LoadGroup(string groupName) 
 		{
-			return LoadGroup(groupName, null);
+			return LoadGroup(groupName, null, null);
 		}
 
 		/// <summary>
@@ -147,29 +147,46 @@ namespace Antlr.StringTemplate
 		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
 		/// <param name="superGroup">Super group</param>
 		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
-		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup) 
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup)
+		{
+			return LoadGroup(groupName, superGroup, null);
+		}
+
+		/// <summary>
+		/// Loads the named StringTemplateGroup instance with the specified super 
+		/// group from somewhere. Configure to use specified lexer.
+		/// </summary>
+		/// <remarks>
+		/// Groups with region definitions must know their supergroup to find 
+		/// templates during parsing.
+		/// </remarks>
+		/// <param name="groupName">Name of the StringTemplateGroup to load</param>
+		/// <param name="superGroup">Super group</param>
+		/// <param name="lexer">Type of lexer to use to break up templates into chunks</param>
+		/// <returns>A StringTemplateGroup instance or null if no group is found</returns>
+		public StringTemplateGroup LoadGroup(string groupName, StringTemplateGroup superGroup, Type lexer)
 		{
 			StringTemplateGroup group = null;
 			string fileName = LocateFile(groupName + ".stg");
-			if ( fileName==null ) 
+			if (fileName == null)
 			{
-				Error("no such group file '" +groupName+ ".stg'");
+				Error("no such group file '" + groupName + ".stg'");
 			}
 			else
 			{
 				using (StreamReader reader = new StreamReader(fileName, encoding))
 				{
-					try 
+					try
 					{
-						group = factory.CreateGroup(reader, typeof(DefaultTemplateLexer), errorListener, superGroup);
+						group = factory.CreateGroup(reader, lexer, errorListener, superGroup);
 					}
-					catch (ArgumentException argx) 
+					catch (ArgumentException argx)
 					{
-						Error("Path Error: can't load group '" +groupName+ "'", argx);
+						Error("Path Error: can't load group '" + groupName + "'", argx);
 					}
-					catch (IOException iox) 
+					catch (IOException iox)
 					{
-						Error("IO Error: can't load group '" +groupName+ "'", iox);
+						Error("IO Error: can't load group '" + groupName + "'", iox);
 					}
 				}
 			}

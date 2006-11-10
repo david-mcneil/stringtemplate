@@ -36,6 +36,7 @@
     <Compile Include="Antlr.StringTemplate.Language\CatIterator.cs" />
     <Compile Include="Antlr.StringTemplate.Language\ChunkToken.cs" />
     <Compile Include="Antlr.StringTemplate.Language\ConditionalExpr.cs" />
+    <Compile Include="Antlr.StringTemplate.Language\NullSkippingIterator.cs" />
     <Compile Include="Antlr.StringTemplate.Language\DefaultTemplateLexer.cs" />
     <Compile Include="Antlr.StringTemplate.Language\Expr.cs" />
     <Compile Include="Antlr.StringTemplate.Language\FormalArgument.cs" />
@@ -58,6 +59,7 @@
     <Compile Include="Antlr.StringTemplate\CommonGroupLoader.cs" />
     <Compile Include="Antlr.StringTemplate\CompositeGroupLoader.cs" />
     <Compile Include="Antlr.StringTemplate\ConsoleErrorListener.cs" />
+    <Compile Include="Antlr.StringTemplate\Constants.cs" />
     <Compile Include="Antlr.StringTemplate\DefaultGroupFactory.cs" />
     <Compile Include="Antlr.StringTemplate\EmbeddedResourceGroupLoader.cs" />
     <Compile Include="Antlr.StringTemplate\EmbeddedResourceTemplateLoader.cs" />

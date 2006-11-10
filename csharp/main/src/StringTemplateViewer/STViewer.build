@@ -2,7 +2,6 @@
 <project name="StringTemplate.NET StringTemplateViewer" default="build">
     <tstamp/>
 	<property name="base.dir" value="${path::get-full-path( project::get-base-directory() )}" />
-	<property name="bin.dir" value="${base.dir}/../bin" />
 
 	<include buildfile="../stringtemplate.net.common.inc" />
 
@@ -29,7 +28,15 @@
 	<target name="init" depends="clean">
 	</target>
 
-    <target name="clean" description="cleans up compiled output">
+    <target name="clean">
+    </target>
+
+    <target name="clean.vsnet" description="cleans up VS.NET build artifacts and output">
+		<!-- delete VS.NET project artifacts directory -->
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/bin'" />
+		<delete dir="${base.dir}/bin" failonerror="false" />
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/obj'" />
+		<delete dir="${base.dir}/obj" failonerror="false" />
     </target>
 
 	<target name="compile" depends="init">
@@ -38,8 +45,8 @@
 			target="winexe" 
 			debug="${debug}"
 			optimize="${optimize}"
-			output="${bin.dir}/${assembly.name}" 
-			doc="${bin.dir}/${name}.xml">
+			output="${build.working.dir}/${assembly.name}" 
+			doc="${build.working.dir}/${name}.xml">
 			
 			<nowarn>
 				<warning number="1591" />
@@ -51,9 +58,9 @@
 			</sources>
 
 			<references>
-				<include name="${bin.dir}/StringTemplate.Viewer.dll" />
-				<include name="${bin.dir}/StringTemplate.dll" />
-				<include name="${bin.dir}/antlr.runtime.dll" />
+				<include name="${build.working.dir}/StringTemplate.Viewer.dll" />
+				<include name="${build.working.dir}/StringTemplate.dll" />
+				<include name="${build.working.dir}/antlr.runtime.dll" />
 			</references>
 		</csc>
 	</target>

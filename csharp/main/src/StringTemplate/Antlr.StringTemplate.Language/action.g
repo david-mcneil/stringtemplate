@@ -83,7 +83,17 @@ action returns [IDictionary opts=null]
 	;
 
 optionList! returns [IDictionary opts=new Hashtable()]
-    :   "separator" ASSIGN e:expr {opts["separator"]=#e;}
+    :   option[opts] (COMMA option[opts])*
+	;
+option[IDictionary opts]
+{
+	object v=null;
+}
+	:	i:ID
+		( ASSIGN e:expr {v=#e;}
+		| {v=ASTExpr.EMPTY_OPTION;}
+		)
+		{opts[#i.getText()] = v;}
     ;
     
 templatesExpr
@@ -143,6 +153,9 @@ function
 	:	(	"first"
    	 	|	"rest"
     	|	"last"
+    	|	"length"
+    	|	"strip"
+    	|	"trunc"
     	)
     	singleArg
         {#function = #(#[FUNCTION],function);}
@@ -242,7 +255,7 @@ StringTemplateToken t = null;
 	          }
 	        |
 	        )
-	        ( '\\'! '}' | ESC_CHAR[false] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )*
+	        ( '\\'! '{' | '\\'! '}' | ESC_CHAR[false] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )*
 	        {
 	        if ( t!=null ) {
 	        	t.setText($getText);
@@ -260,7 +273,7 @@ TEMPLATE_ARGS returns [IList args=new ArrayList()]
 
 protected
 NESTED_ANONYMOUS_TEMPLATE
-	:	'{' ( '\\'! '}' | ESC_CHAR[false] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )* '}'
+	:	'{' ( '\\'! '{' | '\\'! '}' | ESC_CHAR[false] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )* '}'
 	;
 
 /** Match escape sequences, optionally translating them for strings, but not

@@ -135,13 +135,14 @@ tryAgain:
 						case 'M':  case 'N':  case 'O':  case 'P':
 						case 'Q':  case 'R':  case 'S':  case 'T':
 						case 'U':  case 'V':  case 'W':  case 'X':
-						case 'Y':  case 'Z':  case 'a':  case 'b':
-						case 'c':  case 'd':  case 'e':  case 'f':
-						case 'g':  case 'h':  case 'i':  case 'j':
-						case 'k':  case 'l':  case 'm':  case 'n':
-						case 'o':  case 'p':  case 'q':  case 'r':
-						case 's':  case 't':  case 'u':  case 'v':
-						case 'w':  case 'x':  case 'y':  case 'z':
+						case 'Y':  case 'Z':  case '_':  case 'a':
+						case 'b':  case 'c':  case 'd':  case 'e':
+						case 'f':  case 'g':  case 'h':  case 'i':
+						case 'j':  case 'k':  case 'l':  case 'm':
+						case 'n':  case 'o':  case 'p':  case 'q':
+						case 'r':  case 's':  case 't':  case 'u':
+						case 'v':  case 'w':  case 'x':  case 'y':
+						case 'z':
 						{
 							mID(true);
 							theRetToken = returnToken_;
@@ -317,6 +318,11 @@ tryAgain:
 			case 'Y':  case 'Z':
 			{
 				matchRange('A','Z');
+				break;
+			}
+			case '_':
+			{
+				match('_');
 				break;
 			}
 			default:

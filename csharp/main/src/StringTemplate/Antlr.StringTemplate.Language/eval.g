@@ -87,22 +87,15 @@ expr returns [object value=null]
     |   #(VALUE e=expr)
         // convert to string (force early eval)
         {
-        StringWriter buf = new StringWriter();
-        Type writerClass = @out.GetType();
-        IStringTemplateWriter sw = null;
-        try {
-            ConstructorInfo ctor =
-            	writerClass.GetConstructor(new Type[] {typeof(TextWriter)});
-            sw = (IStringTemplateWriter)ctor.Invoke(new Object[] {buf});
-        }
-        catch (Exception exc) {
-        	// default new AutoIndentWriter(buf)
-        	self.Error("cannot make implementation of IStringTemplateWriter",exc);
-        	sw = new AutoIndentWriter(buf);
-      	}
-        chunk.WriteAttribute(self,e,sw);
-        value = buf.ToString();
-        }
+	        StringWriter buf = new StringWriter();
+	        IStringTemplateWriter sw = self.Group.CreateInstanceOfTemplateWriter(buf);
+	        int n = chunk.WriteAttribute(self,e,sw);
+			if (n > 0)
+			{
+	        	value = buf.ToString();
+	
+	        }
+		}
     ;
     
 /** create a new list of expressions as a new multi-value attribute */
@@ -177,9 +170,12 @@ function returns [object value=null]
 object a;
 }
     :	#(	FUNCTION
-    		(	"first" a=singleFunctionArg	{value=chunk.First(a);}
-    		|	"rest" 	a=singleFunctionArg	{value=chunk.Rest(a);}
-    		|	"last"  a=singleFunctionArg	{value=chunk.Last(a);}
+    		(	"first"  a=singleFunctionArg	{value=chunk.First(a);}
+    		|	"rest" 	 a=singleFunctionArg	{value=chunk.Rest(a);}
+    		|	"last"   a=singleFunctionArg	{value=chunk.Last(a);}
+    		|	"length" a=singleFunctionArg	{value=chunk.Length(a);}
+    		|	"strip"  a=singleFunctionArg	{value=chunk.Strip(a);}
+    		|	"trunc"  a=singleFunctionArg	{value=chunk.Trunc(a);}
     		)
 
     	 )
@@ -208,6 +204,9 @@ object n = null;
             |	anon:ANONYMOUS_TEMPLATE
                 {
                 StringTemplate anonymous = anon.StringTemplate;
+                // to properly see overridden templates, always set
+                // anonymous' group to be self's group
+				anonymous.Group = self.Group;
                 templatesToApply.Add(anonymous);
                 }
 

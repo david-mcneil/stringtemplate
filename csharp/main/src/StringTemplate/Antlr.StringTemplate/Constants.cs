@@ -1,6 +1,6 @@
 /*
 [The "BSD licence"]
-Copyright (c) 2005 Kunle Odutola
+Copyright (c) 2005-2006 Kunle Odutola
 Copyright (c) 2003-2005 Terence Parr
 All rights reserved.
 
@@ -28,59 +28,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-namespace Antlr.StringTemplate.Language
+namespace Antlr.StringTemplate
 {
 	using System;
-	using StringTemplate	= Antlr.StringTemplate.StringTemplate;
-	using AST				= antlr.collections.AST;
-	using CommonAST			= antlr.CommonAST;
-	using ASTNodeCreator	= antlr.ASTNodeCreator;
 	
-	public class StringTemplateAST : CommonAST
+	public class Constants
 	{
-		new public static readonly StringTemplateAST.StringTemplateASTCreator Creator = new StringTemplateASTCreator();
-
-		public StringTemplateAST() 
-		{
-		}
-
-		public StringTemplateAST(int type, string text)
-		{
-			this.Type = type;
-			this.setText(text);
-		}
-
-		virtual public StringTemplate StringTemplate
-		{
-			get { return st; }
-			set { this.st = value; }
-		}
-
-		protected StringTemplate st = null; // track template for ANONYMOUS blocks
-
-		public class StringTemplateASTCreator : ASTNodeCreator
-		{
-			public StringTemplateASTCreator() {}
-
-			/// <summary>
-			/// Returns the fully qualified name of the AST type that this
-			/// class creates.
-			/// </summary>
-			public override string ASTNodeTypeName
-			{
-				get 
-				{ 
-					return typeof(StringTemplateAST).FullName;; 
-				}
-			}
-
-			/// <summary>
-			/// Constructs a <see cref="AST"/> instance.
-			/// </summary>
-			public override AST Create()
-			{
-				return new StringTemplateAST();
-			}
-		}
+		public const int TEMPLATE_WRITER_NO_WRAP = -1;
 	}
 }

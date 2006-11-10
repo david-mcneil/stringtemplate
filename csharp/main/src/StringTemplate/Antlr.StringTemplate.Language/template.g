@@ -234,6 +234,7 @@ LITERAL
           int col=getColumn();
           }
         : '\\'! '$'  // allow escaped delimiter
+        | '\\'! '\\' // always replace \\ with \
         | '\\' ~'$'  // otherwise ignore escape char
         | ind:INDENT
           {
@@ -344,7 +345,7 @@ IF_EXPR:( ESC
     ;    
 
 protected
-ESC :   '\\' ('$'|'r'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
+ESC :   '\\' . // ('$'|'r'|'n'|'t'|'"'|'\''|':'|'{'|'}')
     ;
 
 protected
