@@ -21,6 +21,8 @@ StringTemplate Bugs, Requests, Changes
 o John Snyders found bug in format stuff.  Renderer was being called
   for string expr options.
 
+o Another bug fix by John. Length problem.
+
 ??
 
 o added format option
