@@ -16,6 +16,15 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+01-27-2007
+
+o John Snyders found bug in format stuff.  Renderer was being called
+  for string expr options.
+
+??
+
+o added format option
+
 10-30-2006
 
 o \_ was not allowed in group/interface.g but in group.g.  Now \_ is
