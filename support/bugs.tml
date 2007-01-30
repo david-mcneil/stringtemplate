@@ -16,6 +16,11 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+01-30-2007
+
+o Made convertArrayToList create an ArrayWrappedInList so it doesn't
+  copy arrays any more.
+
 01-27-2007
 
 o John Snyders found bug in format stuff.  Renderer was being called
