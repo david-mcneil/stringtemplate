@@ -16,6 +16,14 @@ StringTemplate Bugs, Requests, Changes
 
 #### Fixed bugs and changes
 
+05-03-2007
+
+o Updated group.g to allow default clause by itself in map (from Caleb Lyness)
+
+o Caleb also revamped entire TestStringTemplate to run under windows.
+
+o Added 16 bit char unit test also.
+
 01-30-2007
 
 o Made convertArrayToList create an ArrayWrappedInList so it doesn't
