@@ -477,7 +477,7 @@ class ASTExpr(Expr):
                 if renderer:
                     n = out.write(renderer.str(o))
                 else:
-                    n = out.write(str(o))
+                    n = out.write(unicode(o))
                 return n
         except IOError, io:
             this.error('problem writing object: ' + o, io)

@@ -115,7 +115,7 @@ class AutoIndentWriter(StringTemplateWriter):
         # sys.stderr.write('write(' + str(str_) + ')' + \
         #                  '; indents=' + str(self.indents) + '\n')
         n = 0
-        for c in str(str_):
+        for c in unicode(str_):
             if c == '\n':
                 self.atStartOfLine = True
             elif self.atStartOfLine:
