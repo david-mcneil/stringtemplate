@@ -18,7 +18,7 @@ popd
 
 # compile
 pushd src
-javac -classpath .:/usr/local/lib/antlr-latest.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
+javac -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
 mkdir ../lib
@@ -42,7 +42,7 @@ pushd /tmp
 tar cvfz stringtemplate-3.0.tar.gz stringtemplate-3.0
 
 # push
-scp stringtemplate-3.0.tar.gz parrt@antlr.org:/var/data/lime/resources/download
+scp stringtemplate-3.0.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
 
 # push bugs
 pushd ~/antlr/code/stringtemplate/support
