@@ -18,11 +18,12 @@ popd
 
 # compile
 pushd src
-javac -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
+javac -source jsr14 -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
 mkdir ../lib
 jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
+cp /usr/local/lib/antlr-2.7.7.jar ../lib
 
 # remove .class files
 find org -name '*.class' -exec rm {} \;
