@@ -53,28 +53,7 @@ namespace Antlr.StringTemplate.Tests
 	using NUnit.Framework;
 
 	/// <summary>
-	/// Test the various functionality of StringTemplate. Seems to run only
-	/// on unix due to \r\n vs \n issue.  David Scurrah says:
-	/// 
-	/// "I don't think you were necessarily sloppy with your newlines, but Java 
-	/// make it very difficult to be consistent.
-	/// The stringtemplate library used unix end of lines for writing toString 
-	/// methods and the like, while the testing was using the system local end of 
-	/// line. 
-	/// 
-	/// The other problem with end of lines was any template file used in  the 
-	/// testing will also have a specific end of line ( this case unix) and when 
-	/// read into a string that can the unique problem of having end of line unix 
-	/// and local system end of line in the one line.
-	/// 
-	/// My solution was not very elegant but I think it required the least changes 
-	/// and only to the testing. I simply converted all strings to use unix end of 
-	/// line characters inside the assertTrue and then compared them.
-	/// The only other problem I found was writing a file out to the /tmp directory 
-	/// won't work on windows so I used the system property  java.io.tmpdir to get 
-	/// a temp directory."
-	/// 
-	/// I'll fix later.
+	/// Test the various functionality of StringTemplate.
 	/// </summary>
 	[TestFixture]
 	public class TestStringTemplate
@@ -295,6 +274,10 @@ namespace Antlr.StringTemplate.Tests
 			{
 				return ((DateTime)o).ToString("yyyy.MM.dd");
 			}
+			public virtual string ToString(object o, string formatString)
+			{
+				return ToString(o);
+			}
 		}
 
 		public class DateRenderer2 : IAttributeRenderer
@@ -302,6 +285,38 @@ namespace Antlr.StringTemplate.Tests
 			public virtual string ToString(object o)
 			{
 				return ((DateTime)o).ToString("MM/dd/yyyy");
+			}
+			public virtual string ToString(object o, string formatString)
+			{
+				return ToString(o);
+			}
+		}
+
+		public class DateRenderer3 : IAttributeRenderer
+		{
+			public virtual string ToString(object o)
+			{
+				return ((DateTime)o).ToString("MM/dd/yyyy");
+			}
+			public virtual string ToString(object o, string formatString)
+			{
+				return ((DateTime)o).ToString(formatString);
+			}
+		}
+
+		public class StringRenderer : IAttributeRenderer
+		{
+			public virtual string ToString(object o)
+			{
+				return (string)o;
+			}
+			public virtual string ToString(object o, string formatString)
+			{
+				if (formatString.Equals("upper"))
+				{
+					return ((string)o).ToUpper();
+				}
+				return ToString(o);
 			}
 		}
 
@@ -3291,6 +3306,62 @@ namespace Antlr.StringTemplate.Tests
 		}
 
 		[Test]
+		public virtual void testRendererWithFormat()
+		{
+			StringTemplate st = new StringTemplate("date: <created; format=\"yyyy.MM.dd\">", typeof(AngleBracketTemplateLexer));
+			st.SetAttribute("created", new DateTime(2005, 7, 5));
+			st.RegisterAttributeRenderer(typeof(DateTime), new DateRenderer3());
+			string expecting = "date: 2005.07.05";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test]
+		public virtual void testRendererWithFormatAndList()
+		{
+			StringTemplate st = new StringTemplate("The names: <names; format=\"upper\">", typeof(AngleBracketTemplateLexer));
+			st.SetAttribute("names", "ter");
+			st.SetAttribute("names", "tom");
+			st.SetAttribute("names", "sriram");
+			st.RegisterAttributeRenderer(typeof(string), new StringRenderer());
+			string expecting = "The names: TERTOMSRIRAM";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test]
+		public virtual void testRendererWithFormatAndSeparator()
+		{
+			StringTemplate st = new StringTemplate(
+				"The names: <names; separator=\" and \", format=\"upper\">",
+				typeof(AngleBracketTemplateLexer));
+			st.SetAttribute("names", "ter");
+			st.SetAttribute("names", "tom");
+			st.SetAttribute("names", "sriram");
+			st.RegisterAttributeRenderer(typeof(string), new StringRenderer());
+			string expecting = "The names: TER and TOM and SRIRAM";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test]
+		public virtual void testRendererWithFormatAndSeparatorAndNull()
+		{
+			StringTemplate st = new StringTemplate(
+					"The names: <names; separator=\" and \", null=\"n/a\", format=\"upper\">",
+					typeof(AngleBracketTemplateLexer));
+			IList names = new ArrayList();
+			names.Add("ter");
+			names.Add(null);
+			names.Add("sriram");
+			st.SetAttribute("names", names);
+			st.RegisterAttributeRenderer(typeof(string), new StringRenderer());
+			string expecting = "The names: TER and N/A and SRIRAM";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		[Test]
 		public void testEmbeddedRendererSeesEnclosing()
 		{
 			// st is embedded in outer; set renderer on outer, st should
@@ -3488,6 +3559,45 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, result);
 		}
 
+		/// <summary>
+		/// Bug ref: JIRA bug ST-15 - Test that a map can have only the default entry
+		/// </summary>
+		[Test]
+		public virtual void testMapEmptyDefaultOnlyEntry()
+		{
+			string templates =
+					"group test;" + NL +
+					"typeInit ::= [\"default\":key] " + NL +
+					"var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + NL
+					;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplate st = group.GetInstanceOf("var");
+			st.SetAttribute("type", "UserRecord");
+			st.SetAttribute("name", "x");
+			string expecting = "UserRecord x = UserRecord;";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
+		/// <summary>
+		/// Bug ref: JIRA bug ST-15 - Test that a map can return a <b>string</b> with the word: default.
+		/// FIXME: This fails.
+		/// </summary>
+		[Test, Ignore("JIRA ST-15: Test that a map can return a <b>string</b> with the word: default")]
+		public virtual void testMapEmptyDefaultDefaultEntry()
+		{
+			string templates =
+					"group test;" + NL +
+					"map ::= [default: \"default\"] " + NL +
+					"t1() ::= \"<map.(1)>\"" + NL
+					;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+			StringTemplate st = group.GetInstanceOf("t1");
+			string expecting = "default";
+			string result = st.ToString();
+			Assert.AreEqual(expecting, result);
+		}
+
 		[Test]
 		public virtual void testMapViaEnclosingTemplates()
 		{
@@ -3573,6 +3683,28 @@ namespace Antlr.StringTemplate.Tests
 			StringTemplate e = new StringTemplate("Danish: Å char");
 			e = e.GetInstanceOf();
 			string expecting = "Danish: Å char";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		/// <summary>
+		/// FIXME: Dannish does not work if typed directly in with default file
+		/// encoding on windows. The character needs to be escaped as bellow.
+		/// Please correct to escape the correct charcter.
+		/// </summary>
+		[Test]
+		public virtual void test8BitEuroChars_Escaped()
+		{
+			StringTemplate e = new StringTemplate("Danish: \u0143 char");
+			e = e.GetInstanceOf();
+			string expecting = "Danish: \u0143 char";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		public virtual void test16BitUnicodeChar()
+		{
+			StringTemplate e = new StringTemplate("DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780");
+			e = e.GetInstanceOf();
+			string expecting = "DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780";
 			Assert.AreEqual(expecting, e.ToString());
 		}
 
@@ -3771,7 +3903,7 @@ namespace Antlr.StringTemplate.Tests
 			Assert.AreEqual(expecting, e.ToString());
 		}
 
-		/** BUG!  Fix this.  Iterator is not reset from first to second $x$
+		/** FIXME: BUG!  Fix this.  Iterator is not reset from first to second $x$
 		 *  Either reset the iterator or pass an attribute that knows to get
 		 *  the iterator each time.  Seems like first, tail do not
 		 *  have same problem as they yield objects.
@@ -4906,6 +5038,34 @@ namespace Antlr.StringTemplate.Tests
 		}
 
 		[Test]
+		public virtual void testLengthOpWithHashtable()
+		{
+			StringTemplate e = new StringTemplate("$length(names)$");
+			e = e.GetInstanceOf();
+			IDictionary m = new Hashtable();
+			m.Add("Tom", "foo");
+			m.Add("Sriram", "foo");
+			m.Add("Doug", "foo");
+			e.SetAttribute("names", m);
+			string expecting = "3";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		[Test]
+		public virtual void testLengthOpWithHybridDictionary()
+		{
+			StringTemplate e = new StringTemplate("$length(names)$");
+			e = e.GetInstanceOf();
+			IDictionary m = new HybridDictionary();
+			m.Add("Tom", "Tom");
+			m.Add("Sriram", "Sriram");
+			m.Add("Doug", "Doug");
+			e.SetAttribute("names", m);
+			string expecting = "3";
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		[Test]
 		public void testLengthOpNull()
 		{
 			StringTemplate e = new StringTemplate(
@@ -4961,9 +5121,7 @@ namespace Antlr.StringTemplate.Tests
 		[Test]
 		public void testStripOpOfListWithNulls()
 		{
-			StringTemplate e = new StringTemplate(
-					"$strip(data)$"
-				);
+			StringTemplate e = new StringTemplate("$strip(data)$");
 			e = e.GetInstanceOf();
 			IList data = new ArrayList();
 			data.Add("Hi");
@@ -4972,6 +5130,32 @@ namespace Antlr.StringTemplate.Tests
 			data.Add(null);
 			e.SetAttribute("data", data);
 			string expecting = "Himom"; // nulls are skipped
+			Assert.AreEqual(expecting, e.ToString());
+		}
+
+		[Test]
+		public virtual void testStripOpOfListOfListsWithNulls()
+		{
+			StringTemplate e = new StringTemplate("$strip(data):{list | $strip(list)$}; separator=\",\"$");
+			e = e.GetInstanceOf();
+
+			IList dataOne = new ArrayList();
+			dataOne.Add("Hi");
+			dataOne.Add("mom");
+
+			IList dataTwo = new ArrayList();
+			dataTwo.Add("Hi");
+			dataTwo.Add(null);
+			dataTwo.Add("dad");
+			dataTwo.Add(null);
+
+			IList data = new ArrayList();
+			data.Add(dataOne);
+			data.Add(null);
+			data.Add(dataTwo);
+
+			e.SetAttribute("data", data);
+			string expecting = "Himom,Hidad"; // nulls are skipped
 			Assert.AreEqual(expecting, e.ToString());
 		}
 
@@ -5053,15 +5237,15 @@ namespace Antlr.StringTemplate.Tests
 
 		[Test]
 		public void testMapValues()
-	{
-		StringTemplateGroup group = new StringTemplateGroup("test", typeof(AngleBracketTemplateLexer));
-		StringTemplate t = new StringTemplate(group, "<aMap.values; separator=\", \">");
-		Hashtable map = new Hashtable();
-		map["int"] = "0";
-		map.Add("float","0.0");
-		t.SetAttribute("aMap", map);
-		Assert.AreEqual("0.0, 0", t.ToString());
-	}
+		{
+			StringTemplateGroup group = new StringTemplateGroup("test", typeof(AngleBracketTemplateLexer));
+			StringTemplate t = new StringTemplate(group, "<aMap.values; separator=\", \">");
+			Hashtable map = new Hashtable();
+			map["int"] = "0";
+			map.Add("float", "0.0");
+			t.SetAttribute("aMap", map);
+			Assert.AreEqual("0.0, 0", t.ToString());
+		}
 
 		/** Use when super.attr name is implemented
 		public void testArgumentContext2() throws Exception {
@@ -5092,6 +5276,66 @@ namespace Antlr.StringTemplate.Tests
 		{
 			StringTemplateGroup group = new StringTemplateGroup("dummy", ".");
 			StringTemplate t = group.DefineTemplate("user.name", "$person.email$");
+		}
+
+		/// <summary>
+		/// Bug ref: JIRA bug ST-2 - Check what happens when a semicolon is  
+		/// appended to a single line template
+		/// </summary>
+		/// <remarks>
+		/// Should fail with a parse error(?) and not a missing template error.
+		/// FIXME: This should generate a warning or error about that semi colon.
+		/// </remarks>
+		[Test, Ignore("JIRA ST-2: When a semicolon is appended to a single line template, should fail with a parse error(?)")]
+		public void testGroupTrailingSemiColon()
+		{
+			//try {
+			string templates =
+					"group test;" + NL +
+					"t1()::=\"R1\"; " + NL +
+					"t2() ::= \"R2\"" + NL
+					;
+			StringTemplateGroup group = new StringTemplateGroup(new StringReader(templates));
+
+			StringTemplate st = group.GetInstanceOf("t1");
+			Assert.AreEqual("R1", st.ToString());
+
+			st = group.GetInstanceOf("t2");
+			Assert.AreEqual("R2", st.ToString());
+
+			Assert.Fail("A parse error should have been generated");
+			//} catch (ParseError??) {            
+			//}
+		}
+
+		[Test]
+		public virtual void testSuperReferenceInIfClause()
+		{
+			string superGroupString =
+				"group super;" + NL +
+				"a(x) ::= \"super.a\"" + NL +
+				"b(x) ::= \"<c()>super.b\"" + NL +
+				"c() ::= \"super.c\""
+				;
+			StringTemplateGroup superGroup = new StringTemplateGroup(
+				new StringReader(superGroupString),
+				typeof(AngleBracketTemplateLexer));
+			string subGroupString =
+				"group sub;" + NL +
+				"a(x) ::= \"<if(x)><super.a()><endif>\"" + NL +
+				"b(x) ::= \"<if(x)><else><super.b()><endif>\"" + NL +
+				"c() ::= \"sub.c\""
+				;
+			StringTemplateGroup subGroup = new StringTemplateGroup(
+				new StringReader(subGroupString), typeof(AngleBracketTemplateLexer));
+			subGroup.SuperGroup = superGroup;
+			StringTemplate a = subGroup.GetInstanceOf("a");
+			a.SetAttribute("x", "foo");
+			Assert.AreEqual("super.a", a.ToString());
+			StringTemplate b = subGroup.GetInstanceOf("b");
+			Assert.AreEqual("sub.csuper.b", b.ToString());
+			StringTemplate c = subGroup.GetInstanceOf("c");
+			Assert.AreEqual("sub.c", c.ToString());
 		}
 
 

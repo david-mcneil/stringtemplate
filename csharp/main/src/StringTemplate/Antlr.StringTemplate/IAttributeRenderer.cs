@@ -46,5 +46,17 @@ namespace Antlr.StringTemplate
 	public interface IAttributeRenderer
 	{
 		string ToString(object o);
+
+		/// <summary>
+		/// When the user uses the format option (e.g. <c>$o; format="f"$</c>) it is 
+		/// delegated to this method.
+		/// </summary>
+		/// <remarks>
+		/// It should check the 'formatName' and apply the 
+		/// appropriate formatting. If the format string passed to the renderer is 
+		/// not recognized, it should default to simply calling ToString().
+		/// @since 3.1
+		/// </remarks>
+		string ToString(object o, string formatName);
 	}
 }

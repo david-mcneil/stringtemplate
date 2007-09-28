@@ -79,8 +79,8 @@ namespace Antlr.StringTemplate.Language
 		public const int ASSIGN = 17;
 		public const int ANONYMOUS_TEMPLATE = 18;
 		public const int LBRACK = 19;
-		public const int LITERAL_default = 20;
-		public const int RBRACK = 21;
+		public const int RBRACK = 20;
+		public const int LITERAL_default = 21;
 		public const int STAR = 22;
 		public const int PLUS = 23;
 		public const int OPTIONAL = 24;
@@ -111,7 +111,7 @@ namespace Antlr.StringTemplate.Language
 			literals = new Hashtable(100, (float) 0.4, null, Comparer.Default);
 			literals.Add("group", 4);
 			literals.Add("implements", 7);
-			literals.Add("default", 20);
+			literals.Add("default", 21);
 		}
 		
 		override public IToken nextToken()			//throws TokenStreamException
@@ -377,11 +377,11 @@ tryAgain:
 				}
 				default:
 				{
-					goto _loop27_breakloop;
+					goto _loop29_breakloop;
 				}
 				 }
 			}
-_loop27_breakloop:			;
+_loop29_breakloop:			;
 		}    // ( ... )*
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))
 		{
@@ -419,11 +419,11 @@ _loop27_breakloop:			;
 				}
 				else
 				{
-					goto _loop30_breakloop;
+					goto _loop32_breakloop;
 				}
 				
 			}
-_loop30_breakloop:			;
+_loop32_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match('"');
@@ -485,7 +485,7 @@ _loop30_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='>') && (cached_LA2=='>')) goto _loop36_breakloop;
+				if ((cached_LA1=='>') && (cached_LA2=='>')) goto _loop38_breakloop;
 				if (((cached_LA1=='\r') && (cached_LA2=='\n'))&&(LA(3)=='>'&&LA(4)=='>'))
 				{
 					_saveIndex = text.Length;
@@ -535,11 +535,11 @@ _loop30_breakloop:			;
 				}
 				else
 				{
-					goto _loop36_breakloop;
+					goto _loop38_breakloop;
 				}
 				
 			}
-_loop36_breakloop:			;
+_loop38_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match(">>");
@@ -565,7 +565,7 @@ _loop36_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='}') && (true)) goto _loop40_breakloop;
+				if ((cached_LA1=='}') && (true)) goto _loop42_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
 				{
 					{
@@ -600,11 +600,11 @@ _loop36_breakloop:			;
 				}
 				else
 				{
-					goto _loop40_breakloop;
+					goto _loop42_breakloop;
 				}
 				
 			}
-_loop40_breakloop:			;
+_loop42_breakloop:			;
 		}    // ( ... )*
 		_saveIndex = text.Length;
 		match('}');
@@ -830,11 +830,11 @@ _loop40_breakloop:			;
 				}
 				else
 				{
-					goto _loop58_breakloop;
+					goto _loop60_breakloop;
 				}
 				
 			}
-_loop58_breakloop:			;
+_loop60_breakloop:			;
 		}    // ( ... )*
 		{
 			if ((cached_LA1=='\n'||cached_LA1=='\r'))
@@ -882,7 +882,7 @@ _loop58_breakloop:			;
 			for (;;)
 			{
 				// nongreedy exit test
-				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop64_breakloop;
+				if ((cached_LA1=='*') && (cached_LA2=='/')) goto _loop66_breakloop;
 				if ((cached_LA1=='\n'||cached_LA1=='\r') && ((cached_LA2 >= '\u0000' && cached_LA2 <= '\ufffe')))
 				{
 					{
@@ -911,11 +911,11 @@ _loop58_breakloop:			;
 				}
 				else
 				{
-					goto _loop64_breakloop;
+					goto _loop66_breakloop;
 				}
 				
 			}
-_loop64_breakloop:			;
+_loop66_breakloop:			;
 		}    // ( ... )*
 		match("*/");
 		_ttype = Token.SKIP;
@@ -933,7 +933,7 @@ _loop64_breakloop:			;
 		_ttype = WS;
 		
 		{ // ( ... )+
-			int _cnt68=0;
+			int _cnt70=0;
 			for (;;)
 			{
 				switch ( cached_LA1 )
@@ -979,12 +979,12 @@ _loop64_breakloop:			;
 				}
 				default:
 				{
-					if (_cnt68 >= 1) { goto _loop68_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
+					if (_cnt70 >= 1) { goto _loop70_breakloop; } else { throw new NoViableAltForCharException(cached_LA1, getFilename(), getLine(), getColumn());; }
 				}
 				break; }
-				_cnt68++;
+				_cnt70++;
 			}
-_loop68_breakloop:			;
+_loop70_breakloop:			;
 		}    // ( ... )+
 		_ttype = Token.SKIP;
 		if (_createToken && (null == _token) && (_ttype != Token.SKIP))

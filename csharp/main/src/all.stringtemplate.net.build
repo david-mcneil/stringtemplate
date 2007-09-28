@@ -6,7 +6,7 @@
 	<property name="tools.dir" 			value="${base.dir}/Tools" />
 	<property name="tempdir" 			value="tempdir" />
 
-	<property name="version" 			value="3.0.1" />
+	<property name="version" 			value="3.1b1" />
 
 	<include buildfile="stringtemplate.net.common.inc" />
 

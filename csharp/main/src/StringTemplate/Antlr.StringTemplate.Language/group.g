@@ -203,15 +203,21 @@ IDictionary m=null;
 	;
 
 map returns [IDictionary mapping=new Hashtable()]
+	:   LBRACK mapPairs[mapping] RBRACK
+	;
+	
+mapPairs [IDictionary mapping]
+    : keyValuePair[mapping] (COMMA keyValuePair[mapping])*
+      (COMMA defaultValuePair[mapping])?
+    | defaultValuePair[mapping] 
+    ;	
+	
+defaultValuePair[IDictionary mapping]
 {
 	StringTemplate v = null;
 }
-	:   LBRACK 
-			keyValuePair[mapping] (COMMA keyValuePair[mapping])* 
-			(	COMMA "default" COLON v=keyValue
-	   	 		{mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;}
-			)?
-		RBRACK
+	:   "default" COLON v=keyValue
+	   	{mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;}
 	;
 
 keyValuePair[IDictionary mapping]

@@ -93,6 +93,7 @@ namespace Antlr.StringTemplate.Language
 					// make sure we evaluate in context of enclosing template's
 					// group so polymorphism works. :)
 					s.Group = self.Group;
+					s.NativeGroup = self.NativeGroup;
 					n = s.Write(output);
 				}
 				else if (elseSubtemplate != null)
@@ -101,6 +102,7 @@ namespace Antlr.StringTemplate.Language
 					StringTemplate s = elseSubtemplate.GetInstanceOf();
 					s.EnclosingInstance = self;
 					s.Group = self.Group;
+					s.NativeGroup = self.NativeGroup;
 					n = s.Write(output);
 				}
 			}

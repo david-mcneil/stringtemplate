@@ -66,15 +66,15 @@ namespace Antlr.StringTemplate
 	using NewlineRef						= Antlr.StringTemplate.Language.NewlineRef;
 	
 	/// <summary>
-	/// A <TT>StringTemplate</TT> is a "document" with holes in it where you can stick
-	/// values.  <TT>StringTemplate</TT> breaks up your template into chunks of text and
-	/// attribute expressions. <TT>StringTemplate</TT> ignores everything outside of 
+	/// A StringTemplate is a "document" with holes in it where you can stick
+	/// values.  The StringTemplate class breaks up your template into chunks 
+	/// of text and attribute expressions. StringTemplate ignores everything outside of 
 	/// attribute expressions, treating it as just text to spit out when you call 
-	/// <TT>StringTemplate.ToString()</TT>.
+	/// <see cref="StringTemplate.ToString"/>.
 	/// </summary>
 	public class StringTemplate
 	{
-		public const string VERSION = "3.0.1";
+		public const string VERSION = "3.1b1";
 
 		/// <summary><@r()></summary>
 		internal const int REGION_IMPLICIT = 1;
@@ -106,7 +106,7 @@ namespace Antlr.StringTemplate
 		{
 			//StringTemplate t = group.CreateStringTemplate();
 			StringTemplate t = nativeGroup.CreateStringTemplate();
-			dup(this, t);
+			Dup(this, t);
 			return t;
 		}
 
@@ -761,7 +761,7 @@ namespace Antlr.StringTemplate
 		/// not copy the enclosingInstance pointer since you will want this
 		/// template to eval in a context different from the examplar.
 		/// </summary>
-		protected internal virtual void  dup(StringTemplate from, StringTemplate to)
+		protected internal virtual void Dup(StringTemplate from, StringTemplate to)
 		{
 			to.attributeRenderers = from.attributeRenderers;
 			to.pattern = from.pattern;
@@ -821,8 +821,7 @@ namespace Antlr.StringTemplate
 		/// This will be a new list object so that incoming objects are
 		/// not altered.
 		/// 
-		/// If you send in an array, it is converted to a List.  Works
-		/// with arrays of objects and arrays of {int,float,double}.
+		/// If you send in an array, it is treated as an IList.
 		/// </summary>
 		public virtual void  SetAttribute(string name, object val)
 		{

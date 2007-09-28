@@ -90,8 +90,8 @@ namespace Antlr.StringTemplate.Language
 		public const int ASSIGN = 17;
 		public const int ANONYMOUS_TEMPLATE = 18;
 		public const int LBRACK = 19;
-		public const int LITERAL_default = 20;
-		public const int RBRACK = 21;
+		public const int RBRACK = 20;
+		public const int LITERAL_default = 21;
 		public const int STAR = 22;
 		public const int PLUS = 23;
 		public const int OPTIONAL = 24;
@@ -529,50 +529,9 @@ _loop14_breakloop:				;
 		IDictionary mapping=new Hashtable();
 		
 		
-			StringTemplate v = null;
-		
-		
 		try {      // for error handling
 			match(LBRACK);
-			keyValuePair(mapping);
-			{    // ( ... )*
-				for (;;)
-				{
-					if ((LA(1)==COMMA) && (LA(2)==STRING))
-					{
-						match(COMMA);
-						keyValuePair(mapping);
-					}
-					else
-					{
-						goto _loop20_breakloop;
-					}
-					
-				}
-_loop20_breakloop:				;
-			}    // ( ... )*
-			{
-				switch ( LA(1) )
-				{
-				case COMMA:
-				{
-					match(COMMA);
-					match(LITERAL_default);
-					match(COLON);
-					v=keyValue();
-					mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;
-					break;
-				}
-				case RBRACK:
-				{
-					break;
-				}
-				default:
-				{
-					throw new NoViableAltException(LT(1), getFilename());
-				}
-				 }
-			}
+			mapPairs(mapping);
 			match(RBRACK);
 		}
 		catch (RecognitionException ex)
@@ -581,6 +540,73 @@ _loop20_breakloop:				;
 			recover(ex,tokenSet_1_);
 		}
 		return mapping;
+	}
+	
+	public void mapPairs(
+		IDictionary mapping
+	) //throws RecognitionException, TokenStreamException
+{
+		
+		
+		try {      // for error handling
+			switch ( LA(1) )
+			{
+			case STRING:
+			{
+				keyValuePair(mapping);
+				{    // ( ... )*
+					for (;;)
+					{
+						if ((LA(1)==COMMA) && (LA(2)==STRING))
+						{
+							match(COMMA);
+							keyValuePair(mapping);
+						}
+						else
+						{
+							goto _loop21_breakloop;
+						}
+						
+					}
+_loop21_breakloop:					;
+				}    // ( ... )*
+				{
+					switch ( LA(1) )
+					{
+					case COMMA:
+					{
+						match(COMMA);
+						defaultValuePair(mapping);
+						break;
+					}
+					case RBRACK:
+					{
+						break;
+					}
+					default:
+					{
+						throw new NoViableAltException(LT(1), getFilename());
+					}
+					 }
+				}
+				break;
+			}
+			case LITERAL_default:
+			{
+				defaultValuePair(mapping);
+				break;
+			}
+			default:
+			{
+				throw new NoViableAltException(LT(1), getFilename());
+			}
+			 }
+		}
+		catch (RecognitionException ex)
+		{
+			reportError(ex);
+			recover(ex,tokenSet_4_);
+		}
 	}
 	
 	public void keyValuePair(
@@ -599,6 +625,28 @@ _loop20_breakloop:				;
 			match(COLON);
 			v=keyValue();
 			mapping[key.getText()] = v;
+		}
+		catch (RecognitionException ex)
+		{
+			reportError(ex);
+			recover(ex,tokenSet_5_);
+		}
+	}
+	
+	public void defaultValuePair(
+		IDictionary mapping
+	) //throws RecognitionException, TokenStreamException
+{
+		
+		
+			StringTemplate v = null;
+		
+		
+		try {      // for error handling
+			match(LITERAL_default);
+			match(COLON);
+			v=keyValue();
+			mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = v;
 		}
 		catch (RecognitionException ex)
 		{
@@ -656,7 +704,7 @@ _loop20_breakloop:				;
 		catch (RecognitionException ex)
 		{
 			reportError(ex);
-			recover(ex,tokenSet_4_);
+			recover(ex,tokenSet_5_);
 		}
 		return valueST;
 	}
@@ -686,8 +734,8 @@ _loop20_breakloop:				;
 		@"""ASSIGN""",
 		@"""ANONYMOUS_TEMPLATE""",
 		@"""LBRACK""",
-		@"""default""",
 		@"""RBRACK""",
+		@"""default""",
 		@"""STAR""",
 		@"""PLUS""",
 		@"""OPTIONAL""",
@@ -722,10 +770,16 @@ _loop20_breakloop:				;
 	public static readonly BitSet tokenSet_3_ = new BitSet(mk_tokenSet_3_());
 	private static long[] mk_tokenSet_4_()
 	{
-		long[] data = { 2097408L, 0L};
+		long[] data = { 1048576L, 0L};
 		return data;
 	}
 	public static readonly BitSet tokenSet_4_ = new BitSet(mk_tokenSet_4_());
+	private static long[] mk_tokenSet_5_()
+	{
+		long[] data = { 1048832L, 0L};
+		return data;
+	}
+	public static readonly BitSet tokenSet_5_ = new BitSet(mk_tokenSet_5_());
 	
 }
 }

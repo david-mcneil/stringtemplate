@@ -95,9 +95,12 @@ namespace Antlr.StringTemplate.Language
 		/// Using an expr option w/o value, makes options table hold EMPTY_OPTION
 		/// value for that key.
 		/// </summary>
-	public static readonly string EMPTY_OPTION = "empty expr option";
+		public static readonly string EMPTY_OPTION = "empty expr option";
 
-	public static readonly IDictionary defaultOptionValues = new HybridDictionary();
+		public static readonly IDictionary defaultOptionValues = new HybridDictionary();
+
+		/// <summary>John Snyders gave me an example implementation for this checking</summary>
+		public static readonly IDictionary supportedOptions = new HybridDictionary();
 
 		// used temporarily for checking obj.prop cache
 		public static int totalObjPropRefs = 0;
@@ -138,10 +141,19 @@ namespace Antlr.StringTemplate.Language
 		/// </summary>
 		string separatorString = null;
 
+		/// <summary>A cached value of option format=expr</summary>
+		string formatString = null;
+
 		static ASTExpr()
 		{
 			defaultOptionValues.Add("anchor", new StringTemplateAST(ActionEvaluator.STRING, "true"));
 			defaultOptionValues.Add("wrap",   new StringTemplateAST(ActionEvaluator.STRING, "\n"));
+
+			supportedOptions.Add("anchor", "anchor");
+			supportedOptions.Add("format", "format");
+			supportedOptions.Add("null", "null");
+			supportedOptions.Add("separator", "separator");
+			supportedOptions.Add("wrap", "wrap");
 		}
 
 		public ASTExpr(StringTemplate enclosingTemplate, AST exprTree, IDictionary options)
@@ -203,8 +215,12 @@ namespace Antlr.StringTemplate.Language
 			return n;
 		}
 
+		/// <summary>Grab and cache options; verify options are valid</summary>
 		private void HandleExprOptions(StringTemplate self)
 		{
+			// make sure options don't use format / renderer.  They are usually
+			// strings which might invoke a string renderer etc...
+			formatString = null;
 			StringTemplateAST wrapAST = (StringTemplateAST)GetOption("wrap");
 			if (wrapAST != null)
 			{
@@ -219,6 +235,27 @@ namespace Antlr.StringTemplate.Language
 			if (separatorAST != null)
 			{
 				separatorString = EvaluateExpression(self, separatorAST);
+			}
+
+			// following addition inspired by John Snyders
+			StringTemplateAST formatAST = (StringTemplateAST)GetOption("format");
+			if (formatAST != null)
+			{
+				formatString = EvaluateExpression(self, formatAST);
+			}
+
+			// Check that option is valid
+			if (options != null)
+			{
+				IEnumerator iter = options.Keys.GetEnumerator();
+				while (iter.MoveNext())
+				{
+					string option = (string)iter.Current;
+					if (!supportedOptions.Contains(option))
+					{
+						self.Warning("ignoring unsupported option: " + option);
+					}
+				}
 			}
 		}
 
@@ -401,6 +438,7 @@ namespace Antlr.StringTemplate.Language
 					argumentContext[DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue;
 				}
 				argumentContext[DEFAULT_INDEX_VARIABLE_NAME] = 1;
+				argumentContext[DEFAULT_INDEX0_VARIABLE_NAME] = 0;
 				embedded.ArgumentContext = argumentContext;
 				EvaluateArguments(embedded);
 				return embedded;
@@ -711,7 +749,14 @@ namespace Antlr.StringTemplate.Language
 		{
 			return Write(self, o, output);
 		}
-		
+
+		/// <summary>
+		/// Write o relative to self to out
+		/// </summary>
+		/// <remarks>
+		/// John Snyders fixes here for formatString.  Basically, any time
+		/// you are about to write a value, check formatting.
+		/// </remarks>
 		protected internal virtual int Write(StringTemplate self, object o, IStringTemplateWriter output)
 		{
 			if (o == null)
@@ -752,6 +797,21 @@ namespace Antlr.StringTemplate.Language
 						{
 							n = output.WriteWrapSeparator(wrapString);
 						}
+					// check if formatting needs to be applied to the stToWrite
+					if ( formatString != null ) {
+						IAttributeRenderer renderer = self.GetAttributeRenderer(typeof(string));
+						if ( renderer != null ) 
+						{
+							// you pay a penalty for applying format option to a template
+							// because the template must be written to a temp StringWriter so it can
+							// be formatted before being written to the real output.
+							StringWriter buf = new StringWriter();
+							IStringTemplateWriter sw = self.Group.CreateInstanceOfTemplateWriter(buf);
+							stToWrite.Write(sw);
+							n = output.Write(renderer.ToString(buf.ToString(), formatString));
+							return n;
+						}
+					}
 						n = stToWrite.Write(output);
 					}
 					return n;
@@ -761,7 +821,6 @@ namespace Antlr.StringTemplate.Language
 				if (o is IEnumerator)
 				{
 					IEnumerator iter = (IEnumerator)o;
-					object prevIterValue = null;
 					bool seenPrevValue = false;
 					while (iter.MoveNext())
 					{
@@ -780,7 +839,6 @@ namespace Antlr.StringTemplate.Language
 							int nw = Write(self, iterValue, output);
 							n += nw;
 						}
-						prevIterValue = iterValue;
 					}
 				}
 				else
@@ -789,7 +847,14 @@ namespace Antlr.StringTemplate.Language
 					string v = null;
 					if (renderer != null)
 					{
-						v = renderer.ToString(o);
+						if (formatString != null)
+						{
+							v = renderer.ToString(o, formatString);
+						}
+						else
+						{
+							v = renderer.ToString(o);
+						}
 					}
 					else
 					{
@@ -836,12 +901,10 @@ namespace Antlr.StringTemplate.Language
 				StringWriter buf = new StringWriter();
 				IStringTemplateWriter sw = self.group.CreateInstanceOfTemplateWriter(buf);
 				ActionEvaluator eval = new ActionEvaluator(self, this, sw);
-				int n = 0;
 
-				
 				try
 				{
-					n = eval.action(exprTree);	// eval tree
+					eval.action(exprTree);	// eval tree
 				}
 				catch (RecognitionException ex)
 				{
@@ -856,7 +919,8 @@ namespace Antlr.StringTemplate.Language
 			}
 		}
 		
-		/// <summary>Evaluate an argument list within the context of the enclosing
+		/// <summary>
+		/// Evaluate an argument list within the context of the enclosing
 		/// template but store the values in the context of self, the
 		/// new embedded template.  For example, bold(item=item) means
 		/// that bold.item should get the value of enclosing.item.
