@@ -1,0 +1,18 @@
+// $ANTLR 2.7.6 (2005-12-22): template.g -> TemplateParserTokenTypes.txt$
+TemplateParser    // output token vocab name
+LITERAL=4
+NEWLINE=5
+ACTION=6
+IF=7
+ELSE=8
+ENDIF=9
+REGION_REF=10
+REGION_DEF=11
+EXPR=12
+TEMPLATE=13
+IF_EXPR=14
+ESC=15
+SUBTEMPLATE=16
+NESTED_PARENS=17
+INDENT=18
+COMMENT=19

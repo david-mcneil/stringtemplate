@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding='iso-8859-1' ?>
+<project name="all" default="usage">
+
+	<property name="base.dir" 			value="${path::get-full-path( project::get-base-directory() )}" />
+	<property name="sharedlibrary.dir" 	value="${base.dir}/Lib" />
+	<property name="tools.dir" 			value="${base.dir}/Tools" />
+	<property name="tempdir" 			value="tempdir" />
+
+	<property name="version" 			value="3.1b1" />
+
+	<include buildfile="stringtemplate.net.common.inc" />
+
+  	<!-- =================================================================== -->
+  	<!-- Help on usage                                                       -->
+  	<!-- =================================================================== -->
+  	
+  	<target name="usage">
+    	<echo message="StringTemplate.NET (ST#) - Nant Build file"/>
+    	<echo message="-------------------------------------------------------------"/>
+    	<echo message=""/>
+    	<echo message="available targets are:"/>
+    	<echo message=""/>
+    	<echo message="  build      - build debug or release version in '${base.dir}/build/${framework::get-target-framework()}'"/>
+    	<echo message="                 (use -Ddebug=true or -Ddebug=false )"/>
+    	<echo message=""/>
+    	<echo message="  release    - build release version in '${base.dir}/build/${framework::get-target-framework()}'"/>
+    	<echo message=""/>
+    	<echo message="  dist       - build src/bin/docs distro in '${base.dir}'"/>
+    	<echo message="                 (uses **pre-built** binaries.)"/>
+    	<echo message=""/>
+    	<echo message="  cleanall   - delete all the Nant and VS.NET build artifacts"/>
+    	<echo message="  clean      - delete all the Nant build artifacts only"/>
+    	<echo message=""/>
+    	<echo message="  regenerate - runs ANTLR and regenerate source code from grammars"/>
+    	<echo message="                 (You *NEED* to fix issues in the generated code.)"/>
+    	<echo message=""/>
+    	<echo message="  usage      - show this message (default)"/>
+    	<echo message=""/>
+    	<echo message="-------------------------------------------------------------"/>
+  	</target>
+
+	<target name="regenerate" 
+			depends="clean, init" 
+			description="Runs ANTLR tool ( you **NEED** to fix generated code )"
+	>
+		<nant buildfile="StringTemplate/stringtemplate.build"      target="regenerate" inheritall="true" />
+    </target>
+
+	<target name="build" 
+			depends="clean, init, stringtemplate, stringtemplate.benchmarks, stringtemplate.treeview, stringtemplate.viewer, copytobuilddir"
+			description="Build debug or release version ( -Ddebug=true|false )"
+	/>
+
+    <target name="release" depends="clean" description="Builds release (i.e. non-debug) version">
+        <!-- build a clean release distribution for release -->
+        <property name="debug" value="false"/>
+        <call target="build"/>
+    </target>
+
+	<target name="cleanall" depends="clean" description="Cleans all the Nant and VS.NET build artifacts">
+		<nant buildfile="StringTemplate/stringtemplate.build"      target="clean.vsnet" inheritall="true" />
+		<nant buildfile="StringTemplate.Benchmark/benchmark.build" target="clean.vsnet" inheritall="true" />
+		<nant buildfile="StringTemplateTreeView/TreeView.build"    target="clean.vsnet" inheritall="true" />
+		<nant buildfile="StringTemplateViewer/STViewer.build"      target="clean.vsnet" inheritall="true" />
+	</target>
+	
+	<target name="dist" 
+			depends="releaseDocs, zipsource, zip11, zip20, zipdoc"
+			description="Creates src/bin/docs distros (uses pre-built binaries)"
+	/>
+	
+
+	<target name="clean" description="Cleans Nant build artifacts">
+		<delete dir="${build.working.dir}" failonerror="false" />
+		<delete dir="${build.dest.dir}" failonerror="false" />
+	</target>
+	
+	<target name="init">
+		<mkdir dir="${build.working.dir}" />
+		<mkdir dir="${build.dest.dir}" />
+		<call target="copy_build_dependencies" />
+	</target>
+	
+	<target name="copy_build_dependencies">
+		<copy todir="${build.dest.dir}">
+			<fileset basedir="${sharedlibrary.dir}/${target.clr}">
+				<include name="*.dll" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="stringtemplate" depends="init">
+		<nant buildfile="StringTemplate/stringtemplate.build" target="build" inheritall="true" />
+	</target>
+	
+	<target name="stringtemplate.benchmarks" depends="init">
+		<nant buildfile="StringTemplate.Benchmark/Benchmark.build" target="build" inheritall="true" />
+	</target>
+	
+	<target name="stringtemplate.treeview" depends="init">
+		<nant buildfile="StringTemplateTreeView/TreeView.build" target="build" inheritall="true" />
+	</target>
+	
+	<target name="stringtemplate.viewer" depends="init">
+		<nant buildfile="StringTemplateViewer/STViewer.build" target="build" inheritall="true" />
+	</target>
+	
+	<target name="copytobuilddir">
+		<copy todir="${build.dest.dir}">
+			<fileset basedir="${build.working.dir}">
+				<include name="StringTemplate.dll" />
+				<include name="StringTemplate.xml" />
+				<include name="antlr.runtime.dll" />
+				
+				<include name="Benchmark.exe" />
+				<include name="Benchmark.xml" />
+				<include name="StringTemplateViewer.exe" />
+				<include name="StringTemplateViewer.xml" />
+				<include name="StringTemplate.Viewer.xml" />
+				<include name="StringTemplate.Viewer.dll" />
+				
+				<include name="StringTemplate.pdb" />
+				<include name="antlr.runtime.pdb" />
+				<include name="Benchmark.pdb" />
+				<include name="StringTemplateViewer.pdb" />
+				<include name="StringTemplate.Viewer.pdb" />
+			</fileset>
+		</copy>
+	</target>
+	
+	<target name="zip11">
+		<zip zipfile="${base.dir}/StringTemplate.Net.v${version}.net-1.1.zip">
+			<fileset basedir="${base.dir}/build">
+				<include name="net-1.1/antlr.runtime.dll" />
+				<include name="net-1.1/StringTemplate.dll" />
+				<include name="net-1.1/StringTemplate.Viewer.dll" />
+				<include name="net-1.1/StringTemplateViewer.exe" />
+			</fileset>
+			<fileset basedir="${base.dir}">
+				<include name="README.TXT" />
+				<include name="LICENSE.TXT" />
+				<include name="NOTICE.TXT" />
+				<include name="CHANGES.TXT" />
+				<include name="docs/doc.html" />
+				<include name="docs/page.treeview.jpg" />
+				<include name="docs/StringTemplate Documentation.pdf" />
+			</fileset>
+		</zip>
+	</target>
+
+	<target name="zip20">
+		<zip zipfile="${base.dir}/StringTemplate.Net.v${version}.net-2.0.zip">
+			<fileset basedir="${base.dir}/build">
+				<include name="net-2.0/antlr.runtime.dll" />
+				<include name="net-2.0/StringTemplate.dll" />
+				<include name="net-2.0/StringTemplate.Viewer.dll" />
+				<include name="net-2.0/StringTemplateViewer.exe" />
+			</fileset>
+			<fileset basedir="${base.dir}">
+				<include name="README.TXT" />
+				<include name="LICENSE.TXT" />
+				<include name="NOTICE.TXT" />
+				<include name="CHANGES.TXT" />
+				<include name="docs/doc.html" />
+				<include name="docs/page.treeview.jpg" />
+				<include name="docs/StringTemplate Documentation.pdf" />
+			</fileset>
+		</zip>
+	</target>
+	
+	<target name="zipdoc">
+		<zip zipfile="${base.dir}/StringTemplate.Net.v${version}.api-doc.zip">
+			<fileset basedir="${base.dir}/docs">
+				<include name="StringTemplate.chm" />
+			</fileset>
+		</zip>
+	</target>
+
+	<target name="zipsource">
+		<zip zipfile="${base.dir}/StringTemplate.Net.v${version}.src.zip">
+			<fileset basedir="${base.dir}">
+				<include name="**/*.build" />
+				<include name="**/*.xml" />
+				<include name="**/*.inc" />
+				<include name="**/*.sln" />
+				<include name="**/*.cs" />
+				<include name="**/*.csproj" />
+				<include name="**/*TokenTypes.txt" />
+				<include name="**/*.g" />
+				<include name="**/*.st" />
+				<include name="**/*.resx" />
+				<include name="**/*.ico" />
+				<include name="**/*.html" />
+				<include name="**/*.jpg" />
+				<include name="**/*.pdf" />
+
+				<include name="${sharedlibrary.dir}/**/*.dll" />
+
+				<include name="${tools.dir}/**/*.dll" />
+				<include name="${tools.dir}/**/*.exe" />
+				
+				<include name="README.TXT" />
+				<include name="LICENSE.TXT" />
+				<include name="NOTICE.TXT" />
+				<include name="CHANGES.TXT" />
+
+				<exclude name="*.snk" />
+				<exclude name="**/obj/Debug/*.*" />
+				<exclude name="**/bin/Debug/*.*" />
+				<exclude name="**/bin/*.*" />
+				<exclude name="bin/**/*.*" />
+				<exclude name="build/**/*.*" />
+				<exclude name="**/*.user" />
+				<exclude name="**/*.resharperoptions" />
+				<exclude name="**/*.obj" />
+				<exclude name="**/*.pch" />
+				<exclude name="**/*.pdb" />
+				<exclude name="**/*.idb" />
+				<exclude name="**/*.log*" />
+				<exclude name="**/*.suo" />
+				<exclude name="**/*.bak" />
+				<exclude name="**/*.new" />
+				<exclude name="**/*.original" />
+			</fileset>
+		</zip>
+	</target>
+	
+	<!-- Documentation generation. -->
+	<property name="base.dir" value="." />
+	<property name="doc.dir" value="${base.dir}/docs" />
+	<property name="tempBin.dir" value="${doc.dir}/bin"/>
+	<property name="outputDocs.file" value="StringTemplate"/>
+	
+	<!-- Docs generation properties. -->
+	<property name="ShowMissing" value="false"/>
+	<property name="ShowPrivate" value="false"/>
+	<property name="OutputTarget" value="HTMLHelp"/>
+
+<!--		
+		description: 
+			Generates documentation with default properties.
+-->	
+	<target name="releaseDocs" depends="clean.docs">
+		<call target="copyFilesToDocument"/>
+		<call target="generateReleaseDocs"/>
+	</target>
+	
+<!--		
+		description: 
+			Generates documentation for developers, with all missing information indicated and private members visible.
+-->	
+	<target name="devDocs" depends="clean.docs">
+		<property name="ShowMissing" value="true"/>
+		<property name="ShowPrivate" value="true"/>
+		<property name="outputDocs.file" value="StringTemplate.Dev"/>
+		<call target="copyFilesToDocument"/>
+		<call target="generateReleaseDocs"/>
+	</target>
+		
+<!--		
+		description: 
+			 Generates documentation for release.
+-->	
+	<target name="generateReleaseDocs">
+		<ndoc failonerror="true">
+			<assemblies basedir="${tempBin.dir}">
+				<include name="StringTemplate*.dll"/>
+			</assemblies>
+			<referencepaths>
+				<include name="Lib/${framework::get-target-framework()}"/>
+			</referencepaths>
+			<documenters>
+				<documenter name="MSDN">
+					<property name="OutputTarget" value="${OutputTarget}" />
+					<property name="Preliminary" value="true" />
+					<property name="BinaryTOC" value="true" />
+					<property name="CleanIntermediates" value="true" />
+					<property name="SdkLinksOnWeb" value="true" />
+					
+					<property name="OutputDirectory" value="${doc.dir}" />
+					<property name="HtmlHelpName" value="${outputDocs.file}" />
+					<property name="IncludeFavorites" value="True" />
+					<property name="SplitTOCs" value="False" />
+					
+					<property name="Title" value="StringTemplate.NET API documentation" />	
+					<property name="DefaulTOC" value="Antlr.StringTemplate" />
+					
+					<property name="ShowVisualBasic" value="True" />
+					<property name="ShowMissingSummaries" value="${ShowMissing}" />
+					<property name="ShowMissingRemarks" value="${ShowMissing}" />
+					<property name="ShowMissingParams" value="${ShowMissing}" />
+					<property name="ShowMissingReturns" value="${ShowMissing}" />
+					<property name="ShowMissingValues" value="${ShowMissing}" />
+					<property name="DocumentEmptyNamespaces" value="${ShowMissing}" />
+					
+					<property name="AutoPropertyBackerSummaries" value="true" />
+					<property name="AutoDocumentConstructors" value="true" />
+					<property name="DocumentProtected" value="True" />
+					<property name="DocumentInternals" value="${ShowPrivate}" />
+					<property name="DocumentPrivates" value="${ShowPrivate}" />
+					
+					<property name="IncludeAssemblyVersion" value="True" />
+					<property name="CopyrightText" value="Copyright 2005-2006 - Kunle Odutola" />
+					<property name="CopyrightHref" value="http://www.stringtemplate.org" />
+				</documenter>
+			</documenters>
+		</ndoc>
+	</target>
+
+<!--		
+		description: 
+			Copies all files to be documented to a single location to speed up the documentation process.
+-->	
+	<target name="copyFilesToDocument">
+		<copy todir="${tempBin.dir}" flatten="true">
+			<fileset basedir="build/${target.clr}">
+				<include name="StringTemplate.dll"/>
+				<include name="StringTemplate.xml"/>
+			</fileset>
+		</copy>
+	</target>
+		
+<!--		
+		description: 
+			 Cleans up prior to documentation generation.
+-->	
+	<target name="clean.docs">
+		<delete>
+			<fileset>
+<!--
+				<include name="${doc.dir}/**"/>
+-->				
+				<exclude name="**/*.chm"/>
+			</fileset>
+		</delete>
+	</target>
+
+</project>

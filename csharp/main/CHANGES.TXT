@@ -1,0 +1,157 @@
+StringTemplate.NET - A C# implementation of the StringTemplate Library
+
+Kunle Odutola		: kunle UNDERSCORE odutola AT hotmail DOT com
+Micheal Jordan
+Anthony Oguntimehin
+
+
+===========================================================================
+
+
+08 November, 2006 (v3.0.1)
+
+  ***BREAKING*** In IStringTemplateGroupLoader implementations, methods
+  LoadGroup(string) and LoadGroup(string, StringTemplateGroup) now return
+  StringTemplateGroup instances configured to use the "default" lexer type.
+  Previously, they were hard-coded to use the 'DefaultTemplateLexer' type 
+  (i.e. $...$). This is significant because the "default" lexer type is now
+  the AngleBracketTemplateLexer (i.e. <..>).
+  
+- Attributes names may start with the underscore character (i.e '_')
+  
+
+===========================================================================
+
+
+04 August, 2006 (v2.3 beta 10)
+
+- Fixed issues reported by Kenny Cockburn where checking for non-empty 
+  IEnumerators resulted in skipped values and, any further reference to the 
+  same attribute was dealing with an "empty" enumerator (one where the
+  IEnumerator.MoveNext() method [always] returns false).
+  
+  i)  The test for empty enumerator no longers skips any values
+  
+  ii) Multiple references to an IEnumerator will **STILL** result in all but
+      the first reference dealing with an "empty" enumerator.
+      Use of an IEnumerator has side-effects and we may be dealing with
+      deliberately "positioned" IEnumerators.
+
+  Added [Ignore] tests to emphasize the multiple refs to IEnumerator issue.
+
+- Attribute names cannot include the '.' (i.e. dot)
+  Examples:
+  	Legal names:    DateOfBirth     valid_name      unhyphenated
+  	Illegal names:	date.of.birth   .invalid_name   
+
+- Template names cannot include the '.' or '-' characters (i.e. dot and hyphen)
+  Examples:
+  	Legal names:    MyCoolTemplate     unhyphenated_name
+  	Illegal names:	my.cool.template   hyphenated-name   
+
+- Use StringTemplate.ToString(int lineWidth) to set the [approx] length 
+  of each line before it is wrapped. Use new "wrap" option to specify a wrap
+  delimiter (text that is output after the wrap):
+  		<products; wrap="\n">
+
+  See included tests for more on "wrap" including the related "anchor" option.
+  
+- New "null" option to specify a substitute value for nulls in a multi-valued 
+  attribute. This is essentially a syntactic sugar for a  conditional tests on 
+  each value. The following templates are functionally equivalent:
+  
+  	$values:{v|$if(v)$$v$$else$--null--$endif$}$
+  	
+  and
+  
+  	$values; null="--null--"$
+  	 -OR-
+  	<values; null="--null--">
+  
+- New "length()" operator returns the length of an attribute. Null single-valued 
+  attributes have a length of 0. Null values in a multi-valued attributes are
+  counted.
+  
+	$values:{$length(values)$)
+	
+- New "strip()" operator skips null values. Returns an empty string for a null 
+  single-valued attribute and, strips out nulls from multi-valued attributes.
+  
+	$strip(values):{s|$s$}; separator=", "$
+  
+
+===========================================================================
+
+
+11 May, 2006 (v2.3 beta 7)
+
+- Added this file ;-)
+
+- Added Nant build files for all projects and tests.
+
+  Also added ANTLR 2.7.6 executables (created with the excellent IKVM tool) 
+  to the source distribution. This ensures the Nant build always has all it 
+  needs to (re)build the project.
+
+- FileSystemTemplateLoader now detects changes to watched files. This issue
+  was triggered by the ST view engine for the excellent Castle.MonoRail 
+  project.
+  
+- StringTemplate.dll assembly is now strong named
+
+  For your own source builds, you will need to generate a key pair in a file
+  named 'StringTemplate_KeyPair.snk' in the root of the ST# source tree.
+
+- Added IAttributeStrategy {Luis Leal}
+
+- Added HTML documentation (also available on the wiki) and a new i18n sample
+  demonstrating an easy way of supporting site skinning and Localization with
+  ST#.
+
+- A StringTemplate's native group is now responsible for creating copies of 
+  StringTemplate instances for GetInstanceOf().
+  
+- Introduced IStringTemplateGroupFactory to separate the concept of finding and 
+  loading StringTemplateGroups and StringTemplateGroupInterfaces from that of 
+  creating them. 
+  
+  Existing IStringTemplateGroupLoader implementation have been updated and can 
+  now locate and create custom Group and GroupInterfaces classes.
+
+- StringTemplateGroups and StringTemplateGroupInterfaces can now be loaded 
+  from embedded *.stg/*.sti resources. See EmbeddedResourceGroupLoader.cs
+  
+- StringTemplates can now be loader from embedded *.st resources. 
+  See EmbeddedResourceTemplateLoader.cs
+
+- Added CompositeGroupLoader for using multiple IStringTemplateGroupLoaders.
+
+- NullErrorListener is now a sealed class
+
+- RemoveAttribute() no longers throws an exception if no attributes have 
+  been defined.
+  
+- Removed overly eager whitespace trimming.
+
+- Added more new useful constructors to StringTemplateGroup. 
+
+  ***BREAKING*** StringTemplateGroup(string name) now loads templates 
+  relative to the Application's BasePath (usually the location of the 
+  assembly).
+  
+  ***BREAKING*** Most StringTemplateGroup constuctors now configure their 
+  loader not to raise exceptions if a template isn't found. The logic used
+  to locate/load templates in StringTemplateGroup itself may still raise 
+  exceptions of course.
+  
+- StringTemplateGroup now checks that a cached template hasn't changed 
+  before reusing it. If it has, it is reloaded. Checking may be expensive
+  for some StringTemplateLoader implementations.
+  
+  Introduced StringTemplateGroup.TemplateHasChanged() to support the
+  behaviour described above.
+  
+- Added basic DateTimeFormatter and NumberFormatter classes. Useful for 
+  wrapping attributes.
+
+

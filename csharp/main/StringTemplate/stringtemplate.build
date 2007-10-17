@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<project name="StringTemplate.NET" default="build">
+    <tstamp/>
+	<property name="base.dir" value="${path::get-full-path( project::get-base-directory() )}" />
+
+	<include buildfile="../stringtemplate.net.common.inc" />
+
+	<property name="stringtemplate.test" value="true" unless="${property::exists('stringtemplate.test')}" />
+	<property name="enabletest" value="ALLOWTEST" unless="${property::exists('enabletest')}" />
+
+	<property name="name" value="StringTemplate" />
+	<property name="test.name" value="${name}.Tests" />
+	
+	<property name="assembly.name" value="${name}.dll" />
+	<property name="test.assembly.name" value="${test.name}.dll" />
+	
+	<property name="src.dir" value="${base.dir}/" />
+	<property name="test.src.dir" value="${base.dir}/../StringTemplateTests" />
+
+    <property name="debug" value="true" unless="${property::exists('debug')}" />
+
+    <property name="antlr.tool.dir" value="${base.dir}/../Tools/antlr-2.7.6"/>
+    <property name="antlr.tool.exe" value="${antlr.tool.dir}/antlr.Tool.exe"/>
+    <property name="grammar.dir" value="${base.dir}/Antlr.StringTemplate.Language"/>
+    
+    <echo message="Building project: '${name}' version ${version} ==> '${assembly.name}'"/>
+
+    <target name="build" depends="init, compile, test" description="compiles the source code">
+    </target>
+
+    <target name="regenerate" depends="init, clean_generated, generate" description="regenerates lexers/[tree]parsers">
+    </target>
+
+	<target name="init" depends="clean, copy_build_dependencies">
+        <mkdir dir="${build.working.dir}/tests" />
+	</target>
+
+	<target name="copy_build_dependencies">
+		<!-- Copy StringTemplate dependencies -->
+		<copy todir="${build.working.dir}" overwrite="true">
+			<fileset basedir="${sharedlibrary.dir}/${target.clr}">
+				<include name="antlr.runtime.dll" />
+			</fileset>
+		</copy>
+
+		<!-- Copy StringTemplateTests dependencies -->
+		<copy todir="${build.working.dir}" overwrite="true">
+			<fileset basedir="${sharedlibrary.dir}/${target.clr}">
+				<include name="Castle.DynamicProxy.dll" />
+				<include name="nunit.framework.dll" />
+			</fileset>
+		</copy>
+		<copy todir="${build.working.dir}/tests" overwrite="true">
+			<fileset basedir="${test.src.dir}/TestInput">
+				<include name="*.st" />
+			</fileset>
+		</copy>
+	</target>
+
+    <target name="clean">
+	</target>
+
+    <target name="clean.vsnet" description="cleans up VS.NET build artifacts and output">
+		<!-- delete VS.NET project artifacts directory -->
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/bin'" />
+		<delete dir="${base.dir}/bin" failonerror="false" />
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/obj'" />
+		<delete dir="${base.dir}/obj" failonerror="false" />
+
+		<!-- delete VS.NET project artifacts directory for Tests projects-->
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/../StringTemplateTests/bin'" />
+		<delete dir="${base.dir}/../StringTemplateTests/bin" failonerror="false" />
+        <echo message="Deleting VS.NET artifacts directory '${base.dir}/../StringTemplateTests/obj'" />
+		<delete dir="${base.dir}/../StringTemplateTests/obj" failonerror="false" />
+    </target>
+
+    <target name="clean_generated" description="cleans up generated files">
+        <delete file="${grammar.dir}/ActionEvaluator.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionEvaluatorTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionEvaluatorTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/ActionParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}/AngleBracketTemplateLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/AngleBracketTemplateLexerTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/AngleBracketTemplateLexerTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}/DefaultTemplateLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/TemplateParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/TemplateParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/TemplateParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}/GroupLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/GroupParser.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/GroupParserTokenTypes.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/GroupParserTokenTypes.txt" failonerror="false"/>
+        <delete file="${grammar.dir}/InterfaceLexer.cs" failonerror="false"/>
+        <delete file="${grammar.dir}/InterfaceParser.cs" failonerror="false"/>
+    </target>
+
+    <target name="generate" description="calls ANTLR to generate Lexers/Parsers">    	
+        <echo message="Due to an issue in the ANTLR tool, some of the generated files have an issue that"/>
+        <echo message="currently has to be resolved manually. These generated files would not compile."/>
+        
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/template.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/action.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/group.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/angle.bracket.template.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/eval.g" failonerror="true"/>
+        <exec program="${antlr.tool.exe}" commandline="-o ${grammar.dir} ${grammar.dir}/interface.g" failonerror="true"/>
+    </target>
+
+	<target name="test" depends="tests.run" if="${stringtemplate.test}">
+	</target>
+
+	<target name="tests.run" depends="tests.compile">
+		<nunit2>
+			<formatter type="${nunit.formatter}" />
+			<test assemblyname="${build.working.dir}/${test.assembly.name}" />
+		</nunit2>
+	</target>
+
+	<target name="compile" depends="init">
+		<csc 
+			define="${strong_name} ${dotnet_define}"
+			target="library" 
+			debug="${debug}"
+			optimize="${optimize}"
+			output="${build.working.dir}/${assembly.name}" 
+			doc="${build.working.dir}/${name}.xml">
+			
+			<nowarn>
+				<warning number="1591" />
+				<warning number="1572" />
+			</nowarn>
+			
+			<sources basedir="${src.dir}" defaultexcludes="true">
+				<include name="**/*.cs" />
+			</sources>
+
+			<references>
+				<include name="${build.working.dir}/antlr.runtime.dll" />
+			</references>
+		</csc>
+	</target>
+
+	<target name="tests.compile" depends="init">
+		<csc 
+			define="${dotnet_define}"
+			target="library" 
+			debug="${debug}" 
+			output="${build.working.dir}/${test.assembly.name}">
+			
+			<sources basedir="${test.src.dir}" defaultexcludes="true">
+				<include name="**/*.cs" />
+			</sources>
+
+			<references>
+				<include name="${nunit.framework.dll}" />
+				<include name="${build.working.dir}/${assembly.name}" />
+				<include name="${build.working.dir}/antlr.runtime.dll" />
+				<include name="${build.working.dir}/Castle.DynamicProxy.dll" />
+			</references>
+		</csc>
+	</target>
+	
+</project>
