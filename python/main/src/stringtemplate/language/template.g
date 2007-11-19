@@ -11,7 +11,7 @@ header "TemplateParser.__init__" {
 
 header "DefaultTemplateLexer.__init__" {
     self.currentIndent = None
-    //self.this = None
+    self.this = None
 }
 
 options {
@@ -25,7 +25,13 @@ class TemplateParser extends Parser;
 
 {
     def reportError(self, e):
-        self.error("template parse error", e)
+        group = self.this.getGroup()
+        if group == stringtemplate.StringTemplate.defaultGroup:
+            self.this.error("template parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
+    
+        else:
+            self.this.error("template parse error in group "+self.this.getGroup().getName()+" line "+str(self.this.getGroupFileLine())+"; template context is "+self.this.getEnclosingInstanceStackString(), e)
+
 }
 
 template[this]
@@ -54,18 +60,35 @@ action[this]
             // create and precompile the subtemplate
             subtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
             subtemplate.setEnclosingInstance(this)
-            subtemplate.setName(i.getText() + " subtemplate")
+            subtemplate.setName(i.getText() + "_subtemplate")
             this.addChunk(c)
         }
 
         template[subtemplate] { if c: c.setSubtemplate(subtemplate) }
+
+        (   ei:ELSEIF
+            {
+                ec = this.parseAction(ei.getText())
+                // create and precompile the subtemplate
+                elseIfSubtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
+                elseIfSubtemplate.setEnclosingInstance(this)
+                elseIfSubtemplate.setName(ei.getText()+"_subtemplate")
+            }
+
+            template[elseIfSubtemplate]
+
+            {
+                if c is not None:
+                    c.addElseIfSubtemplate(ec, elseIfSubtemplate)
+            }
+        )*
 
         (   ELSE
             {
                 // create and precompile the subtemplate
                 elseSubtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
                 elseSubtemplate.setEnclosingInstance(this)
-                elseSubtemplate.setName("else subtemplate")
+                elseSubtemplate.setName("else_subtemplate")
             }
 
             template[elseSubtemplate]
@@ -73,6 +96,71 @@ action[this]
         )?
 
         ENDIF
+
+      | rr:REGION_REF
+        {
+            // define implicit template and
+            // convert <@r()> to <region__enclosingTemplate__r()>
+            regionName = rr.getText()
+            mangledRef = None
+            err = False
+            // watch out for <@super.r()>; that does NOT def implicit region
+            // convert to <super.region__enclosingTemplate__r()>
+            if regionName.startswith("super."):
+                //System.out.println("super region ref "+regionName);
+                regionRef = regionName[len("super."):len(regionName)]
+                templateScope = this.getGroup().getUnMangledTemplateName(this.getName())
+                scopeST = this.getGroup().lookupTemplate(templateScope)
+                if scopeST is None:
+                    this.getGroup().error("reference to region within undefined template: "+
+                        templateScope)
+                    err = True
+
+                if not scopeST.containsRegionName(regionRef):
+                    this.getGroup().error("template "+templateScope+" has no region called "+
+                        regionRef)
+                    err = True
+
+                else:
+                    mangledRef = this.getGroup().getMangledRegionName(templateScope, regionRef)
+                    mangledRef = "super." + mangledRef
+
+            else:
+                //System.out.println("region ref "+regionName);
+                regionST = this.getGroup().defineImplicitRegionTemplate(this, regionName)
+                mangledRef = regionST.getName()
+
+            if not err:
+                // treat as regular action: mangled template include
+                indent = rr.getIndentation()
+                c = this.parseAction(mangledRef+"()")
+                c.setIndentation(indent)
+                this.addChunk(c)
+        }
+
+    | rd:REGION_DEF
+        {
+            combinedNameTemplateStr = rd.getText()
+            indexOfDefSymbol = combinedNameTemplateStr.find("::=")
+            if indexOfDefSymbol >= 1:
+                regionName = combinedNameTemplateStr[0:indexOfDefSymbol]
+                template = combinedNameTemplateStr[indexOfDefSymbol+3:len(combinedNameTemplateStr)]
+                regionST = this.getGroup().defineRegionTemplate(
+                    this,
+                    regionName,
+                    template,
+                    stringtemplate.StringTemplate.REGION_EMBEDDED
+                    )
+                // treat as regular action: mangled template include
+                indent = rd.getIndentation()
+                c = this.parseAction(regionST.getName() + "()")
+                c.setIndentation(indent)
+                this.addChunk(c)
+
+            else:
+                this.error("embedded region definition screwed up")
+
+        }
     ;
 
 /** Break up an input text stream into chunks of either plain text
@@ -87,12 +175,8 @@ options {
 }
 
 {
-    def initialize(self, this, r):
-        super(Lexer, self).__init__(r)
-        self.this = this
-
     def reportError(self, e):
-        self.error("template parse error", e)
+        self.this.error("$...$ chunk lexer error", e)
 
     def upcomingELSE(self, i):
         return self.LA(i) == '$' and \
@@ -111,6 +195,19 @@ options {
                self.LA(i+5) == 'f' and \
                self.LA(i+6) == '$'
 
+    def upcomingAtEND(self, i):
+        return self.LA(i) == '$' and \
+               self.LA(i+1) == '@' and \
+               self.LA(i+2) == 'e' and \
+               self.LA(i+3) == 'n' and \
+               self.LA(i+4) == 'd' and \
+               self.LA(i+5) == '$'
+
+    def upcomingNewline(self, i):
+        return (self.LA(i) == '\r' and
+                self.LA(i+1) == '\n') or \
+               self.LA(i) == '\n'
+
 }
 
 LITERAL
@@ -121,6 +218,7 @@ LITERAL
             col = self.getColumn()
           }
         : '\\'! '$'  // allow escaped delimiter
+        | '\\'! '\\' // always replace \\ with \
         | '\\' ~'$'  // otherwise ignore escape char
         | ind:INDENT
           {
@@ -164,11 +262,48 @@ ACTION
           options { generateAmbigWarnings=false; }
         : '$'! "if" (' '!)* "(" IF_EXPR ")" '$'! { $setType(IF) }
           ( NL! { $newline} )? // ignore any newline right after an IF
+        | '$'! "elseif" (' '!)* "(" IF_EXPR ")" '$'! { $setType(ELSEIF) }
+          ( ('\r'!)? '\n'! {$newline})? // ignore any newline right after an ELSEIF
         | '$'! "else" '$'! { $setType(ELSE) }
           ( NL! { $newline} )? // ignore any newline right after an ELSE
         | '$'! "endif" '$'! { $setType(ENDIF) }
           // ignore after ENDIF if on line by itself
           ( { startCol == 1 }? NL! { $newline } )?
+        |   // match $@foo()$ => foo
+            // match $@foo$...$@end$ => foo::=...
+            '$'! '@'! (~('$'|'('))+
+            (       "()"! '$'! {$setType(REGION_REF)}
+            |   '$'!
+                {
+                    $setType(REGION_DEF)
+                    t = $getText
+                    $setText(t+"::=")
+                }
+                ( options {greedy=true;} : ('\r'!)? '\n'! {newline();})?
+                { atLeft = False }
+                (
+                    options {greedy=true;} // handle greedy=false with predicate
+                :   {not (self.upcomingAtEND(1) or (self.upcomingNewline(1) and self.upcomingAtEND(2)))}?
+                    ( ('\r')? '\n' 
+                        {
+                            $newline
+                            atLeft = Frue
+                        }
+                    | . {atLeft = False}
+                    )
+                )+
+                ( ('\r'!)? '\n'! 
+                    {
+                        $newline()
+                        atLeft = True
+                    } 
+                )?
+                ( "$@end$"!
+                | . {self.this.error("missing region "+t+" $@end$ tag")}
+                )
+              ( {atLeft}? ('\r'!)? '\n'! {$newline})?
+            )
+
         | '$'! EXPR '$'! // (Can't start with '!', which would mean comment)
         )
         {
@@ -191,16 +326,16 @@ EXPR
     :   ( ESC
         | NL {$newline}
         | SUBTEMPLATE
-        | '=' TEMPLATE
-        | '=' SUBTEMPLATE
-        | '=' ~('"'|'<'|'{')
+        | ('='|'+') TEMPLATE
+        | ('='|'+') SUBTEMPLATE
+        | ('='|'+') ~('"'|'<'|'{')
         | ~'$'
         )+
     ;
 
 protected
 TEMPLATE
-    :   '"' ( ESC | ~'"' )+ '"'
+    :   '"' ( ESC | ~'"' )* '"'
     |   "<<"
         ( options { greedy = true; }
         : ( '\r'! )? '\n'! { $newline } )? // consume 1st \n
@@ -226,12 +361,12 @@ IF_EXPR
     ;
 
 protected
-ESC :   '\\' ('$'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
+ESC :   '\\' . // ('$'|'n'|'t'|'"'|'\''|':'|'{'|'}')
     ;
 
 protected
 SUBTEMPLATE
-    :    '{' (SUBTEMPLATE|ESC|~'}')+ '}'
+    :    '{' (SUBTEMPLATE|ESC|~'}')* '}'
     ;
 
 protected

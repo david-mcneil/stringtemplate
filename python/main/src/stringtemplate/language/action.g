@@ -33,21 +33,37 @@ tokens {
     FUNCTION;
     SINGLEVALUEARG;
     LIST; // [a,b,c]
+    NOTHING; // empty list element [a, ,c]
  }
 
 {
     def reportError(self, e):
-        self.this.error("template parse error", e)
+        group = self.this.getGroup()
+        if group == stringtemplate.StringTemplate.defaultGroup:
+            self.this.error("action parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
+
+        else:
+            self.this.error("action parse error in group "+self.this.getGroup().getName()+" line "+str(self.this.getGroupFileLine())+"; template context is "+self.this.getEnclosingInstanceStackString(), e)
+
 }
 
 
 action returns [opts = None]
     :   templatesExpr (SEMI! opts=optionList)?
     |   "if"^ LPAREN! ifCondition RPAREN!
+    |   "elseif"! LPAREN! ifCondition RPAREN! // return just conditional
     ;
 
 optionList! returns [opts = {}]
-    :   "separator" ASSIGN e:expr {opts["separator"] = #e}
+    :   option[opts] (COMMA option[opts])*
+    ;
+
+option[opts]
+    : i:ID
+        ( ASSIGN e:expr { v=#e }
+        | {v = stringtemplate.language.ASTExpr.EMPTY_OPTION}
+        )
+        {opts[#i.getText()] = v}
     ;
 
 templatesExpr
@@ -78,13 +94,14 @@ expr
     ;
 
 primaryExpr
-    :   atom
+    :   (templateInclude) => templateInclude  // (see past parens to arglist)
+    |   atom
         ( DOT^
           ( ID
           | valueExpr
           )
         )*
-    |   (templateInclude) => templateInclude  // (see past parens to arglist)
+    |   
     |   function
     |   valueExpr
     |   list_
@@ -106,6 +123,9 @@ function
     :   ( "first"
         | "rest"
         | "last"
+        | "length"
+        | "strip"
+        | "trunc"
         )
         singleArg
         { #function = #(#[FUNCTION], function) }
@@ -150,12 +170,17 @@ list_
             #lb.setType(LIST)
             #lb.setText("value")
         }
-        expr (COMMA! expr)*
+        listElement (COMMA! listElement)*
         RBRACK!
     ;
 
+listElement
+    : expr
+    | { #listElement = #[NOTHING, "NOTHING"]}
+    ;
+
 templateInclude
-    :   ( ID argList
+    :   ( id:ID argList
         | "super"! DOT! qid:ID
           { #qid.setText("super."+#qid.getText()) } argList
         | indirectTemplate
@@ -165,7 +190,7 @@ templateInclude
 
 /** Match (foo)() and (foo+".terse")() */
 indirectTemplate!
-    :   LPAREN e:expr RPAREN args:argList
+    :   LPAREN e:templatesExpr RPAREN args:argList
         { #indirectTemplate = #(#[VALUE, "value"], e, args) }
     ;
 
@@ -224,7 +249,7 @@ ANONYMOUS_TEMPLATE
             }
           | // empty
           )
-          ( ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )*
+          ( '\\'! '{' | '\\'! '}' | ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}' )*
           {
               if t:
                   t.setText($getText)
@@ -242,9 +267,14 @@ TEMPLATE_ARGS returns [args=[]]
 
 protected
 NESTED_ANONYMOUS_TEMPLATE
-    :   '{' (ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}')* '}'
+    :   '{' 
+        ( '\\'! '{' | '\\'! '}' | ESC_CHAR[False] | NESTED_ANONYMOUS_TEMPLATE | ~'}')* 
+        '}'
     ;
 
+/** Match escape sequences, optionally translating them for strings, but not
+ *  for templates.  Do \} only when in {...} templates.
+ */
 protected
 ESC_CHAR[doEscape]
     :   '\\'

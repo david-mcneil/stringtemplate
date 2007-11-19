@@ -2,6 +2,7 @@
 header {
 from ASTExpr import *
 import stringtemplate
+import traceback
 }
 
 header "GroupParser.__init__" {
@@ -43,14 +44,24 @@ options {
 {
     def reportError(self, e):
         if self.group_:
-            self.group_.error("template parse error", e)
+            self.group_.error("template group parse error", e)
         else:
-            sys.stderr.write("template parse error: " + str(e) + '\n')
+            sys.stderr.write("template group parse error: " + str(e) + '\n')
+            traceback.print_exc()
 }
 
 group[g]
-    :   "group" name:ID { g.setName(name.getText()) } SEMI
+{
+    self.group_ = g
+}
+    :   "group" name:ID { g.setName(name.getText()) } 
+        ( COLON s:ID {g.setSuperGroup(s.getText())} )?
+        ( "implements" i:ID {g.implementInterface(i.getText())}
+            ( COMMA i2:ID {g.implementInterface(i2.getText())} )*
+        )?
+        SEMI
         ( template[g] | mapdef[g] )*
+        EOF
     ;
 
 template[g]
@@ -58,15 +69,56 @@ template[g]
     formalArgs = {}
     st = None
     ignore = False
+    templateName = None
+    line = self.LT(1).getLine()
 }
-    :   name:ID
+    :   (   AT scope:ID DOT region:ID
+            {
+                templateName = g.getMangledRegionName(scope.getText(),region.getText())
+                if g.isDefinedInThisGroup(templateName):
+                    g.error("group "+g.getName()+" line "+str(line)+": redefinition of template region: @"+
+                        scope.getText()+"."+region.getText())
+                    st = stringtemplate.StringTemplate() // create bogus template to fill in
+
+                else:
+                    err = False
+                    // @template.region() ::= "..."
+                    scopeST = g.lookupTemplate(scope.getText())
+                    if scopeST is None:
+                        g.error("group "+g.getName()+" line "+str(line)+": reference to region within undefined template: "+
+                            scope.getText())
+                        err = True
+
+                    if not scopeST.containsRegionName(region.getText()):
+                        g.error("group "+g.getName()+" line "+str(line)+": template "+scope.getText()+" has no region called "+
+                            region.getText())
+                        err = True
+
+                    if err:
+                        st = stringtemplate.StringTemplate()
+
+                    else:
+                        st = g.defineRegionTemplate(
+                            scope.getText(),
+                            region.getText(),
+                            None,
+                            stringtemplate.StringTemplate.REGION_EXPLICIT
+                        )
+
+            }
+        |   name:ID {templateName = name.getText()}
+            {
+                if g.isDefinedInThisGroup(templateName):
+                    g.error("redefinition of template: " + templateName)
+                    // create bogus template to fill in
+                    st = stringtemplate.StringTemplate()
+                else:
+                    st = g.defineTemplate(templateName, None)
+            }
+        )
         {
-            if g.isDefinedInThisGroup(name.getText()):
-                g.error("redefinition of template: " + name.getText())
-                // create bogus template to fill in
-                st = stringtemplate.StringTemplate()
-            else:
-                st = g.defineTemplate(name.getText(), None)
+            if st is not None:
+                st.setGroupFileLine(line)
         }
         LPAREN
         ( args[st] | { st.defineEmptyFormalArgumentList() } )
@@ -133,29 +185,48 @@ mapdef[g]
     ;
 
 map returns [mapping = {}]
-    :   LBRACK keyValuePair[mapping] ( COMMA keyValuePair[mapping] )* RBRACK
+    :   LBRACK mapPairs[mapping] RBRACK
+    ;
+
+mapPairs[mapping]
+    : keyValuePair[mapping] ( COMMA keyValuePair[mapping] )*
+        (COMMA defaultValuePair[mapping])?
+    | defaultValuePair[mapping]
+    ;
+
+defaultValuePair[mapping]
+    : "default" COLON v=keyValue
+        { mapping[stringtemplate.language.ASTExpr.DEFAULT_MAP_VALUE_NAME] = v }
     ;
 
 keyValuePair[mapping]
-    :    key1:STRING COLON s1:STRING
-         { mapping[key1.getText()] = s1.getText() }
-    |    key2:STRING COLON s2:BIGSTRING
-         { mapping[key2.getText()] = s2.getText() }
-    |    "default" COLON s3:STRING
-         { mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s3.getText() }
-    |    "default" COLON s4:BIGSTRING
-         { mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s4.getText() }
+    : key:STRING COLON v=keyValue { mapping[key.getText()] = v }
+    ;
+
+keyValue returns [value = None]
+    :    s1:STRING
+         { value = stringtemplate.StringTemplate(self.group_, s1.getText()) }
+    |    s2:BIGSTRING
+         { value = stringtemplate.StringTemplate(self.group_, s2.getText()) }
+    |    k:ID { k.getText() == "key" }?
+         { value = stringtemplate.language.ASTExpr.MAP_KEY_VALUE }
+    |    
     ;
 
 class GroupLexer extends Lexer;
 
 options {
-        k=2;
-        charVocabulary = '\u0000'..'\uFFFE';
+    k=2;
+    charVocabulary = '\u0000'..'\uFFFE';
+    testLiterals=false;
 }
 
-ID      :       ('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-'|'_')*
-        ;
+ID 
+options {
+    testLiterals=true;
+}
+    :   ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'-'|'_')*
+    ;
 
 STRING
     :   '"'! ( '\\'! '"' | '\\' ~'"' | ~'"' )* '"'!
@@ -173,6 +244,7 @@ BIGSTRING
         | { self.LA(2) == '>' and self.LA(3) == '>' }?
           '\r'! { $newline }        // kill last \r
         | NL { $newline }           // else keep
+        | '\\'! '>'                 // \> escape
         | .
         )*
         ">>"!
@@ -185,17 +257,20 @@ ANONYMOUS_TEMPLATE
 }
     :   '{'!
         ( options { greedy = false; }   // stop when you see the >>
-        : ( '\r' )? '\n' { $newline } // else keep
+        : ( '\r' )? '\n' { $newline }   // else keep
+        | '\\'! '>'                     // \> escape
         | .
         )*
         '}'!
     ;
 
+AT:     '@' ;
 LPAREN: '(' ;
 RPAREN: ')' ;
 LBRACK: '[' ;
 RBRACK: ']' ;
 COMMA:  ',' ;
+DOT:    '.' ;
 DEFINED_TO_BE: "::=" ;
 SEMI:   ';' ;
 COLON:  ':' ;

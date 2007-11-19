@@ -7,8 +7,36 @@ import traceback
 import unittest
 from StringIO import StringIO
 from datetime import date
+import tempfile
 
 import stringtemplate
+
+
+class BrokenTest(unittest.TestCase.failureException):
+    def __str__(self):
+        name = self.args[0]
+        return '%s: %s: works now' % (
+            (self.__class__.__name__, name))
+
+
+def broken(test_method):
+    def wrapper(*args, **kwargs):
+        try:
+            test_method(*args, **kwargs)
+        except Exception:
+            pass
+        else:
+            raise BrokenTest(test_method.__name__)
+    wrapper.__doc__ = test_method.__doc__
+    wrapper.__name__ = 'XXX_' + test_method.__name__
+    return wrapper
+
+
+def writeFile(dir, fileName, content):
+    fp = open(os.path.join(dir, fileName), 'w')
+    fp.write(content)
+    fp.close()
+
 
 class ErrorBuffer(stringtemplate.StringTemplateErrorListener):
 
@@ -37,6 +65,265 @@ class ErrorBuffer(stringtemplate.StringTemplateErrorListener):
 
     __repr__ = __str__
 
+
+class TestInterfaces(unittest.TestCase):
+    def testInterfaceFileFormat(self):
+        groupI = (
+            "interface test;" +os.linesep+
+            "t();" +os.linesep+
+            "bold(item);"+os.linesep+
+            "optional duh(a,b,c);"+os.linesep
+            )
+        I = stringtemplate.StringTemplateGroupInterface(StringIO(groupI))
+
+        expecting = (
+            "interface test;\n" +
+            "bold(item);\n" +
+            "optional duh(a, b, c);\n" +
+            "t();\n"
+            )
+        self.assertEqual(str(I), expecting)
+
+
+    def testNoGroupLoader(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+
+        # need to reset groupLoader, because it is a class attribute
+        stringtemplate.StringTemplateGroup.groupLoader = None
+        
+        templates = (
+            "group testG implements blort;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"+os.linesep+
+            "duh(a,b,c) ::= <<foo>>"+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"),
+            errors
+            )
+
+        expecting = "no group loader registered\n"
+        self.assertEqual(str(errors), expecting)
+
+
+    def testCannotFindInterfaceFile(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir,errors)
+            )
+
+        templates = (
+            "group testG implements blort;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"+os.linesep+
+            "duh(a,b,c) ::= <<foo>>"+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"), errors
+            )
+
+        expecting = "no such interface file blort.sti\n"
+        self.assertEqual(str(errors), expecting)
+
+
+    def testGroupSatisfiesSingleInterface(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir, errors)
+            )
+
+        groupI = (
+            "interface testI;" +os.linesep+
+            "t();" +os.linesep+
+            "bold(item);"+os.linesep+
+            "optional duh(a,b,c);"+os.linesep
+            )
+        writeFile(tmpdir, "testI.sti", groupI)
+
+        templates = (
+            "group testG implements testI;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"+os.linesep+
+            "duh(a,b,c) ::= <<foo>>"+os.linesep
+            )
+
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"), errors
+            )
+
+        expecting = "" # should be no errors
+        self.assertEqual(str(errors), expecting)
+
+
+    def testMissingInterfaceTemplate(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir,errors)
+            )
+        
+        groupI = (
+            "interface testI;" +os.linesep+
+            "t();" +os.linesep+
+            "bold(item);"+os.linesep+
+            "optional duh(a,b,c);"+os.linesep
+            )
+        writeFile(tmpdir, "testI.sti", groupI)
+
+        templates = (
+            "group testG implements testI;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "duh(a,b,c) ::= <<foo>>"+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"), errors
+            )
+
+        expecting = "group testG does not satisfy interface testI: missing templates ['bold']\n"
+        self.assertEqual(str(errors), expecting)
+
+
+    def testMissingOptionalInterfaceTemplate(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir,errors)
+            )
+        
+        groupI = (
+            "interface testI;" +os.linesep+
+            "t();" +os.linesep+
+            "bold(item);"+os.linesep+
+            "optional duh(a,b,c);"+os.linesep
+            )
+        writeFile(tmpdir, "testI.sti", groupI)
+
+        templates = (
+            "group testG implements testI;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"), errors
+            )
+
+        expecting = "" # should be NO errors
+        self.assertEqual(str(errors), expecting)
+
+
+    def testMismatchedInterfaceTemplate(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir,errors)
+            )
+        
+        groupI = (
+            "interface testI;" +os.linesep+
+            "t();" +os.linesep+
+            "bold(item);"+os.linesep+
+            "optional duh(a,b,c);"+os.linesep
+            )
+        writeFile(tmpdir, "testI.sti", groupI)
+
+        templates = (
+            "group testG implements testI;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"+os.linesep+
+            "duh(a,c) ::= <<foo>>"+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"), errors
+            )
+
+        expecting = "group testG does not satisfy interface testI: mismatched arguments on these templates ['optional duh(a, b, c)']\n"
+        self.assertEqual(str(errors), expecting)
+
+    
+class TestGroupLoader(unittest.TestCase):
+    def testMultiDirGroupLoading(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        if not os.path.isdir(os.path.join(tmpdir, 'sub')):
+            os.mkdir(os.path.join(tmpdir, 'sub'))
+
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir+":"+tmpdir+"/sub",errors)
+            )
+
+        templates = (
+            "group testG2;" +os.linesep+
+            "t() ::= <<foo>>" +os.linesep+
+            "bold(item) ::= <<foo>>"+os.linesep+
+            "duh(a,b,c) ::= <<foo>>"+os.linesep
+            )
+        writeFile(tmpdir+"/sub", "testG2.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup.loadGroup("testG2")
+        expecting = (
+            "group testG2;\n" +
+            "bold(item) ::= <<foo>>\n" +
+            "duh(a,b,c) ::= <<foo>>\n" +
+            "t() ::= <<foo>>\n"
+            )
+        self.assertEqual(str(group), expecting)
+
+
+    #FIXME: which lexer should be used when using super group?
+    @broken
+    def testGroupExtendsSuperGroup(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        stringtemplate.StringTemplateGroup.registerGroupLoader(
+            stringtemplate.PathGroupLoader(tmpdir,errors)
+            )
+        superGroup = (
+            "group superG;" +os.linesep+
+            "bold(item) ::= <<*$item$*>>\n"+os.linesep
+            )
+        writeFile(tmpdir, "superG.stg", superGroup)
+
+        templates = (
+            "group testG : superG;" +os.linesep+
+            "main(x) ::= <<$bold(x)$>>"+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = stringtemplate.StringTemplateGroup(
+            open(tmpdir+"/testG.stg"),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            errors
+            )
+        st = group.getInstanceOf("main")
+        st.setAttribute("x", "foo")
+
+        expecting = "*foo*"
+        self.assertEqual(str(st), expecting)
+
+
 class TestGroupFileFormat(unittest.TestCase):
 
     def setUp(self):
@@ -45,14 +332,18 @@ class TestGroupFileFormat(unittest.TestCase):
             "t() ::= \"literal template\"" +os.linesep+ \
             "bold(item) ::= \"<b>$item$</b>\""+os.linesep+ \
             "duh() ::= <<"+os.linesep+"xx"+os.linesep+">>"+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def testGroupFileFormat(self):
-        expecting = \
-            "group test;" +os.linesep+ \
-            "duh() ::= <<xx>>" +os.linesep+ \
-            "t() ::= <<literal template>>"+os.linesep+ \
-            "bold(item) ::= <<<b>$item$</b>>>" +os.linesep
+        expecting = (
+            "group test;" + os.linesep +
+            "bold(item) ::= <<<b>$item$</b>>>" + os.linesep +
+            "duh() ::= <<xx>>" + os.linesep +
+            "t() ::= <<literal template>>" + os.linesep
+            )
         self.assertEqual(str(self.group), expecting)
 
     def testGroupLiteralTemplate(self):
@@ -71,6 +362,39 @@ class TestGroupFileFormat(unittest.TestCase):
         self.testGroupLiteralTemplate()
         self.testGroupSetAttribute()
 
+class TestEscapedTemplateDelimiters(unittest.TestCase):
+
+    def runTest(self):
+        templates = (
+            "group test;" +os.linesep+
+            "t() ::= <<$\"literal\":{a|$a$\\}}$ template\n>>" +os.linesep+
+            "bold(item) ::= <<<b>$item$</b\\>>>"+os.linesep+
+            "duh() ::= <<"+os.linesep+"xx"+os.linesep+">>"+os.linesep
+            )
+        
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+	
+        expecting = (
+            "group test;" +os.linesep+
+            "bold(item) ::= <<<b>$item$</b>>>" +os.linesep+
+            "duh() ::= <<xx>>" +os.linesep+
+            "t() ::= <<$\"literal\":{a|$a$\\}}$ template>>"+os.linesep
+            )
+        self.assertEqual(str(group), expecting)
+	
+        b = group.getInstanceOf("bold")
+        b.setAttribute("item", "dork")
+        expecting = "<b>dork</b>"
+        self.assertEqual(str(b), expecting)
+	
+        a = group.getInstanceOf("t")
+        expecting = "literal} template"
+        self.assertEqual(str(a), expecting)
+
+
 ### Check syntax and setAttribute-time errors
 #
 class TestTemplateParameterDecls(unittest.TestCase):
@@ -82,7 +406,10 @@ class TestTemplateParameterDecls(unittest.TestCase):
             "t2(item)::= \"decl but not used is ok\""+os.linesep + \
             "t3(a,b,c,d)::= <<$a$ $d$>>"+os.linesep+ \
             "t4(a,b,c,d)::= <<$a$ $b$ $c$ $d$>>"+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     # check setting unknown arg in empty formal list
     def testSetUnknownArgInEmptyFormalArgList(self):
@@ -148,7 +475,10 @@ class TestMissingInheritedAttribute(unittest.TestCase):
             "</html>"+os.linesep + \
             ">>"+os.linesep + \
             "body()::= \"<font face=$font$>my body</font>\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -168,7 +498,10 @@ class TestFormalArgumentAssignment(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page()::= <<$body(font=\"Times\")$>>"+os.linesep + \
             "body(font)::= \"<font face=$font$>my body</font>\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -183,7 +516,10 @@ class TestUndefinedArgumentAssignment(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page(x)::= <<$body(font=x)$>>"+os.linesep + \
             "body()::= \"<font face=$font$>my body</font>\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
         
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -204,7 +540,10 @@ class TestFormalArgumentAssignmentInApply(unittest.TestCase):
         "group test;" +os.linesep+ \
         "page(name)::= <<$name:bold(font=\"Times\")$>>"+os.linesep + \
         "bold(font)::= \"<font face=$font$><b>$it$</b></font>\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -220,7 +559,10 @@ class TestUndefinedArgumentAssignmentInApply(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page(name,x)::= <<$name:bold(font=x)$>>"+os.linesep + \
             "bold()::= \"<font face=$font$><b>$it$</b></font>\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -242,7 +584,10 @@ class TestUndefinedAttributeReference(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page()::= <<$bold()$>>"+os.linesep + \
             "bold()::= \"$name$\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -262,7 +607,10 @@ class TestUndefinedDefaultAttributeReference(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page()::= <<$bold()$>>"+os.linesep + \
             "bold()::= \"$it$\"" +os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("page")
@@ -284,9 +632,8 @@ class TestAngleBracketsWithGroupFileAsString(unittest.TestCase):
             "b(t)::= \"<t; separator=\\\",\\\">\"" +os.linesep+ \
             "c(t)::= << <t; separator=\",\"> >>" +os.linesep
         # mainly testing to ensure we don't get parse errors of above
-        self.group = stringtemplate.StringTemplateGroup( \
-            StringIO(self.templates), \
-            stringtemplate.language.AngleBracketTemplateLexer.Lexer, None)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates))
 
     def runTest(self):
         t = self.group.getInstanceOf("a")
@@ -300,9 +647,9 @@ class TestAngleBracketsWithGroupFile(unittest.TestCase):
     def setUp(self):
         self.filename = "test.stg";
         # mainly testing to ensure we don't get parse errors of above
-        self.group = stringtemplate.StringTemplateGroup( \
-            file("test.stg"), \
-            stringtemplate.language.AngleBracketTemplateLexer.Lexer, None)
+        self.group = stringtemplate.StringTemplateGroup(
+            file("test.stg")
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("a")
@@ -321,6 +668,421 @@ class TestAngleBracketsNoGroup(unittest.TestCase):
         st["rules"] = "B"
         expecting = "Tokens: A|B ;"
         self.assertEqual(str(st), expecting)
+
+
+class TestRegions(unittest.TestCase):
+    def testRegionRef(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X$@r()$Y\"" +os.linesep
+            )
+        
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XY"
+        self.assertEqual(result, expecting)
+
+
+    def testEmbeddedRegionRef(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X$@r$blort$@end$Y\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XblortY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionRefAngleBrackets(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XY"
+        self.assertEqual(result, expecting)
+
+
+    def testEmbeddedRegionRefAngleBrackets(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r>blort<@end>Y\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XblortY"
+        self.assertEqual(result, expecting)
+
+
+    def testEmbeddedRegionRefWithNewlinesAngleBrackets(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r>" +os.linesep+
+            "blort" +os.linesep+
+            "<@end>" +os.linesep+
+            "Y\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XblortY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionRefWithDefAngleBrackets(self):
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" + os.linesep +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("a")
+        result = str(st)
+        expecting = "XfooY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionRefWithDefInConditional(self):
+        templates = (
+            "group test;" + os.linesep +
+            "a(v) ::= \"X<if(v)>A<@r()>B<endif>Y\""  + os.linesep +
+            "@a.r() ::= \"foo\"" + os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("a")
+        st.setAttribute("v", "true")
+        result = str(st)
+        expecting = "XAfooBY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionRefWithImplicitDefInConditional(self):
+        templates = (
+            "group test;" + os.linesep +
+            "a(v) ::= \"X<if(v)>A<@r>yo<@end>B<endif>Y\"" + os.linesep +
+            "@a.r() ::= \"foo\"" + os.linesep
+            )
+        
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            errors
+            )
+        st = group.getInstanceOf("a")
+        st.setAttribute("v", "true")
+        result = str(st)
+        expecting = "XAyoBY"
+        self.assertEqual(result, expecting)
+
+        err_result = str(errors)
+        err_expecting = "group test line 3: redefinition of template region: @a.r\n"
+        self.assertEqual(err_result, err_expecting)
+
+
+    def testRegionOverride(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1) 
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+
+        st = subGroup.getInstanceOf("a")
+        result = str(st)
+        expecting = "XfooY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionOverrideRefSuperRegion(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+            
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1)
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"A<@super.r()>B\"" +os.linesep
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+
+        st = subGroup.getInstanceOf("a")
+        result = str(st)
+        expecting = "XAfooBY"
+        self.assertEqual(result, expecting)
+
+
+    def testRegionOverrideRefSuperRegion3Levels(self):
+        # Bug: This was causing infinite recursion:
+        # getInstanceOf(super::a)
+        # getInstanceOf(sub::a)
+        # getInstanceOf(subsub::a)
+        # getInstanceOf(subsub::region__a__r)
+        # getInstanceOf(subsub::super.region__a__r)
+        # getInstanceOf(subsub::super.region__a__r)
+        # getInstanceOf(subsub::super.region__a__r)
+        # ...
+        # Somehow, the ref to super in subsub is not moving up the chain
+        # to the @super.r(); oh, i introduced a bug when i put setGroup
+        # into STG.getInstanceOf()!
+
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1)
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"<@super.r()>2\"" +os.linesep
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+
+        templates3 = (
+            "group subsub;" +os.linesep+
+            "@a.r() ::= \"<@super.r()>3\"" +os.linesep
+            )
+        subSubGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates3),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            subGroup
+            )
+
+        st = subSubGroup.getInstanceOf("a")
+        result = str(st)
+        expecting = "Xfoo23Y"
+        self.assertEqual(result, expecting);
+
+
+    def testRegionOverrideRefSuperImplicitRegion(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r>foo<@end>Y\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1)
+            )
+        
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"A<@super.r()>\"" +os.linesep
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+        st = subGroup.getInstanceOf("a")
+        result = str(st)
+        expecting = "XAfooY"
+        self.assertEqual(result, expecting)
+        
+
+    def testEmbeddedRegionRedefError(self):
+        # cannot define an embedded template within group
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r>dork<@end>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            errors
+            )
+        st = group.getInstanceOf("a")
+        str(st)
+        result = str(errors)
+        expecting = "group test line 2: redefinition of template region: @a.r\n"
+        self.assertEqual(result, expecting)
+
+
+    def testImplicitRegionRedefError(self):
+        # cannot define an implicitly-defined template more than once
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +os.linesep+
+            "@a.r() ::= \"foo\"" +os.linesep+
+            "@a.r() ::= \"bar\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            errors
+            )
+        st = group.getInstanceOf("a")
+        str(st)
+        result = str(errors)
+        expecting = "group test line 4: redefinition of template region: @a.r\n"
+        self.assertEqual(result, expecting)
+
+
+    def testImplicitOverriddenRegionRedefError(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1),
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"foo\"" +os.linesep+
+            "@a.r() ::= \"bar\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            errors,
+            group
+            )
+
+        st = subGroup.getInstanceOf("a")
+        result = str(errors)
+        expecting = "group sub line 3: redefinition of template region: @a.r\n"
+        self.assertEqual(result, expecting)
+
+
+    def testUnknownRegionDefError(self):
+        # cannot define an implicitly-defined template more than once
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +os.linesep+
+            "@a.q() ::= \"foo\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            errors
+            )
+        st = group.getInstanceOf("a")
+        str(st)
+        result = str(errors)
+        expecting = "group test line 3: template a has no region called q\n"
+        self.assertEqual(result, expecting)
+
+
+    def testSuperRegionRefError(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "a() ::= \"X<@r()>Y\"" +
+            "@a.r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1),
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "@a.r() ::= \"A<@super.q()>B\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            errors,
+            group
+            )
+
+        st = subGroup.getInstanceOf("a")
+        result = str(errors)
+        expecting = "template a has no region called q\n"
+        self.assertEqual(result, expecting)
+
+
+    def testMissingEndRegionError(self):
+        # cannot define an implicitly-defined template more than once
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X$@r$foo\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            errors,
+            None
+            )
+        st = group.getInstanceOf("a")
+        str(st)
+        result = str(errors)
+        expecting = "missing region r $@end$ tag\n"
+        self.assertEqual(result, expecting)
+
+
+    def testMissingEndRegionErrorAngleBrackets(self):
+        # cannot define an implicitly-defined template more than once
+        templates = (
+            "group test;" +os.linesep+
+            "a() ::= \"X<@r>foo\"" +os.linesep
+            )
+        errors = ErrorBuffer()
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            errors
+            )
+        st = group.getInstanceOf("a")
+        str(st)
+        result = str(errors)
+        expecting = "missing region r <@end> tag\n"
+        self.assertEqual(result, expecting)
 
 
 class TestSimpleInheritance(unittest.TestCase):
@@ -376,6 +1138,78 @@ class TestMultiLevelInheritance(unittest.TestCase):
         duh["name"] = "Terence"
         expecting = "<b>Terence</b>"
         self.assertEqual(str(duh), expecting)
+
+
+class TestComplicatedInheritance(unittest.TestCase):
+
+    def runTest(self):
+        # in super: decls invokes labels
+        # in sub:   overridden decls which calls super.decls
+        #           overridden labels
+        # Bug: didn't see the overridden labels.  In other words,
+        # the overridden decls called super which called labels, but
+        # didn't get the subgroup overridden labels--it calls the
+        # one in the superclass.  Ouput was "DL" not "DSL"; didn't
+        # invoke sub's labels().
+        basetemplates = (
+            "group base;" +os.linesep+
+            "decls() ::= \"D<labels()>\""+os.linesep+
+            "labels() ::= \"L\"" +os.linesep
+            )
+        base = stringtemplate.StringTemplateGroup(
+            StringIO(basetemplates),
+            )
+        subtemplates = (
+            "group sub;" +os.linesep+
+            "decls() ::= \"<super.decls()>\""+os.linesep+
+            "labels() ::= \"SL\"" +os.linesep
+            )
+        sub = stringtemplate.StringTemplateGroup(
+            StringIO(subtemplates),
+            )
+        sub.setSuperGroup(base)
+        st = sub.getInstanceOf("decls")
+        expecting = "DSL"
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+class Test3LevelSuperRef(unittest.TestCase):
+
+    def runTest(self):
+        templates1 = (
+            "group super;" +os.linesep+
+            "r() ::= \"foo\"" +os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates1)
+            )
+
+        templates2 = (
+            "group sub;" +os.linesep+
+            "r() ::= \"<super.r()>2\"" +os.linesep
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+
+        templates3 = (
+            "group subsub;" +os.linesep+
+            "r() ::= \"<super.r()>3\"" +os.linesep
+            )
+        subSubGroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates3),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            subGroup
+            )
+        st = subSubGroup.getInstanceOf("r")
+        result = str(st)
+        expecting = "foo23";
+        self.assertEqual(result, expecting)
 
 
 class TestExprInParens(unittest.TestCase):
@@ -459,6 +1293,18 @@ class TestApplyTemplateNameExpression(unittest.TestCase):
 	self.assertEqual(str(t), expecting)
 
 
+class TestApplyTemplateNameTemplateEval(unittest.TestCase):
+    def runTest(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        foobar = group.defineTemplate("foobar", "foo$it$bar")
+        a = group.defineTemplate("a", "$it$bar")
+        t = stringtemplate.StringTemplate(group, "$data:(\"foo\":a())()$")
+        t.setAttribute("data", "Ter")
+        t.setAttribute("data", "Tom")
+        expecting="fooTerbarfooTombar"
+        self.assertEqual(str(t), expecting)
+
+
 class TestTemplateNameExpression(unittest.TestCase):
 
     def runTest(self):
@@ -514,7 +1360,7 @@ class TestNullTemplateApplication(unittest.TestCase):
 	# sys.stderr.write(str(t)+'\n')
 	#expecting="" # bold not found...empty string
 	#self.assertEqual(str(t), expecting)
-	expecting = "Can't load template bold.st"
+	expecting = "Can't load template bold.st; context is [anonymous]"
 	error = ""
 	try:
 	    result = str(t)
@@ -535,7 +1381,7 @@ class TestNullTemplateToMultiValuedApplication(unittest.TestCase):
 	# sys.stderr.write(str(t)+'\n')
 	#expecting="" # bold not found...empty string
 	#self.assertEqual(str(t), expecting)
-	expecting = "Can't load template bold.st"
+	expecting = "Can't load template bold.st; context is [anonymous]"
 	error = ""
 	try:
 	    result = str(t)
@@ -656,13 +1502,30 @@ class TestStringCatenationOnSingleValuedAttributeViaTemplateLiteral(unittest.Tes
     def runTest(self):
         group = stringtemplate.StringTemplateGroup("test")
         bold = group.defineTemplate("bold", "<b>$it$</b>")
-        #a = stringtemplate.StringTemplate(group, "$name+\" Parr\":bold()$")
         b = stringtemplate.StringTemplate(group, "$bold(it={$name$ Parr})$")
-	#a["name"] = "Terence"
 	b["name"] = "Terence"
 	expecting = "<b>Terence Parr</b>"
-	#self.assertEqual(str(a), expecting)
 	self.assertEqual(str(b), expecting)
+
+
+class TestStringCatenationOpOnArg(unittest.TestCase):
+    def runTest(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        bold = group.defineTemplate("bold", "<b>$it$</b>")
+        b = stringtemplate.StringTemplate(group, "$bold(it=name+\" Parr\")$")
+        b.setAttribute("name", "Terence")
+        expecting = "<b>Terence Parr</b>"
+        self.assertEqual(str(b), expecting)
+
+
+class TestStringCatenationOpOnArgWithEqualsInString(unittest.TestCase):
+    def runTest(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        bold = group.defineTemplate("bold", "<b>$it$</b>")
+        b = stringtemplate.StringTemplate(group, "$bold(it=name+\" Parr=\")$")
+        b.setAttribute("name", "Terence")
+        expecting = "<b>Terence Parr=</b>";
+        self.assertEqual(str(b), expecting)
 
 
 class TestApplyingTemplateFromDiskWithPrecompiledIF(unittest.TestCase):
@@ -832,8 +1695,9 @@ class TestApplyAnonymousTemplateToAggregateAttribute(unittest.TestCase):
 
     def runTest(self):
         st = stringtemplate.StringTemplate("$items:{$it.lastName$, $it.firstName$\n}$")
-	st.setAttribute("items.{firstName,lastName}", "Ter", "Parr")
-	st.setAttribute("items.{firstName,lastName}", "Tom", "Burns")
+        # also testing wacky space in aggregate spec
+	st.setAttribute("items.{ firstName ,lastName}", "Ter", "Parr")
+	st.setAttribute("items.{firstName, lastName }", "Tom", "Burns")
 	expecting = \
             "Parr, Ter"+os.linesep + \
             "Burns, Tom"+os.linesep
@@ -893,9 +1757,8 @@ class TestSingleValuedAttributes(unittest.TestCase):
 	self.assertEqual(str(query), "SELECT name FROM User;")
 
 
-class TestIFTemplate(unittest.TestCase):
-
-    def runTest(self):
+class TestIf(unittest.TestCase):
+    def testIFTemplate(self):
         group = stringtemplate.StringTemplateGroup("dummy", ".",
 	    stringtemplate.language.AngleBracketTemplateLexer.Lexer)
         t = stringtemplate.StringTemplate(group, \
@@ -907,9 +1770,7 @@ class TestIFTemplate(unittest.TestCase):
 	self.assertEqual(str(t), "SELECT name FROM PERSON WHERE ID=231;")
 
 
-class TestIFCondWithParensTemplate(unittest.TestCase):
-
-    def runTest(self):
+    def testIFCondWithParensTemplate(self):
         group = stringtemplate.StringTemplateGroup("dummy", ".",
             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
         t = stringtemplate.StringTemplate(group, \
@@ -923,9 +1784,7 @@ class TestIFCondWithParensTemplate(unittest.TestCase):
         self.assertEqual(str(t), "int x=0;")
 
 
-class TestIFCondWithParensDollarDelimsTemplate(unittest.TestCase):
-
-    def runTest(self):
+    def testIFCondWithParensDollarDelimsTemplate(self):
         group = stringtemplate.StringTemplateGroup("dummy", ".")
         t = stringtemplate.StringTemplate(group, \
             "$if(map.(type))$$type$ "+ \
@@ -938,11 +1797,7 @@ class TestIFCondWithParensDollarDelimsTemplate(unittest.TestCase):
         self.assertEqual(str(t), "int x=0;")
 
 
-### As of 2.0, you can test a boolean value
-#
-class TestIFBoolean(unittest.TestCase):
-
-    def runTest(self):
+    def testIFBoolean(self):
         group = stringtemplate.StringTemplateGroup("dummy", ".")
         t = stringtemplate.StringTemplate(group, \
             "$if(b)$x$endif$ $if(!b)$y$endif$")
@@ -954,9 +1809,7 @@ class TestIFBoolean(unittest.TestCase):
 	self.assertEqual(str(t), " y")
 
 
-class TestNestedIFTemplate(unittest.TestCase):
-
-    def runTest(self):
+    def testNestedIFTemplate(self):
         group = stringtemplate.StringTemplateGroup("dummy", ".",
 	    stringtemplate.language.AngleBracketTemplateLexer.Lexer)
         t = stringtemplate.StringTemplate(group, \
@@ -974,6 +1827,50 @@ class TestNestedIFTemplate(unittest.TestCase):
             "stuff"+os.linesep+ \
             "junk"
 	self.assertEqual(str(t), expecting)
+
+
+    def testElseIfClause(self):
+        e = stringtemplate.StringTemplate(
+            "$if(x)$"+os.linesep +
+            "foo"+os.linesep +
+            "$elseif(y)$"+os.linesep +
+            "bar"+os.linesep +
+            "$endif$"
+            )
+        e.setAttribute("y", "yep")
+        expecting = "bar"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testElseIfClause2(self):
+        e = stringtemplate.StringTemplate(
+            "$if(x)$"+os.linesep +
+            "foo"+os.linesep +
+            "$elseif(y)$"+os.linesep +
+            "bar"+os.linesep +
+            "$elseif(z)$"+os.linesep +
+            "blort"+os.linesep +
+            "$endif$"
+            )
+        e.setAttribute("z", "yep")
+        expecting = "blort"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testElseIfClauseAndElse(self):
+        e = stringtemplate.StringTemplate(
+            "$if(x)$"+os.linesep +
+            "foo"+os.linesep +
+            "$elseif(y)$"+os.linesep +
+            "bar"+os.linesep +
+            "$elseif(z)$"+os.linesep +
+            "z"+os.linesep +
+            "$else$"+os.linesep +
+            "blort"+os.linesep +
+            "$endif$"
+            )
+        expecting = "blort"
+        self.assertEqual(e.toString(), expecting)
 
 
 class Connector(object):
@@ -1287,8 +2184,11 @@ class TestSimpleIndentOfAttributeList(unittest.TestCase):
             "  $names; separator=\"\n\"$"+os.linesep+ \
             ">>"+os.linesep
         self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("list")
@@ -1310,8 +2210,11 @@ class TestIndentOfMultilineAttributes(unittest.TestCase):
             "  $names; separator=\"\n\"$"+os.linesep+ \
             ">>"+os.linesep
         self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("list")
@@ -1339,8 +2242,11 @@ class TestIndentOfMultipleBlankLines(unittest.TestCase):
             "  $names$"+os.linesep+ \
             ">>"+os.linesep
         self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("list")
@@ -1364,8 +2270,11 @@ class TestIndentBetweenLeftJustifiedLiterals(unittest.TestCase):
             "after" +os.linesep+ \
             ">>"+os.linesep
         self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors
+            )
 
     def runTest(self):
         t = self.group.getInstanceOf("list")
@@ -1398,8 +2307,10 @@ class TestNestedIndent(unittest.TestCase):
             ">>"+os.linesep + \
             "assign(lhs,expr)::= <<$lhs$=$expr$;>>"+os.linesep
         self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors)
 
     def runTest(self):
         t = self.group.getInstanceOf("method")
@@ -1430,10 +2341,58 @@ class TestNestedIndent(unittest.TestCase):
         self.assertEqual(str(t), expecting)
 
 
+class TestAlternativeWriter(unittest.TestCase):
+    def runTest(self):
+        buf = StringIO()
+
+        class TestWriter(stringtemplate.StringTemplateWriter):
+            def pushIndentation(self, indent):
+                pass
+
+            def popIndentation(self):
+                return None
+            
+            def pushAnchorPoint(self):
+                pass
+
+            def popAnchorPoint(self):
+                pass
+            
+            def setLineWidth(self, lineWidth):
+                pass
+            
+            def write(self, s, wrap=None):
+                if wrap is not None:
+                    return 0
+
+                else:
+                    s = str(s)
+                    buf.write(s); # just pass thru
+                    return len(s)
+
+            def writeWrapSeparator(self, str):
+                return 0
+
+            def writeSeparator(self, str):
+                return self.write(str)
+
+            
+        w = TestWriter()
+
+        group = stringtemplate.StringTemplateGroup("test")
+        group.defineTemplate("bold", "<b>$x$</b>")
+        name = stringtemplate.StringTemplate(group, "$name:bold(x=name)$")
+        name.setAttribute("name", "Terence")
+        name.write(w)
+        self.assertEqual(buf.getvalue(), "<b>Terence</b>")
+
+
 class TestApplyAnonymousTemplateToDictTupleAndList(unittest.TestCase):
 
     def runTest(self):
-        st = stringtemplate.StringTemplate("$items:{<li>$it$</li>}$")
+        st = stringtemplate.StringTemplate(
+            "$items:{<li>$it$</li>}$"
+            )
 	m = {}
 	m["a"] = "1"
 	m["b"] = "2"
@@ -1561,7 +2520,7 @@ class TestApplySuperTemplateRef(unittest.TestCase):
 class TestLazyEvalOfSuperInApplySuperTemplateRef(unittest.TestCase):
 
     def runTest(self):
-        group = stringtemplate.StringTemplateGroup("super")
+        group = stringtemplate.StringTemplateGroup("base")
         subGroup = stringtemplate.StringTemplateGroup("sub")
         subGroup.setSuperGroup(group)
         group.defineTemplate("bold", "<b>$it$</b>")
@@ -1577,8 +2536,13 @@ class TestLazyEvalOfSuperInApplySuperTemplateRef(unittest.TestCase):
         group.defineTemplate("page", "$name:super.bold()$")
         st = subGroup.getInstanceOf("page")
         st["name"] = "Ter"
-        expecting = "<b>Ter</b>"
-        self.assertEqual(str(st), expecting)
+        try:
+            str(st)
+            self.fail()
+        except ValueError, exc:
+            error = str(exc)
+            expecting = "base has no super group; invalid template: super.bold"
+            self.assertEqual(error, expecting)
 
 
 class TestTemplatePolymorphism(unittest.TestCase):
@@ -1609,8 +2573,11 @@ class TestListOfEmbeddedTemplateSeesEnclosingAttributes(unittest.TestCase):
             "mybody()::= <<$font()$stuff>>" +os.linesep+ \
             "font()::= <<$if(cond)$this$else$that$endif$>>"+os.linesep
 	self.errors = ErrorBuffer()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-							self.errors)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            self.errors
+            )
 
     def runTest(self):
         stringtemplate.StringTemplate.setLintMode(True)
@@ -1634,8 +2601,10 @@ class TestInheritArgumentFromRecursiveTemplateApplication(unittest.TestCase):
             "group test;" +os.linesep+ \
             "block(stats)::= \"<stats>\"" + \
             "ifstat(stats)::= \"IF True then <stats>\""+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-            stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
+
 
     def runTest(self):
         b = self.group.getInstanceOf("block")
@@ -1657,8 +2626,9 @@ class TestDeliberateRecursiveTemplateApplication(unittest.TestCase):
             "block(stats)::= \"<stats>\"" + \
             "ifstat(stats)::= \"IF True then <stats>\""+os.linesep
 	stringtemplate.StringTemplate.resetTemplateCounter()
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-            stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 	stringtemplate.StringTemplate.setLintMode(True)
 
     def tearDown(self):
@@ -1668,11 +2638,10 @@ class TestDeliberateRecursiveTemplateApplication(unittest.TestCase):
         b = self.group.getInstanceOf("block")
         ifstat = self.group.getInstanceOf("ifstat")
 	b["stats"] = ifstat # block has if stat
-	expecting = "IF True then "
 	expectingError = \
-            "infinite recursion to <ifstat(['stats'])@4> referenced in <block(['attributes'])@3>; stack trace:" + os.linesep + \
+            "infinite recursion to <ifstat(['stats'])@4> referenced in <block(['stats'])@3>; stack trace:" + os.linesep + \
             "<ifstat(['stats'])@4>, attributes=[stats=<block()@3>]>" + os.linesep + \
-            "<block(['attributes'])@3>, attributes=[attributes, stats=<ifstat()@4>], references=['stats']>" + os.linesep + \
+            "<block(['stats'])@3>, attributes=[stats=<ifstat()@4>], references=['stats']>" + os.linesep + \
             "<ifstat(['stats'])@4> (start of recursive cycle)" + os.linesep + \
             "..."
 	# note that attributes attribute doesn't show up in ifstat() because
@@ -1704,8 +2673,9 @@ class TestImmediateTemplateAsAttributeLoop(unittest.TestCase):
         self.templates = \
             "group test;" +os.linesep+ \
             "block(stats)::= \":<stats>\""
-	self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-	    stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+	self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 
     def runTest(self):
         b = self.group.getInstanceOf("block")
@@ -1723,8 +2693,9 @@ class TestTemplateAlias(unittest.TestCase):
             "group test;" +os.linesep+ \
             "page(name)::= \"name is <name>\"" + \
             "other::= page"+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 
     def runTest(self):
         b = self.group.getInstanceOf("other")  # alias for page
@@ -1749,8 +2720,9 @@ class TestTemplateGetPropertyGetsAttribute(unittest.TestCase):
             "func(name,args,body)::= <<"+os.linesep+ \
             "public void <name>(<args>){<body>}"+os.linesep + \
             ">>"+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 
     def runTest(self):
         b = self.group.getInstanceOf("Cfile")
@@ -1796,8 +2768,9 @@ class TestComplicatedIndirectTemplateApplication(unittest.TestCase):
             ">>"+os.linesep+ \
             "intdecl(decl)::= \"int <decl.name> = 0;\""+os.linesep + \
             "intarray(decl)::= \"int[] <decl.name> = null;\""+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 
     def runTest(self):
         f = self.group.getInstanceOf("file")
@@ -1820,8 +2793,9 @@ class TestIndirectTemplateApplication(unittest.TestCase):
             ">>"+os.linesep+ \
             "first()::= \"the first\""+os.linesep + \
             "second()::= \"the second\""+os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates)
+            )
 
     def runTest(self):
         f = self.group.getInstanceOf("test")
@@ -1842,8 +2816,7 @@ class TestIndirectTemplateWithArgsApplication(unittest.TestCase):
             "first(a) ::= \"the first: <a>\"" + os.linesep + \
             "second(a) ::= \"the second <a>\"" + os.linesep
 
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         f = self.group.getInstanceOf("test")
@@ -1863,8 +2836,7 @@ class TestNullIndirectTemplateApplication(unittest.TestCase):
             ">>"+os.linesep+ \
             "ind()::= \"[<it>]\""+os.linesep
 	
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         f = self.group.getInstanceOf("test")
@@ -1886,203 +2858,13 @@ class TestNullIndirectTemplate(unittest.TestCase):
             "first()::= \"the first\""+os.linesep + \
             "second()::= \"the second\""+os.linesep
             
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         f = self.group.getInstanceOf("test")
 	#f["name"] = "first"
 	expecting = ""
 	self.assertEqual(str(f), expecting)
-
-
-class TestReflection(unittest.TestCase):
-
-    def runTest(self):
-        stringtemplate.StringTemplate.setLintMode(True)
-        a = stringtemplate.StringTemplate("$attributes$")
-	errors = ErrorBuffer()
-	a.setErrorListener(errors)
-	a["name"] = "Terence"
-	a["name"] = "Tom"
-        embedded = stringtemplate.StringTemplate("embedded")
-	embedded["z"] = "hi"
-	a["name"] = embedded
-	a["notUsed"] = "foo"
-	expecting = \
-            "Template anonymous :"+os.linesep + \
-            "    1. Attribute notUsed values :"+os.linesep + \
-            "        1. str"+os.linesep+ \
-            "    2. Attribute name values :"+os.linesep + \
-            "        1. str"+os.linesep + \
-            "        2. str"+os.linesep + \
-            "        3. Template anonymous :"+os.linesep + \
-            "            1. Attribute z values :"+os.linesep + \
-            "                1. str"+os.linesep
-	a.setPredefinedAttributes()
-	results = str(a)
-	# sys.stderr.write(results + '\n')
-	stringtemplate.StringTemplate.setLintMode(False)
-	self.assertEqual(results, expecting)
-
-
-class R1:
-
-    def getFirstName(self):
-        return "Terence"
-
-    def getLastName(self):
-        return "Parr"
-
-    def getSubTemplate(self):
-        s = stringtemplate.StringTemplate("sub ST")
-        s.setName("a template created in R1")
-        s["fruit"] = "Apple"
-        s["nestedAggr"] = R2()
-        return s
-
-    def getSubAggregate(self):
-        return R2()
-
-
-class R2:
-
-    def getEmail(self):
-        return "parrt"
-    
-
-class TestReflectionRecursive(unittest.TestCase):
-
-    def runTest(self):
-        stringtemplate.StringTemplate.setLintMode(True)
-        a = stringtemplate.StringTemplate("$attributes$")
-	errors = ErrorBuffer()
-	a.setErrorListener(errors)
-	a["name"] = "Terence"
-	a["name"] = "Tom"
-        b = stringtemplate.StringTemplate("embedded template text")
-	b.setName("EmbeddedTemplate")
-	b["x"] = 1
-	b["y"] = "foo"
-	a["name"] = b
-	a["name"] = R1()
-	a["duh"] = "foo"
-	results = str(a)
-	# sys.stderr.write(results + '\n')
-	expecting = \
-            "Template anonymous :"+os.linesep + \
-            "    1. Attribute duh values :"+os.linesep + \
-            "        1. str"+os.linesep + \
-            "    2. Attribute name values :"+os.linesep + \
-            "        1. str"+os.linesep + \
-            "        2. str"+os.linesep + \
-            "        3. Template EmbeddedTemplate :"+os.linesep + \
-            "            1. Attribute y values :"+os.linesep + \
-            "                1. str"+os.linesep + \
-            "            2. Attribute x values :"+os.linesep + \
-            "                1. int"+os.linesep + \
-            "        1. Property firstName : str"+os.linesep + \
-            "        2. Property lastName : str"+os.linesep + \
-            "        3. Property subAggregate : R2"+os.linesep+ \
-            "        4. Property subTemplate : StringTemplate"+os.linesep + \
-            "            4. Template a template created in R1 :"+os.linesep + \
-            "                1. Attribute fruit values :"+os.linesep + \
-            "                    1. str"+os.linesep + \
-            "                2. Attribute nestedAggr values :"+os.linesep + \
-            "                    1. Property email : str"+os.linesep
-        stringtemplate.StringTemplate.setLintMode(False)
-	self.assertEqual(results, expecting)
-
-
-class A(object):
-
-    def getB(self):
-        return None
-
-
-class B(object):
-
-    def getA(self):
-        return None
-
-    def getHarmless1(self):
-        return ""
-
-
-class C(object):
-
-    def getSelf(self):
-        return None
-
-    def getHarmless2(self):
-        return ""
-    
-
-class TestReflectionTypeLoop(unittest.TestCase):
-
-    def runTest(self):
-        stringtemplate.StringTemplate.setLintMode(True)
-        a = stringtemplate.StringTemplate("$attributes$")
-	errors = ErrorBuffer()
-	a.setErrorListener(errors)
-	a["name"] = "Terence"
-	a["c"] = C()
-	a["a"] = A()
-	results = str(a)
-	# sys.stderr.write(results + '\n')
-	expecting = \
-            "Template anonymous :"+os.linesep + \
-            "    1. Attribute a values :"+os.linesep + \
-            "        1. Property b : <any>"+os.linesep + \
-            "    2. Attribute c values :"+os.linesep + \
-            "        1. Property harmless2 : str"+os.linesep + \
-            "        2. Property self : <any>"+os.linesep + \
-            "    3. Attribute name values :"+os.linesep + \
-            "        1. str"+os.linesep
-        stringtemplate.StringTemplate.setLintMode(False)
-	self.assertEqual(results, expecting)
-
-
-class R3(object):
-
-    def __init__(self):
-        pass
-
-    def getEmail(self):
-        return "parrt"
-
-    def getAMap(self):
-        return { "v":33 }
-
-    def getATuple(self):
-        return ( 1, 2 )
-    
-
-class TestReflectionWithDict(unittest.TestCase):
-
-    def runTest(self):
-        stringtemplate.StringTemplate.setLintMode(True)
-        a = stringtemplate.StringTemplate("$attributes$")
-	errors = ErrorBuffer()
-	a.setErrorListener(errors)
-	map_ = { 1:2 }
-	a["stuff"] = map_
-	map_["prop1"] = "Terence"
-	map_["prop2"] = R3()
-	results = str(a)
-	# sys.stderr.write(results + '\n')
-	expecting = \
-            "Template anonymous :"+os.linesep + \
-            "    1. Attribute stuff values :"+os.linesep + \
-            "        1. Key 1 : int"+os.linesep + \
-            "        2. Key prop1 : str"+os.linesep + \
-            "        3. Key prop2 : R3"+os.linesep + \
-            "            1. Property aMap : dict"+os.linesep + \
-            "                1. Key v : int"+os.linesep + \
-            "            2. Property aTuple : tuple"+os.linesep + \
-            "            3. Property email : str"+os.linesep
-        stringtemplate.StringTemplate.setLintMode(False)
-	self.assertEqual(results, expecting)
 
 
 class TestDictPropertyFetch(unittest.TestCase):
@@ -2246,7 +3028,7 @@ class TestEmptyIteratedValueGetsSeparator(unittest.TestCase):
 	self.assertEqual(result, expecting)
 
 
-class TestEmptyIteratedConditionalValueGetsNoSeparator(unittest.TestCase):
+class TestEmptyIteratedConditionalValueGetsSeparator(unittest.TestCase):
 
     def setUp(self):
 	self.group = stringtemplate.StringTemplateGroup("test")
@@ -2261,7 +3043,7 @@ class TestEmptyIteratedConditionalValueGetsNoSeparator(unittest.TestCase):
 	t.setAttribute("users.{name,ok}", "Frank", True)
 	t.setAttribute("users.{name,ok}", "Johnny", False)
 	# empty conditional values get no separator
-	expecting = "Terence,Frank,"
+	expecting = "Terence,,Frank,"
 	# haven't solved the last empty value problem yet
 	result = str(t)
 	self.assertEqual(result, expecting);
@@ -2283,7 +3065,6 @@ class TestEmptyIteratedConditionalWithElseValueGetsSeparator(unittest.TestCase):
 	t.setAttribute("users.{name,ok}", "Johnny", False)
 	# empty conditional values get no separator
 	expecting = "Terence,,Frank,"
-	# haven't solved the last empty value problem yet
 	result = str(t)
 	self.assertEqual(result, expecting)
 
@@ -2293,7 +3074,7 @@ class TestWhiteSpaceAtEndOfTemplate(unittest.TestCase):
     def runTest(self):
         group = stringtemplate.StringTemplateGroup("group", ".")
         pageST = group.getInstanceOf("page")
-        listST = group.getInstanceOf("users.list")
+        listST = group.getInstanceOf("users_list")
 	# users.list references row.st which has a single blank line at the end.
 	# I.e., there are 2 \n in a row at the end
 	# ST should eat all whitespace at end
@@ -2321,12 +3102,79 @@ class TestSizeZeroButNonNullListGetsNoOutput(unittest.TestCase):
 	self.group.setErrorListener(self.errors)
 
     def runTest(self):
-	t = stringtemplate.StringTemplate(self.group, \
-	    "$duh.users:{name: $it$}; separator=\", \"$")
+	t = stringtemplate.StringTemplate(
+            self.group,
+            "begin\n" +
+	    "$duh.users:{name: $it$}; separator=\", \"$\n" +
+            "end\n"
+            )
 	t["duh",] = Duh()
-	expecting = ""
+	expecting = "begin\nend\n"
 	result = str(t)
 	self.assertEqual(result, expecting)
+
+
+class TestNoOutput(unittest.TestCase):
+    def testNullListGetsNoOutput(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        errors = ErrorBuffer()
+        group.setErrorListener(errors)
+        t = stringtemplate.StringTemplate(
+            group,
+            "begin\n" +
+            "$users:{name: $it$}; separator=\", \"$\n" +
+            "end\n"
+            )
+        expecting="begin\nend\n"
+        result = str(t)
+        self.assertEqual(result, expecting)
+
+
+    def testEmptyListGetsNoOutput(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        errors = ErrorBuffer()
+        group.setErrorListener(errors)
+        t = stringtemplate.StringTemplate(
+            group,
+            "begin\n" +
+            "$users:{name: $it$}; separator=\", \"$\n" +
+            "end\n"
+            )
+        t.setAttribute("users", [])
+        expecting="begin\nend\n"
+        result = str(t)
+        self.assertEqual(result, expecting)
+
+
+    def testEmptyListNoIteratorGetsNoOutput(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        errors = ErrorBuffer()
+        group.setErrorListener(errors)
+        t = stringtemplate.StringTemplate(
+            group,
+            "begin\n" +
+            "$users; separator=\", \"$\n" +
+            "end\n"
+            )
+        t.setAttribute("users", [])
+        expecting="begin\nend\n"
+        result = str(t)
+        self.assertEqual(result, expecting)
+
+
+    def testEmptyExprAsFirstLineGetsNoOutput(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        errors = ErrorBuffer()
+        group.setErrorListener(errors)
+        group.defineTemplate("bold", "<b>$it$</b>")
+        t = stringtemplate.StringTemplate(
+            group,
+            "$users$\n" +
+            "end\n"
+            )
+        expecting="end\n"
+        result = str(t)
+        self.assertEqual(result, expecting)
 
 
 class TestSizeZeroOnLineByItselfGetsNoOutput(unittest.TestCase):
@@ -2450,8 +3298,7 @@ class TestDoNotInheritAttributesThroughFormalArgs(unittest.TestCase):
  
         # name is not visible in stat because of the formal arg called name.
         # somehow, it must be set.
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2475,8 +3322,7 @@ class TestArgEvaluationContext(unittest.TestCase):
         # with an explicit name=name.  This looks weird, but makes total
         # sense as the rhs is evaluated in the context of method and the lhs
         # is evaluated in the context of stat's arg list.
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2495,8 +3341,7 @@ class TestPassThroughAttributes(unittest.TestCase):
             "method(name) ::= \"<stat(...)>\"" + os.linesep + \
             "stat(name) ::= \"x=y; // <name>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2517,8 +3362,7 @@ class TestPassThroughAttributes2(unittest.TestCase):
             ">>" + os.linesep + \
             "stat(name,value) ::= \"x=<value>; // <name>\"" + os.linesep
 
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2539,8 +3383,7 @@ class TestDefaultArgument(unittest.TestCase):
             ">>"+ os.linesep + \
             "stat(name,value=\"99\") ::= \"x=<value>; // <name>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2558,8 +3401,7 @@ class TestDefaultArgument2(unittest.TestCase):
             "group test;" + os.linesep + \
             "stat(name,value=\"99\") ::= \"x=<value>; // <name>\"" + os.linesep
         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("stat")
@@ -2580,8 +3422,7 @@ class TestDefaultArgumentAsTemplate(unittest.TestCase):
             ">>" + os.linesep + \
             "stat(name,value={<name>}) ::= \"x=<value>; // <name>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2603,8 +3444,7 @@ class TestDefaultArgumentAsTemplate2(unittest.TestCase):
             ">>"+ os.linesep + \
             "stat(name,value={ [<name>] }) ::= \"x=<value>; // <name>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2626,8 +3466,7 @@ class TestDoNotUseDefaultArgument(unittest.TestCase):
             ">>"+ os.linesep + \
             "stat(name,value=\"99\") ::= \"x=<value>; // <name>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2647,8 +3486,7 @@ class TestArgumentsAsTemplates(unittest.TestCase):
             ">>"+ os.linesep + \
             "stat(value) ::= \"x=<value>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2669,7 +3507,10 @@ class TestArgumentsAsTemplatesDefaultDelimiters(unittest.TestCase):
             ">>"+ os.linesep + \
             "stat(value) ::= \"x=$value$;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        self.group = stringtemplate.StringTemplateGroup(
+            StringIO(self.templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
     def runTest(self):
         b = self.group.getInstanceOf("method")
@@ -2687,8 +3528,7 @@ class TestDefaultArgsWhenNotInvoked(unittest.TestCase):
             "group test;" + os.linesep + \
             "b(name=\"foo\") ::= \".<name>.\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         b = self.group.getInstanceOf("b")
@@ -2698,20 +3538,30 @@ class TestDefaultArgsWhenNotInvoked(unittest.TestCase):
 
 
 class DateRenderer(stringtemplate.AttributeRenderer):
-
-    def str(self, o):
+    def toString(self, o, formatString=None):
         return o.strftime("%Y.%m.%d")
 
 
 class DateRenderer2(stringtemplate.AttributeRenderer):
-
-    def str(self, o):
+    def toString(self, o, formatString=None):
         return o.strftime("%m/%d/%Y")
 
 
-class TestRendererForST(unittest.TestCase):
+class DateRenderer3(stringtemplate.AttributeRenderer):
+    def toString(self, o, formatString='%m/%d/%Y'):
+        return o.strftime(str(formatString))
 
-    def runTest(self):
+
+class StringRenderer(stringtemplate.AttributeRenderer):
+    def toString(self, o, formatString=None):
+        if formatString is not None:
+            if formatString == "upper":
+                return o.upper()
+            
+        return o
+
+class TestRenderer(unittest.TestCase):
+    def testRendererForST(self):
         st = stringtemplate.StringTemplate("date: <created>",
             stringtemplate.language.AngleBracketTemplateLexer.Lexer)
         st["created"] = date(year=2005, month=7, day=5)
@@ -2721,58 +3571,123 @@ class TestRendererForST(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestRendererForGroup(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testRendererWithFormat(self):
+        st = stringtemplate.StringTemplate(
+            "date: <created; format=\"%Y.%m.%d\">",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        st.setAttribute("created", date(year=2005, month=7, day=5))
+        st.registerRenderer(date, DateRenderer3())
+        expecting = "date: 2005.07.05"
+        result = st.toString()
+        self.assertEqual(result, expecting)
+
+
+    def testEmbeddedRendererSeesEnclosing(self):
+        # st is embedded in outer; set renderer on outer, st should
+        # still see it.
+        outer = stringtemplate.StringTemplate(
+            "X: <x>",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        st = stringtemplate.StringTemplate(
+            "date: <created>",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        st.setAttribute("created",
+                        date(year=2005, month=07, day=05))
+        outer.setAttribute("x", st)
+        outer.registerRenderer(date, DateRenderer())
+        expecting = "X: date: 2005.07.05"
+        result = str(outer)
+        self.assertEqual(result, expecting)
+
+
+    def testRendererForGroup(self):
+
+        templates = \
             "group test;" + os.linesep + \
             "dateThing(created) ::= \"date: <created>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
 
-    def runTest(self):
-        st = self.group.getInstanceOf("dateThing")
+        st = group.getInstanceOf("dateThing")
         st["created"] = date(year=2005, month=7, day=5)
-        self.group.registerRenderer(date, DateRenderer())
+        group.registerRenderer(date, DateRenderer())
         expecting = "date: 2005.07.05"
         result = str(st)
         self.assertEqual(result, expecting)
 
 
-class TestOverriddenRenderer(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testOverriddenRenderer(self):
+        templates = \
             "group test;" + os.linesep + \
             "dateThing(created) ::= \"date: <created>\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
-
-    def runTest(self):
-        st = self.group.getInstanceOf("dateThing")
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        st = group.getInstanceOf("dateThing")
         st["created"] = date(year=2005, month=7, day=5)
-        self.group.registerRenderer(date, DateRenderer())
+        group.registerRenderer(date, DateRenderer())
         st.registerRenderer(date, DateRenderer2())
         expecting = "date: 07/05/2005"
         result = str(st)
         self.assertEqual(result, expecting)
 
 
+    def testRendererWithFormatAndList(self):
+        st = stringtemplate.StringTemplate(
+            "The names: <names; format=\"upper\">",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        st.setAttribute("names", "ter")
+        st.setAttribute("names", "tom")
+        st.setAttribute("names", "sriram")
+        st.registerRenderer(str, StringRenderer())
+        expecting = "The names: TERTOMSRIRAM"
+        result = st.toString()
+        self.assertEqual(result, expecting)
+
+
+    def testRendererWithFormatAndSeparator(self):
+        st = stringtemplate.StringTemplate(
+            "The names: <names; separator=\" and \", format=\"upper\">",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        st.setAttribute("names", "ter")
+        st.setAttribute("names", "tom")
+        st.setAttribute("names", "sriram")
+        st.registerRenderer(str, StringRenderer())
+        expecting = "The names: TER and TOM and SRIRAM"
+        result = st.toString()
+        self.assertEqual(result, expecting)
+
+
+    def testRendererWithFormatAndSeparatorAndNull(self):
+        st = stringtemplate.StringTemplate(
+            "The names: <names; separator=\" and \", null=\"n/a\", format=\"upper\">",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        names = [ "ter", None, "sriram" ]
+        st.setAttribute("names", names)
+        st.registerRenderer(str, StringRenderer())
+        expecting = "The names: TER and N/A and SRIRAM"
+        result = st.toString()
+        self.assertEqual(result, expecting)
+
+
 class TestMap(unittest.TestCase):
         
-    def setUp(self):
-        self.templates = \
+    def testMap(self):
+        templates = \
             "group test;" + os.linesep + \
             "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] "+ os.linesep + \
             "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
 
-    def runTest(self):
-        st = self.group.getInstanceOf("var")
+        st = group.getInstanceOf("var")
         st["type"] = "int"
         st["name"] = "x"
         expecting = "int x = 0;"
@@ -2780,19 +3695,53 @@ class TestMap(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestMapHiddenByFormalArg(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testMapValuesAreTemplates(self):
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"int\":\"0<w>\", \"float\":\"0.0<w>\"] "+os.linesep+
+            "var(type,w,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("var")
+        st.setAttribute("w", "L")
+        st.setAttribute("type", "int")
+        st.setAttribute("name", "x")
+        expecting = "int x = 0L;"
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testMapMissingDefaultValueIsEmpty(self):
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] "+os.linesep+
+            "var(type,w,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group =  stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("var")
+        st.setAttribute("w", "L")
+        st.setAttribute("type", "double") # double not in typeInit map
+        st.setAttribute("name", "x")
+        expecting = "double x = ;" # weird, but tests default value is key
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testMapHiddenByFormalArg(self):
+        templates = \
             "group test;" + os.linesep + \
             "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] "+ os.linesep + \
             "var(typeInit,type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
 
-    def runTest(self):
-        st = self.group.getInstanceOf("var")
+        st = group.getInstanceOf("var")
         st["type"] = "int"
         st["name"] = "x"
         expecting = "int x = ;"
@@ -2800,19 +3749,34 @@ class TestMapHiddenByFormalArg(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestMapDefaultValue(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testMapEmptyValueAndAngleBracketStrings(self):
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"int\":\"0\", \"float\":, \"double\":<<0.0L>>] "+os.linesep+
+            "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("var")
+        st.setAttribute("type", "float")
+        st.setAttribute("name", "x")
+        expecting = "float x = ;"
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testMapDefaultValue(self):
+        templates = \
             "group test;" + os.linesep + \
-            "typeInit ::= [\"int\":\"0\", \"default\":\"null\"] "+ os.linesep + \
+            "typeInit ::= [\"int\":\"0\", default:\"null\"] "+ os.linesep + \
             "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
 
-    def runTest(self):
-        st = self.group.getInstanceOf("var")
+        st = group.getInstanceOf("var")
         st["type"] = "UserRecord"
         st["name"] = "x"
         expecting = "UserRecord x = null;"
@@ -2820,20 +3784,52 @@ class TestMapDefaultValue(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestMapViaEnclosingTemplates(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testMapEmptyDefaultValue(self):
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"int\":\"0\", default:] "+os.linesep+
+            "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("var")
+        st.setAttribute("type", "UserRecord")
+        st.setAttribute("name", "x")
+        expecting = "UserRecord x = ;"
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testMapDefaultValueIsKey(self):
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"int\":\"0\", default:key] "+os.linesep+
+            "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        st = group.getInstanceOf("var")
+        st.setAttribute("type", "UserRecord")
+        st.setAttribute("name", "x")
+        expecting = "UserRecord x = UserRecord;"
+        result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testMapViaEnclosingTemplates(self):
+        templates = \
             "group test;" + os.linesep + \
             "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] "+ os.linesep + \
             "intermediate(type,name) ::= \"<var(...)>\""+ os.linesep + \
             "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
 
-    def runTest(self):
-        st = self.group.getInstanceOf("intermediate")
+        st = group.getInstanceOf("intermediate")
         st["type"] = "int"
         st["name"] = "x"
         expecting = "int x = 0;"
@@ -2841,26 +3837,64 @@ class TestMapViaEnclosingTemplates(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestMapViaEnclosingTemplates2(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testMapViaEnclosingTemplates2(self):
+        templates = \
             "group test;" + os.linesep + \
             "typeInit ::= [\"int\":\"0\", \"float\":\"0.0\"] "+ os.linesep + \
             "intermediate(stuff) ::= \"<stuff>\""+ os.linesep + \
             "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
 
-    def runTest(self):
-        interm = self.group.getInstanceOf("intermediate")
-        var = self.group.getInstanceOf("var")
+        interm = group.getInstanceOf("intermediate")
+        var = group.getInstanceOf("var")
         var["type"] = "int"
         var["name"] = "x"
         interm["stuff"] = var
         expecting = "int x = 0;"
         result = str(interm)
+        self.assertEqual(result, expecting)
+
+
+    def testMapDefaultStringAsKey(self):
+        """
+        Test that a map can have only the default entry.
+
+        Bug ref: JIRA bug ST-15 (Fixed)
+        """
+        
+        templates = (
+            "group test;" +os.linesep+
+            "typeInit ::= [\"default\":\"foo\"] "+os.linesep+
+            "var(type,name) ::= \"<type> <name> = <typeInit.(type)>;\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        st = group.getInstanceOf("var")
+        st.setAttribute("type", "default")
+        st.setAttribute("name", "x")
+        expecting = "default x = foo;"
+        result = st.toString()
+        self.assertEqual(result, expecting)
+
+
+    def testMapDefaultIsDefaultString(self):
+        """
+        Test that a map can return a <b>string</b> with the word: default.
+        
+        Bug ref: JIRA bug ST-15 (Fixed)
+        """
+        
+        templates = (
+            "group test;" +os.linesep+
+            "map ::= [default: \"default\"] "+os.linesep+
+            "t1() ::= \"<map.(1)>\""+os.linesep                
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        st = group.getInstanceOf("t1")
+        expecting = "default"
+        result = st.toString()
         self.assertEqual(result, expecting)
 
 
@@ -2871,8 +3905,7 @@ class TestEmptyGroupTemplate(unittest.TestCase):
             "group test;" + os.linesep + \
             "foo() ::= \"\"" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         a = self.group.getInstanceOf("foo")
@@ -2881,16 +3914,55 @@ class TestEmptyGroupTemplate(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class Test8BitEuroChars(unittest.TestCase):
-
-    def runTest(self):
-        e = stringtemplate.StringTemplate( \
-            "Danish: Å char" \
+class TestEmptyString(unittest.TestCase):
+    def testEmptyStringAndEmptyAnonTemplateAsParameterUsingAngleBracketLexer(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top() ::= <<<x(a=\"\", b={})\\>>>"+os.linesep+
+            "x(a,b) ::= \"a=<a>, b=<b>\""+os.linesep
             )
-        e = e.getInstanceOf()
-        expecting = "Danish: Å char"
-        self.assertEqual(str(e), expecting)
 
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        a = group.getInstanceOf("top")
+        expecting = "a=, b="
+        result = str(a)
+        self.assertEqual(result, expecting)
+
+
+    def testEmptyStringAndEmptyAnonTemplateAsParameterUsingDollarLexer(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top() ::= <<$x(a=\"\", b={})$>>"+os.linesep+
+            "x(a,b) ::= \"a=$a$, b=$b$\""+os.linesep
+            )
+
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+        a = group.getInstanceOf("top")
+        expecting = "a=, b="
+        result = str(a)
+        self.assertEqual(result, expecting)
+
+
+## class Test8BitEuroChars(unittest.TestCase):
+
+##     def runTest(self):
+##         e = stringtemplate.StringTemplate(
+##             "Danish: Å char"
+##             )
+##         e = e.getInstanceOf()
+##         expecting = "Danish: Å char"
+##         self.assertEqual(str(e), expecting)
+
+## public void test16BitUnicodeChar() throws Exception {
+## StringTemplate e = new StringTemplate(
+## "DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780"
+## );
+## e = e.getInstanceOf();
+## String expecting = "DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780";
+## assertEquals(expecting, e.toString());
 
 class TestFirstOp(unittest.TestCase):
 
@@ -3037,9 +4109,9 @@ class TestLastWithLengthOneListAttributeOp(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestRestWithOneAttributeOp(unittest.TestCase):
+class TestRestOp(unittest.TestCase):
 
-    def runTest(self):
+    def testRestWithOneAttributeOp(self):
         e = stringtemplate.StringTemplate( \
             "$rest(names)$" \
             )
@@ -3049,15 +4121,125 @@ class TestRestWithOneAttributeOp(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestRestWithLengthOneListAttributeOp(unittest.TestCase):
-
-    def runTest(self):
+    def testRestWithLengthOneListAttributeOp(self):
         e = stringtemplate.StringTemplate( \
             "$rest(names)$" \
             )
         e = e.getInstanceOf()
         e["names"] = ["Ter"]
         expecting = ""
+        self.assertEqual(str(e), expecting)
+
+
+    def testRepeatedRestOp(self):
+        e = stringtemplate.StringTemplate(
+            "$rest(names)$, $rest(names)$" # gets 2nd element
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        expecting = "Tom, Tom"
+        self.assertEqual(str(e), expecting)
+
+
+    def testRepeatedIteratedAttrFromArg(self):
+        """
+        If an iterator is sent into ST, it must be cannot be reset after each
+        use so repeated refs yield empty values.  This would
+        work if we passed in a List not an iterator.  Avoid sending in
+        iterators if you ref it twice.
+        """
+        
+        templates = (
+            "group test;" +os.linesep+
+            "root(names) ::= \"$other(names)$\""+os.linesep+
+            "other(x) ::= \"$x$, $x$\""+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+        e = group.getInstanceOf("root")
+        names = [ "Ter", "Tom" ]
+        e.setAttribute("names", iter(names))
+        expecting = "TerTom, ";  # This does not give TerTom twice!!
+        self.assertEqual(e.toString(), expecting)
+
+
+    # BUG!  Fix this.  Iterator is not reset from first to second $x$
+    # Either reset the iterator or pass an attribute that knows to get
+    # the iterator each time.  Seems like first, tail do not
+    # have same problem as they yield objects.
+
+    # Maybe make a RestIterator like I have CatIterator.
+    def testRepeatedRestOpAsArg(self):
+        templates = (
+            "group test;" + os.linesep +
+            "root(names) ::= \"$other(rest(names))$\"" + os.linesep +
+            "other(x) ::= \"$x$, $x$\"" + os.linesep
+            )
+        
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
+        e = group.getInstanceOf("root")
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        expecting = "Tom, Tom"
+        self.assertEqual(str(e), expecting)
+
+
+class TestIncomingLists(unittest.TestCase):
+    def testIncomingLists(self):
+        e = stringtemplate.StringTemplate(
+            "$rest(names)$, $rest(names)$" # gets 2nd element
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        expecting = "Tom, Tom"
+        self.assertEqual(str(e), expecting)
+
+
+    def testIncomingListsAreNotModified(self):
+        e = stringtemplate.StringTemplate(
+            "$names; separator=\", \"$" # gets 2nd element
+            )
+        e = e.getInstanceOf()
+        names = []
+        names.append("Ter")
+        names.append("Tom")
+        e.setAttribute("names", names)
+        e.setAttribute("names", "Sriram")
+        expecting = "Ter, Tom, Sriram"
+        self.assertEqual(str(e), expecting)
+        self.assertEqual(len(names), 2)
+
+
+    def testIncomingListsAreNotModified2(self):
+        e = stringtemplate.StringTemplate(
+            "$names; separator=\", \"$" # gets 2nd element
+            )
+        e = e.getInstanceOf()
+        names = []
+        names.append("Ter")
+        names.append("Tom")
+        e.setAttribute("names", "Sriram") # single element first now
+        e.setAttribute("names", names)
+        expecting = "Sriram, Ter, Tom"
+        self.assertEqual(str(e), expecting)
+        self.assertEqual(len(names), 2)
+
+
+    def testIncomingArraysAreOk(self):
+        e = stringtemplate.StringTemplate(
+            "$names; separator=\", \"$" # gets 2nd element
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", ["Ter","Tom"])
+        e.setAttribute("names", "Sriram")
+        expecting = "Ter, Tom, Sriram"
         self.assertEqual(str(e), expecting)
 
 
@@ -3069,8 +4251,7 @@ class TestApplyTemplateWithSingleFormalArgs(unittest.TestCase):
             "test(names) ::= <<<names:bold(item=it); separator=\", \"> >>"+ os.linesep + \
             "bold(item) ::= <<*<item>*>>" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         e = self.group.getInstanceOf("test")
@@ -3101,9 +4282,26 @@ class TestApplyTemplateWithNoFormalArgs(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-class TestAnonTemplateArgs(unittest.TestCase):
+class TestAnonTemplate(unittest.TestCase):
+    def testAnonTemplateWithArgHasNoITArg(self):
+        e = stringtemplate.StringTemplate(
+            "$names:{n| $n$:$it$}; separator=\", \"$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
 
-    def runTest(self):
+        try:
+            str(e)
+            self.fail()
+            
+        except KeyError, nse:
+            error = str(nse)
+            expecting = "'no such attribute: it in template context [anonymous anonymous]'"
+            self.assertEqual(error, expecting)
+
+
+    def testAnonTemplateArgs(self):
         e = stringtemplate.StringTemplate( \
             "$names:{n| $n$}; separator=\", \"$" \
             )
@@ -3114,9 +4312,7 @@ class TestAnonTemplateArgs(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestAnonTemplateArgs2(unittest.TestCase):
-
-    def runTest(self):
+    def testAnonTemplateArgs2(self):
         e = stringtemplate.StringTemplate( \
             "$names:{n| .$n$.}:{ n | _$n$_}; separator=\", \"$" \
             )
@@ -3319,8 +4515,7 @@ class TestInvokeIndirectTemplateWithSingleFormalArgs(unittest.TestCase):
             "bold(x) ::= <<*<x>*>>"+ os.linesep + \
             "italics(y) ::= <<_<y>_>>" + os.linesep
                         
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates),
-                        stringtemplate.language.AngleBracketTemplateLexer.Lexer)
+        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
 
     def runTest(self):
         e = self.group.getInstanceOf("test")
@@ -3332,8 +4527,22 @@ class TestInvokeIndirectTemplateWithSingleFormalArgs(unittest.TestCase):
 
 
 class TestParallelAttributeIteration(unittest.TestCase):
+    def testParallelAttributeIterationHasI(self):
+        e = stringtemplate.StringTemplate(
+            "$names,phones,salaries:{n,p,s | $i0$. $n$@$p$: $s$\n}$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        e.setAttribute("phones", "1")
+        e.setAttribute("phones", "2")
+        e.setAttribute("salaries", "big")
+        e.setAttribute("salaries", "huge")
+        expecting = "0. Ter@1: big"+os.linesep+"1. Tom@2: huge"+os.linesep
+        self.assertEqual(str(e), expecting)
 
-    def runTest(self):
+
+    def testParallelAttributeIteration(self):
         e = stringtemplate.StringTemplate( \
             "$names,phones,salaries:{n,p,s | $n$@$p$: $s$\n}$" \
             )
@@ -3348,9 +4557,7 @@ class TestParallelAttributeIteration(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestParallelAttributeIterationWithDifferentSizes(unittest.TestCase):
-
-    def runTest(self):
+    def testParallelAttributeIterationWithDifferentSizes(self):
         e = stringtemplate.StringTemplate( \
             "$names,phones,salaries:{n,p,s | $n$@$p$: $s$}; separator=\", \"$" \
             )
@@ -3365,9 +4572,7 @@ class TestParallelAttributeIterationWithDifferentSizes(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestParallelAttributeIterationWithSingletons(unittest.TestCase):
-
-    def runTest(self):
+    def testParallelAttributeIterationWithSingletons(self):
         e = stringtemplate.StringTemplate( \
             "$names,phones,salaries:{n,p,s | $n$@$p$: $s$}; separator=\", \"$" \
             )
@@ -3379,9 +4584,7 @@ class TestParallelAttributeIterationWithSingletons(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestParallelAttributeIterationWithMismatchArgListSizes(unittest.TestCase):
-
-    def runTest(self):
+    def testParallelAttributeIterationWithMismatchArgListSizes(self):
         self.errors = ErrorBuffer()
         e = stringtemplate.StringTemplate( \
             "$names,phones,salaries:{n,p | $n$@$p$}; separator=\", \"$" \
@@ -3399,9 +4602,7 @@ class TestParallelAttributeIterationWithMismatchArgListSizes(unittest.TestCase):
         self.assertEqual(str(self.errors), errorExpecting)
 
 
-class TestParallelAttributeIterationWithMissingArgs(unittest.TestCase):
-
-    def runTest(self):
+    def testParallelAttributeIterationWithMissingArgs(self):
         self.errors = ErrorBuffer()
         e = stringtemplate.StringTemplate( \
             "$names,phones,salaries:{$n$@$p$}; separator=\", \"$" \
@@ -3416,18 +4617,18 @@ class TestParallelAttributeIterationWithMissingArgs(unittest.TestCase):
         self.assertEqual(str(self.errors), errorExpecting)
 
 
-class TestParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo(unittest.TestCase):
-        
-    def setUp(self):
-        self.templates = \
+    def testParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo(self):
+        templates = \
             "group test;" + os.linesep + \
             "page(names,phones,salaries) ::= "+ os.linesep + \
             "   <<$names,phones,salaries:{n,p,s | $value(n)$@$value(p)$: $value(s)$}; separator=\", \"$>>" + os.linesep + \
             "value(x=\"n/a\") ::= \"$x$\"" + os.linesep
-        self.group = stringtemplate.StringTemplateGroup(StringIO(self.templates))
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer
+            )
 
-    def runTest(self):
-        p = self.group.getInstanceOf("page")
+        p = group.getInstanceOf("page")
         p["names"] = "Ter"
         p["names"] = "Tom"
         p["names"] = "Sriram"
@@ -3436,6 +4637,26 @@ class TestParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo(unitt
         p["salaries"] = "big"
         expecting = "Ter@1: big, Tom@2: n/a, Sriram@n/a: n/a"
         self.assertEqual(str(p), expecting)
+
+
+    def testParallelAttributeIterationWithNullValue(self):
+        e = stringtemplate.StringTemplate(
+            "$names,phones,salaries:{n,p,s | $n$@$p$: $s$\n}$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        e.setAttribute("names", "Sriram")
+        e.setAttribute("phones", ["1", None, "3"])
+        e.setAttribute("salaries", "big");
+        e.setAttribute("salaries", "huge");
+        e.setAttribute("salaries", "enormous");
+        expecting = (
+            "Ter@1: big"+os.linesep+
+            "Tom@: huge"+os.linesep+
+            "Sriram@3: enormous"+os.linesep
+            )
+        self.assertEqual(e.toString(), expecting)
 
 
 class TestAnonTemplateOnLeftOfApply(unittest.TestCase):
@@ -3447,6 +4668,34 @@ class TestAnonTemplateOnLeftOfApply(unittest.TestCase):
         expecting = "(foo)"
         self.assertEqual(str(e), expecting)
 
+
+class TestOverrideThroughConditional(unittest.TestCase):
+
+    def runTest(self):
+        templates = (
+            "group base;" + os.linesep +
+            "body(ick) ::= \"<if(ick)>ick<f()><else><f()><endif>\"" +
+            "f() ::= \"foo\"" + os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates)
+            )
+        templates2 = (
+            "group sub;"  + os.linesep +
+            "f() ::= \"bar\"" + os.linesep
+            )
+        subgroup = stringtemplate.StringTemplateGroup(
+            StringIO(templates2),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer,
+            None,
+            group
+            )
+
+        b = subgroup.getInstanceOf("body")
+        expecting ="bar"
+        result = str(b)
+        self.assertEqual(result, expecting)
+        
 
 class NonPublicProperty:
 
@@ -3469,241 +4718,1112 @@ class TestNonPublicPropertyAccess(unittest.TestCase):
         self.assertEqual(str(st), expecting)
 
 
+class TestIndexVar(unittest.TestCase):
+    
+    def testIndexVar(self):
+        group = stringtemplate.StringTemplateGroup("dummy", ".")
+        t = stringtemplate.StringTemplate(
+            group,
+            "$A:{$i$. $it$}; separator=\"\\n\"$"
+            )
+        t.setAttribute("A", "parrt")
+        t.setAttribute("A", "tombu")
+        expecting = (
+            "1. parrt" + os.linesep +
+            "2. tombu"
+            )
+        self.assertEqual(str(t), expecting)
+
+
+    def testIndex0Var(self):
+        group = stringtemplate.StringTemplateGroup("dummy", ".")
+        t = stringtemplate.StringTemplate(
+            group,
+            "$A:{$i0$. $it$}; separator=\"\\n\"$"
+            )
+        t.setAttribute("A", "parrt")
+        t.setAttribute("A", "tombu")
+        expecting = (
+            "0. parrt" + os.linesep +
+            "1. tombu"
+            )
+        self.assertEqual(str(t), expecting)
+
+
+    def testIndexVarWithMultipleExprs(self):
+        group = stringtemplate.StringTemplateGroup("dummy", ".")
+        t = stringtemplate.StringTemplate(
+            group,
+            "$A,B:{a,b|$i$. $a$@$b$}; separator=\"\\n\"$"
+            )
+        t.setAttribute("A", "parrt")
+        t.setAttribute("A", "tombu")
+        t.setAttribute("B", "x5707")
+        t.setAttribute("B", "x5000")
+        expecting = (
+            "1. parrt@x5707" + os.linesep +
+            "2. tombu@x5000"
+            )
+        self.assertEqual(str(t), expecting)
+
+
+    def testIndex0VarWithMultipleExprs(self):
+        group = stringtemplate.StringTemplateGroup("dummy", ".")
+        t = stringtemplate.StringTemplate(
+            group,
+            "$A,B:{a,b|$i0$. $a$@$b$}; separator=\"\\n\"$"
+            )
+        t.setAttribute("A", "parrt")
+        t.setAttribute("A", "tombu")
+        t.setAttribute("B", "x5707")
+        t.setAttribute("B", "x5000")
+        expecting = (
+            "0. parrt@x5707" + os.linesep +
+            "1. tombu@x5000"
+            )
+        self.assertEqual(str(t), expecting)
+
+class TestArgumentContext(unittest.TestCase):
+    
+    def testArgumentContext(self):
+        # t is referenced within foo and so will be evaluated in that
+        # context.  it can therefore see name.
+        group = stringtemplate.StringTemplateGroup("test")
+        main = group.defineTemplate("main", "$foo(t={Hi, $name$}, name=\"parrt\")$")
+        foo = group.defineTemplate("foo", "$t$")
+        expecting="Hi, parrt"
+        self.assertEqual(str(main), expecting);
+
+
+class TestDotsInNames(unittest.TestCase):
+    def testNoDotsInAttributeNames(self):
+        group = stringtemplate.StringTemplateGroup("dummy", ".")
+        t = stringtemplate.StringTemplate(group, "$user.Name$")
+        try:
+            t.setAttribute("user.Name", "Kunle")
+            self.fail()
+
+        except ValueError, exc:
+            error = str(exc)
+            expecting = "cannot have '.' in attribute names"
+            self.assertEqual(error, expecting)
+
+
+    def testNoDotsInTemplateNames(self):
+        errors = ErrorBuffer()
+        templates = (
+            "group test;" +os.linesep+
+            "a.b() ::= <<foo>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(
+            StringIO(templates),
+            stringtemplate.language.DefaultTemplateLexer.Lexer,
+            errors
+            )
+        expecting = "template group parse error: <AST>:2:1:"
+        self.assertTrue(str(errors).startswith(expecting), repr(str(errors)))
+
+
+class TestEscape(unittest.TestCase):
+    def testEscapeEscape(self):
+        group = stringtemplate.StringTemplateGroup("test")
+        t = group.defineTemplate("t", "\\\\$v$")
+        t.setAttribute("v", "Joe")
+        expecting="\\Joe"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testEscapeEscapeNestedAngle(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<v:{a|\\\\<a>}>")
+        t.setAttribute("v", "Joe")
+        expecting="\\Joe"
+        self.assertEqual(t.toString(), expecting)
+
+
+class TestListOfArrays(unittest.TestCase):
+    def testListOfIntArrays(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data:array()>")
+        group.defineTemplate("array", "[<it:element(); separator=\",\">]")
+        group.defineTemplate("element", "<it>")
+        data = [ [1,2,3], [10,20,30] ]
+        t.setAttribute("data", data)
+        expecting="[1,2,3][10,20,30]"
+        self.assertEqual(t.toString(), expecting)
+
+
+class TestListLiteralWithEmptyElements(unittest.TestCase):
+    # Added feature for ST-21
+    @broken
+    def testListLiteralWithEmptyElements(self):
+        e = stringtemplate.StringTemplate(
+            "$[\"Ter\",,\"Jesse\"]:{n | $i$:$n$}; separator=\", \", null=\"\"$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("phones", "1")
+        e.setAttribute("salaries", "big")
+        expecting = "1:Ter, 2:, 3:Jesse"
+        self.assertEqual(e.toString(), expecting)
+
+
+    # Use when super.attr name is implemented
+##     public void testArgumentContext2() throws Exception {
+##         // t is referenced within foo and so will be evaluated in that
+##         // context.  it can therefore see name.
+##         StringTemplateGroup group =
+##         new StringTemplateGroup("test");
+##         StringTemplate main = group.defineTemplate("main", "$foo(t={Hi, $super.name$}, name=\"parrt\")$");
+##         main.setAttribute("name", "tombu");
+##         StringTemplate foo = group.defineTemplate("foo", "$t$");
+##         String expecting="Hi, parrt";
+##         assertEqual(main.toString(), expecting);
+##         }
+
+
+class TestLineWrap(unittest.TestCase):
+    def testLineWrap(self):
+        templates = (
+            "group test;" +os.linesep+
+            "array(values) ::= <<int[] a = { <values; wrap=\"\\n\", separator=\",\"> };>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        
+        a = group.getInstanceOf("array")
+        a.setAttribute("values",
+                       [3,9,20,2,1,4,6,32,5,6,77,888,2,1,6,32,5,6,77,
+                        4,9,20,2,1,4,63,9,20,2,1,4,6,32,5,6,77,6,32,5,6,77,
+                        3,9,20,2,1,4,6,32,5,6,77,888,1,6,32,5]
+                       )
+        expecting = (
+            "int[] a = { 3,9,20,2,1,4,6,32,5,6,77,888,\n" +
+            "2,1,6,32,5,6,77,4,9,20,2,1,4,63,9,20,2,1,\n" +
+            "4,6,32,5,6,77,6,32,5,6,77,3,9,20,2,1,4,6,\n" +
+            "32,5,6,77,888,1,6,32,5 };"
+            )
+        self.assertEqual(a.toString(40), expecting)
+
+
+    def testLineWrapAnchored(self):
+        templates = (
+            "group test;" +os.linesep+
+            "array(values) ::= <<int[] a = { <values; anchor, wrap=\"\\n\", separator=\",\"> };>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        
+        a = group.getInstanceOf("array")
+        a.setAttribute("values",
+                       [3,9,20,2,1,4,6,32,5,6,77,888,2,1,6,32,5,6,77,
+                        4,9,20,2,1,4,63,9,20,2,1,4,6,32,5,6,77,6,32,5,6,77,
+                        3,9,20,2,1,4,6,32,5,6,77,888,1,6,32,5]
+                       )
+        expecting = (
+            "int[] a = { 3,9,20,2,1,4,6,32,5,6,77,888,\n" +
+            "            2,1,6,32,5,6,77,4,9,20,2,1,4,\n" +
+            "            63,9,20,2,1,4,6,32,5,6,77,6,\n" +
+            "            32,5,6,77,3,9,20,2,1,4,6,32,\n" +
+            "            5,6,77,888,1,6,32,5 };"
+            )
+        self.assertEqual(a.toString(40), expecting)
+
+
+    def testFortranLineWrap(self):
+        templates = (
+            "group test;" +os.linesep+
+            "func(args) ::= <<       FUNCTION line( <args; wrap=\"\\n      c\", separator=\",\"> )>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("func")
+        a.setAttribute("args", ["a","b","c","d","e","f"])
+        expecting = (
+            "       FUNCTION line( a,b,c,d,\n" +
+            "      ce,f )"
+            )
+        self.assertEqual(a.toString(30), expecting)
+
+
+    def testLineWrapWithDiffAnchor(self):
+        templates = (
+            "group test;" +os.linesep+
+            "array(values) ::= <<int[] a = { <{1,9,2,<values; wrap, separator=\",\">}; anchor> };>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("array")
+        a.setAttribute("values",
+                       [3,9,20,2,1,4,6,32,5,6,77,888,2,1,6,32,5,6,77,
+                        4,9,20,2,1,4,63,9,20,2,1,4,6]
+                       )
+        expecting = (
+            "int[] a = { 1,9,2,3,9,20,2,1,4,\n" +
+            "            6,32,5,6,77,888,2,\n" +
+            "            1,6,32,5,6,77,4,9,\n" +
+            "            20,2,1,4,63,9,20,2,\n" +
+            "            1,4,6 };"
+            )
+        self.assertEqual(a.toString(30), expecting)
+
+
+    def testLineWrapEdgeCase(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(chars) ::= <<<chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("chars", ["a","b","c","d","e"])
+        # lineWidth==3 implies that we can have 3 characters at most
+        expecting = (
+            "abc\n"+
+            "de"
+            )
+        self.assertEqual(a.toString(3), expecting)
+
+
+    def testLineWrapLastCharIsNewline(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(chars) ::= <<<chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("chars", ["a","b","\n","d","e"])
+        # don't do \n if it's last element anyway
+        expecting = (
+            "ab\n"+
+            "de"
+            )
+        self.assertEqual(a.toString(3), expecting)
+
+
+    def testLineWrapCharAfterWrapIsNewline(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(chars) ::= <<<chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        
+        a = group.getInstanceOf("duh")
+        a.setAttribute("chars", ["a","b","c","\n","d","e"])
+        # Once we wrap, we must dump chars as we see them.  A os.linesep right
+        # after a wrap is just an "unfortunate" event.  People will expect
+        # a os.linesep if it's in the data.
+        expecting = (
+            "abc\n" +
+            "\n" +
+            "de"
+            )
+        self.assertEqual(a.toString(3), expecting)
+
+
+    def testIndentBeyondLineWidth(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(chars) ::= <<    <chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("chars", ["a","b","c","d","e"])
+
+        expecting = (
+            "    a\n" +
+            "    b\n" +
+            "    c\n" +
+            "    d\n" +
+            "    e"
+            )
+        self.assertEqual(a.toString(2), expecting)
+
+
+    def testIndentedExpr(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(chars) ::= <<    <chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("chars", ["a","b","c","d","e"])
+
+        expecting = (
+            "    ab\n" +
+            "    cd\n" +
+            "    e"
+            )
+        # width=4 spaces + 2 char.
+        self.assertEqual(a.toString(6), expecting)
+
+
+    def testNestedIndentedExpr(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top(d) ::= <<  <d>!>>"+os.linesep+
+            "duh(chars) ::= <<  <chars; wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        top = group.getInstanceOf("top")
+        duh = group.getInstanceOf("duh")
+        duh.setAttribute("chars", ["a","b","c","d","e"])
+        top.setAttribute("d", duh)
+
+        expecting = (
+            "    ab\n" +
+            "    cd\n" +
+            "    e!"
+            )
+        # width=4 spaces + 2 char.
+        self.assertEqual(top.toString(6), expecting)
+
+
+    def testNestedWithIndentAndTrackStartOfExpr(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top(d) ::= <<  <d>!>>"+os.linesep+
+            "duh(chars) ::= <<x: <chars; anchor, wrap=\"\\n\"\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        top = group.getInstanceOf("top")
+        duh = group.getInstanceOf("duh")
+        duh.setAttribute("chars", ["a","b","c","d","e"])
+        top.setAttribute("d", duh)
+
+        expecting = (
+            "  x: ab\n" +
+            "     cd\n" +
+            "     e!"
+            )
+        self.assertEqual(top.toString(7), expecting)
+
+
+    def testLineDoesNotWrapDueToLiteral(self):
+        templates = (
+            "group test;" +os.linesep+
+            "m(args,body) ::= <<public void foo(<args; wrap=\"\\n\",separator=\", \">) throws Ick { <body> }>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("m")
+        a.setAttribute("args", ["a", "b", "c"])
+        a.setAttribute("body", "i=3;")
+        # make it wrap because of ") throws Ick { " literal
+        n = len("public void foo(a, b, c")
+        expecting = (
+            "public void foo(a, b, c) throws Ick { i=3; }"
+            )
+        self.assertEqual(a.toString(n), expecting)
+
+
+    def testSingleValueWrap(self):
+        templates = (
+            "group test;" +os.linesep+
+            "m(args,body) ::= <<{ <body; anchor, wrap=\"\\n\"> }>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        m = group.getInstanceOf("m")
+        m.setAttribute("body", "i=3;")
+        # make it wrap because of ") throws Ick { " literal
+        expecting = (
+            "{ \n"+
+            "  i=3; }"
+            )
+        self.assertEqual(m.toString(2), expecting)
+
+
+    def testLineWrapInNestedExpr(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top(arrays) ::= <<Arrays: <arrays>done>>"+os.linesep+
+            "array(values) ::= <<int[] a = { <values; anchor, wrap=\"\\n\", separator=\",\"> };<\\n\\>>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        top = group.getInstanceOf("top")
+        a = group.getInstanceOf("array")
+        a.setAttribute("values",
+                       [ 3,9,20,2,1,4,6,32,5,6,77,888,2,1,6,32,5,6,77,
+                         4,9,20,2,1,4,63,9,20,2,1,4,6,32,5,6,77,6,32,5,6,77,
+                         3,9,20,2,1,4,6,32,5,6,77,888,1,6,32,5 ]
+                       )
+        top.setAttribute("arrays", a)
+        top.setAttribute("arrays", a) # add twice
+        expecting = (
+            "Arrays: int[] a = { 3,9,20,2,1,4,6,32,5,\n" +
+            "                    6,77,888,2,1,6,32,5,\n" +
+            "                    6,77,4,9,20,2,1,4,63,\n" +
+            "                    9,20,2,1,4,6,32,5,6,\n" +
+            "                    77,6,32,5,6,77,3,9,20,\n" +
+            "                    2,1,4,6,32,5,6,77,888,\n" +
+            "                    1,6,32,5 };\n" +
+            "int[] a = { 3,9,20,2,1,4,6,32,5,6,77,888,\n" +
+            "            2,1,6,32,5,6,77,4,9,20,2,1,4,\n" +
+            "            63,9,20,2,1,4,6,32,5,6,77,6,\n" +
+            "            32,5,6,77,3,9,20,2,1,4,6,32,\n" +
+            "            5,6,77,888,1,6,32,5 };\n" +
+            "done"
+            )
+        self.assertEqual(top.toString(40), expecting)
+
+
+    def testLineWrapForAnonTemplate(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(data) ::= <<!<data:{v|[<v>]}; wrap>!>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("data", [1,2,3,4,5,6,7,8,9])
+        expecting = (
+            "![1][2][3]\n" + # width=9 is the 3 char; don't break til after ]
+            "[4][5][6]\n" +
+            "[7][8][9]!"
+            )
+        self.assertEqual(a.toString(9), expecting)
+
+
+    def testLineWrapForAnonTemplateAnchored(self):
+        templates = (
+            "group test;" +os.linesep+
+            "duh(data) ::= <<!<data:{v|[<v>]}; anchor, wrap>!>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+
+        a = group.getInstanceOf("duh")
+        a.setAttribute("data", [1,2,3,4,5,6,7,8,9])
+        expecting = (
+            "![1][2][3]\n" +
+            " [4][5][6]\n" +
+            " [7][8][9]!"
+            )
+        self.assertEqual(a.toString(9), expecting)
+
+
+    def testLineWrapForAnonTemplateComplicatedWrap(self):
+        templates = (
+            "group test;" +os.linesep+
+            "top(s) ::= <<  <s>.>>"+
+            "str(data) ::= <<!<data:{v|[<v>]}; wrap=\"!+\\n!\">!>>"+os.linesep
+            )
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+        
+        t = group.getInstanceOf("top")
+        s = group.getInstanceOf("str")
+        s.setAttribute("data", [1,2,3,4,5,6,7,8,9])
+        t.setAttribute("s", s)
+        expecting = (
+            "  ![1][2]!+\n" +
+            "  ![3][4]!+\n" +
+            "  ![5][6]!+\n" +
+            "  ![7][8]!+\n" +
+            "  ![9]!."
+            )
+        self.assertEqual(t.toString(9), expecting)
+
+
+class TestNullOption(unittest.TestCase):
+
+    def testNullOptionSingleNullValue(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t =group.defineTemplate("t", "<data; null=\"0\">")
+        expecting="0"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullOptionHasEmptyNullValue(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data; null=\"\", separator=\", \">")
+        data = [ None, 1 ]
+        t.setAttribute("data", data)
+        expecting=", 1"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullOptionSingleNullValueInList(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data; null=\"0\">")
+        data = [ None ]
+        t.setAttribute("data", data)
+        expecting="0"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullValueInList(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data; null=\"-1\", separator=\", \">")
+        data = [ None, 1, None, 3, 4, None ]
+        t.setAttribute("data", data)
+        expecting="-1, 1, -1, 3, 4, -1"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullValueInListNoNullOption(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data; separator=\", \">")
+        data = [ None, 1, None, 3, 4, None ]
+        t.setAttribute("data", data);
+        expecting="1, 3, 4"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullValueInListWithTemplateApply(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
+        group.defineTemplate("array", "<it>")
+        data = [ 0, None, 2, None ]
+        t.setAttribute("data", data)
+        expecting="0, -1, 2, -1"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullValueInListWithTemplateApplyNullFirstValue(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
+        group.defineTemplate("array", "<it>")
+        data = [ None, 0, None, 2 ]
+        t.setAttribute("data", data)
+        expecting="-1, 0, -1, 2"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullSingleValueInListWithTemplateApply(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
+        group.defineTemplate("array", "<it>")
+        data = [ None ]
+        t.setAttribute("data", data)
+        expecting="-1"
+        self.assertEqual(t.toString(), expecting)
+
+
+    def testNullSingleValueWithTemplateApply(self):
+        group = stringtemplate.StringTemplateGroup(
+            "test",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
+        group.defineTemplate("array", "<it>")
+        expecting="-1"
+        self.assertEqual(t.toString(), expecting)
+
+
+class TestLengthOp(unittest.TestCase):
+    def testLengthOp(self):
+        e = stringtemplate.StringTemplate(
+            "$length(names)$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        e.setAttribute("names", "Tom")
+        e.setAttribute("names", "Sriram")
+        expecting = "3"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpNull(self):
+        e = stringtemplate.StringTemplate(
+            "$length(names)$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", None)
+        expecting = "0"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpSingleValue(self):
+        e = stringtemplate.StringTemplate(
+            "$length(names)$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("names", "Ter")
+        expecting = "1"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpPrimitive(self):
+        e = stringtemplate.StringTemplate(
+            "$length(ints)$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("ints", [1,2,3,4] )
+        expecting = "4"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpOfListWithNulls(self):
+        e = stringtemplate.StringTemplate(
+            "$length(data)$"
+            )
+        e = e.getInstanceOf()
+        data = [ "Hi", None, "mom", None ]
+        e.setAttribute("data", data);
+        expecting = "4" # nulls are counted
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpWithMap(self):
+        e = stringtemplate.StringTemplate(
+            "$length(names)$"
+            )
+        e = e.getInstanceOf()
+        m = { "Tom": "foo",
+              "Sriram": "foo",
+              "Doug": "foo"
+              }
+        e.setAttribute("names", m)
+        expecting = "3"
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpWithSet(self):
+        e = stringtemplate.StringTemplate(
+            "$length(names)$"
+            )
+        e = e.getInstanceOf()
+        m = set(["Tom", "Sriram", "Doug"])
+        e.setAttribute("names", m)
+        expecting = "3";
+        self.assertEquals(e.toString(), expecting)
+
+
+class TestStripOp(unittest.TestCase):
+    def testStripOpOfListWithNulls(self):
+        e = stringtemplate.StringTemplate(
+            "$strip(data)$"
+            )
+        e = e.getInstanceOf()
+        data = [ "Hi", None, "mom", None ]
+        e.setAttribute("data", data)
+        expecting = "Himom" # nulls are skipped
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testStripOpOfListOfListsWithNulls(self):
+        e = stringtemplate.StringTemplate(
+            "$strip(data):{list | $strip(list)$}; separator=\",\"$"
+            )
+        e = e.getInstanceOf()
+        data = [ [ "Hi", "mom" ],
+                 None,
+                 [ "Hi", None, "dad", None ]
+                 ]
+        e.setAttribute("data", data)
+        expecting = "Himom,Hidad" # nulls are skipped
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testStripOpOfSingleAlt(self):
+        e = stringtemplate.StringTemplate(
+            "$strip(data)$"
+            )
+        e = e.getInstanceOf()
+        e.setAttribute("data", "hi")
+        expecting = "hi" # nulls are skipped
+        self.assertEqual(e.toString(), expecting);
+
+
+    def testStripOpOfNull(self):
+        e = stringtemplate.StringTemplate(
+            "$strip(data)$"
+            )
+        e = e.getInstanceOf()
+        expecting = "" # nulls are skipped
+        self.assertEqual(e.toString(), expecting);
+
+
+    def testLengthOpOfStrippedListWithNulls(self):
+        e = stringtemplate.StringTemplate(
+            "$length(strip(data))$"
+            )
+        e = e.getInstanceOf()
+        data = [ "Hi", None, "mom", None ]
+        e.setAttribute("data", data)
+        expecting = "2" # nulls are counted
+        self.assertEqual(e.toString(), expecting)
+
+
+    def testLengthOpOfStrippedListWithNullsFrontAndBack(self):
+        e = stringtemplate.StringTemplate(
+            "$length(strip(data))$"
+            )
+        e = e.getInstanceOf()
+        data = [ None, None, None,
+                 "Hi",
+                 None, None, None,
+                 "mom",
+                 None, None, None
+                 ]
+        e.setAttribute("data", data)
+        expecting = "2" # nulls are counted
+        self.assertEqual(e.toString(), expecting);
+
+
+class TestMapProperties(unittest.TestCase):
+    def testMapKeys(self):
+        group = stringtemplate.StringTemplateGroup(
+            "dummy", ".",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = stringtemplate.StringTemplate(
+            group,
+            "<aMap.keys:{k|<k>:<aMap.(k)>}; separator=\", \">"
+            )
+        map = {}
+        map["int"] = "0"
+        map["float"] = "0.0"
+        t.setAttribute("aMap", map)
+        self.assertEqual(t.toString(), "int:0, float:0.0")
+
+
+    def testMapValues(self):
+        group = stringtemplate.StringTemplateGroup(
+            "dummy", ".",
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        t = stringtemplate.StringTemplate(
+            group,
+            "<aMap.values; separator=\", \">"
+            )
+        map = {}
+        map["int"] = "0"
+        map["float"] = "0.0"
+        t.setAttribute("aMap", map)
+        self.assertEqual(t.toString(), "0, 0.0")
+
+
+    @broken
+    def testGroupTrailingSemiColon(self):
+        """
+        Check what happens when a semicolon is  appended to a single line
+        template
+        
+        Should fail with a parse error(?) and not a missing template error.
+        FIXME: This should generate a warning or error about that semi colon.
+
+        Bug ref: JIRA bug ST-2
+        """
+        
+        templates = (
+            "group test;" +os.linesep+
+            "t1()::=\"R1\"; "+os.linesep+
+            "t2() ::= \"R2\""+os.linesep                
+            )
+
+        group = stringtemplate.StringTemplateGroup(StringIO(templates))
+            
+        st = group.getInstanceOf("t1")
+        self.assertEqual(st.toString(), "R1")
+            
+        st = group.getInstanceOf("t2")
+        self.assertEqual(st.toString(), "R2")
+            
+        self.fail("A parse error should have been generated")
+
+
+class TestSuperReferenceInIfClause(unittest.TestCase):
+    def runTest(self):
+        superGroupString = (
+            "group super;" + os.linesep +
+            "a(x) ::= \"super.a\"" + os.linesep +
+            "b(x) ::= \"<c()>super.b\"" + os.linesep +
+            "c() ::= \"super.c\""
+            )
+        superGroup = stringtemplate.StringTemplateGroup(
+            StringIO(superGroupString),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        subGroupString = (
+            "group sub;\n" +
+            "a(x) ::= \"<if(x)><super.a()><endif>\"" + os.linesep +
+            "b(x) ::= \"<if(x)><else><super.b()><endif>\"" + os.linesep +
+            "c() ::= \"sub.c\""
+            )
+        subGroup = stringtemplate.StringTemplateGroup(
+            StringIO(subGroupString),
+            stringtemplate.language.AngleBracketTemplateLexer.Lexer
+            )
+        subGroup.setSuperGroup(superGroup)
+        a = subGroup.getInstanceOf("a")
+        a.setAttribute("x", "foo")
+        self.assertEqual(a.toString(), "super.a")
+        b = subGroup.getInstanceOf("b")
+        self.assertEqual(b.toString(), "sub.csuper.b")
+        c = subGroup.getInstanceOf("c")
+        self.assertEquals(c.toString(), "sub.c")
+
+
+## if __name__ == '__main__':
+
+##     from optparse import OptionParser
+
+##     parser = OptionParser()
+
+##     parser.set_defaults(guiRunner=False)
+##     parser.add_option("-g", "--gui",
+##     		      action="store_true", dest="guiRunner",
+##     		      help="use TkInter based GUI for test")
+
+##     (options, args) = parser.parse_args()
+
+##     suite = unittest.TestSuite()
+##     suite.addTest(TestGroupFileFormat())
+##     suite.addTest(TestTemplateParameterDecls())
+##     suite.addTest(TestTemplateRedef())
+##     suite.addTest(TestMissingInheritedAttribute())
+##     suite.addTest(TestFormalArgumentAssignment())
+##     suite.addTest(TestUndefinedArgumentAssignment())
+##     suite.addTest(TestFormalArgumentAssignmentInApply())
+##     suite.addTest(TestUndefinedArgumentAssignmentInApply())
+##     suite.addTest(TestUndefinedAttributeReference())
+##     suite.addTest(TestUndefinedDefaultAttributeReference())
+##     suite.addTest(TestAngleBracketsWithGroupFileAsString())
+##     suite.addTest(TestAngleBracketsWithGroupFile())
+##     suite.addTest(TestAngleBracketsNoGroup())
+##     suite.addTest(TestSimpleInheritance())
+##     suite.addTest(TestOverrideInheritance())
+##     suite.addTest(TestMultiLevelInheritance())
+##     suite.addTest(TestExprInParens())
+##     suite.addTest(TestMultipleAdditions())
+##     suite.addTest(TestCollectionAttributes())
+##     suite.addTest(TestParenthesizedExpression())
+##     suite.addTest(TestApplyTemplateNameExpression())
+##     suite.addTest(TestTemplateNameExpression())
+##     suite.addTest(TestMissingEndDelimiter())
+##     suite.addTest(TestSetButNotRefd())
+##     suite.addTest(TestNullTemplateApplication())
+##     suite.addTest(TestNullTemplateToMultiValuedApplication())
+##     suite.addTest(TestChangingAttrValueTemplateApplicationToVector())
+##     suite.addTest(TestChangingAttrValueRepeatedTemplateApplicationToVector())
+##     suite.addTest(TestAlternatingTemplateApplication())
+##     suite.addTest(TestExpressionAsRHSOfAssignment())
+##     suite.addTest(TestTemplateApplicationAsRHSOfAssignment())
+##     suite.addTest(TestParameterAndAttributeScoping())
+##     suite.addTest(TestComplicatedSeparatorExpr())
+##     suite.addTest(TestAttributeRefButtedUpAgainstEndifAndWhitespace())
+##     suite.addTest(TestStringCatenationOnSingleValuedAttributeViaTemplateLiteral())
+##     suite.addTest(TestApplyingTemplateFromDiskWithPrecompiledIF())
+##     suite.addTest(TestMultiValuedAttributeWithAnonymousTemplateUsingIndexVariableI())
+##     suite.addTest(TestDictAttributeWithAnonymousTemplateUsingKeyVariableIk())
+##     suite.addTest(TestFindTemplateInCurrentDir())
+##     suite.addTest(TestApplyTemplateToSingleValuedAttribute())
+##     suite.addTest(TestStringLiteralAsAttribute())
+##     suite.addTest(TestApplyTemplateToSingleValuedAttributeWithDefaultAttribute())
+##     suite.addTest(TestApplyAnonymousTemplateToSingleValuedAttribute())
+##     suite.addTest(TestApplyAnonymousTemplateToMultiValuedAttribute())
+##     suite.addTest(TestApplyAnonymousTemplateToAggregateAttribute())
+##     suite.addTest(TestRepeatedApplicationOfTemplateToSingleValuedAttribute())
+##     suite.addTest(TestRepeatedApplicationOfTemplateToMultiValuedAttributeWithSeparator())
+##     suite.addTest(TestMultiValuedAttributeWithSeparator())
+##     suite.addTest(TestSingleValuedAttributes())
+##     suite.addTest(TestIFTemplate())
+##     suite.addTest(TestIFCondWithParensTemplate())
+##     suite.addTest(TestIFCondWithParensDollarDelimsTemplate())
+##     suite.addTest(TestIFBoolean())
+##     suite.addTest(TestNestedIFTemplate())
+##     suite.addTest(TestObjectPropertyReference())
+##     suite.addTest(TestApplyRepeatedAnonymousTemplateWithForeignTemplateRefToMultiValuedAttribute())
+##     suite.addTest(TestRecursion())
+##     suite.addTest(TestNestedAnonymousTemplates())
+##     suite.addTest(TestAnonymousTemplateAccessToEnclosingAttributes())
+##     suite.addTest(TestNestedAnonymousTemplatesAgain())
+##     suite.addTest(TestEscapes())
+##     suite.addTest(TestEscapesOutsideExpressions())
+##     suite.addTest(TestElseClause())
+##     suite.addTest(TestNestedIF())
+##     suite.addTest(TestEmbeddedMultiLineIF())
+##     suite.addTest(TestSimpleIndentOfAttributeList())
+##     suite.addTest(TestIndentOfMultilineAttributes())
+##     suite.addTest(TestIndentOfMultipleBlankLines())
+##     suite.addTest(TestIndentBetweenLeftJustifiedLiterals())
+##     suite.addTest(TestNestedIndent())
+##     suite.addTest(TestApplyAnonymousTemplateToDictTupleAndList())
+##     suite.addTest(TestApplyAnonymousTemplateToDictTupleAndList2())
+##     suite.addTest(TestDumpDictTupleAndList())
+##     suite.addTest(TestApplyAnonymousTemplateToListAndDictProperty())
+##     suite.addTest(TestSuperTemplateRef())
+##     suite.addTest(TestApplySuperTemplateRef())
+##     suite.addTest(TestLazyEvalOfSuperInApplySuperTemplateRef())
+##     suite.addTest(TestTemplatePolymorphism())
+##     suite.addTest(TestListOfEmbeddedTemplateSeesEnclosingAttributes())
+##     suite.addTest(TestInheritArgumentFromRecursiveTemplateApplication())
+##     suite.addTest(TestDeliberateRecursiveTemplateApplication())
+##     suite.addTest(TestImmediateTemplateAsAttributeLoop())
+##     suite.addTest(TestTemplateAlias())
+##     suite.addTest(TestTemplateGetPropertyGetsAttribute())
+##     suite.addTest(TestComplicatedIndirectTemplateApplication())
+##     suite.addTest(TestIndirectTemplateApplication())
+##     suite.addTest(TestIndirectTemplateWithArgsApplication())
+##     suite.addTest(TestNullIndirectTemplateApplication())
+##     suite.addTest(TestNullIndirectTemplate())
+##     suite.addTest(TestReflection())
+##     suite.addTest(TestReflectionRecursive())
+##     suite.addTest(TestReflectionTypeLoop())
+##     suite.addTest(TestReflectionWithDict())
+##     suite.addTest(TestDictPropertyFetch())
+##     suite.addTest(TestDictPropertyFetchEmbeddedStringTemplate())
+##     suite.addTest(TestEmbeddedComments())
+##     suite.addTest(TestEmbeddedCommentsAngleBracketed())
+##     suite.addTest(TestCharLiterals())
+##     suite.addTest(TestEmptyIteratedValueGetsSeparator())
+##     suite.addTest(TestEmptyIteratedConditionalValueGetsNoSeparator())
+##     suite.addTest(TestEmptyIteratedConditionalWithElseValueGetsSeparator())
+##     suite.addTest(TestWhiteSpaceAtEndOfTemplate())
+##     suite.addTest(TestSizeZeroButNonNullListGetsNoOutput())
+##     suite.addTest(TestSizeZeroOnLineByItselfGetsNoOutput())
+##     suite.addTest(TestSizeZeroOnLineWithIndentGetsNoOutput())
+##     suite.addTest(TestSimpleAutoIndent())
+##     suite.addTest(TestComputedPropertyName())
+##     suite.addTest(TestMultipleAttributeRefThroughReflection())
+##     suite.addTest(TestNonNullButEmptyIteratorTestsFalse())
+##     suite.addTest(TestDoNotInheritAttributesThroughFormalArgs())
+##     suite.addTest(TestArgEvaluationContext())
+##     suite.addTest(TestPassThroughAttributes())
+##     suite.addTest(TestPassThroughAttributes2())
+##     suite.addTest(TestDefaultArgument())
+##     suite.addTest(TestDefaultArgument2())
+##     suite.addTest(TestDefaultArgumentAsTemplate())
+##     suite.addTest(TestDefaultArgumentAsTemplate2())
+##     suite.addTest(TestDoNotUseDefaultArgument())
+##     suite.addTest(TestArgumentsAsTemplates())
+##     suite.addTest(TestArgumentsAsTemplatesDefaultDelimiters())
+##     suite.addTest(TestDefaultArgsWhenNotInvoked())
+##     suite.addTest(TestRendererForST())
+##     suite.addTest(TestRendererForGroup())
+##     suite.addTest(TestOverriddenRenderer())
+##     suite.addTest(TestMap())
+##     suite.addTest(TestMapHiddenByFormalArg())
+##     suite.addTest(TestMapDefaultValue())
+##     suite.addTest(TestMapViaEnclosingTemplates())
+##     suite.addTest(TestMapViaEnclosingTemplates2())
+##     suite.addTest(TestEmptyGroupTemplate())
+## #    suite.addTest(Test8BitEuroChars())
+##     suite.addTest(TestFirstOp())
+##     suite.addTest(TestRestOp())
+##     suite.addTest(TestLastOp())
+##     suite.addTest(TestCombinedOp())
+##     suite.addTest(TestCatListAndSingleAttribute())
+##     suite.addTest(TestCatListAndEmptyAttributes())
+##     suite.addTest(TestNestedOp())
+##     suite.addTest(TestFirstWithOneAttributeOp())
+##     suite.addTest(TestLastWithOneAttributeOp())
+##     suite.addTest(TestLastWithLengthOneListAttributeOp())
+##     suite.addTest(TestRestWithOneAttributeOp())
+##     suite.addTest(TestRestWithLengthOneListAttributeOp())
+##     suite.addTest(TestApplyTemplateWithSingleFormalArgs())
+##     suite.addTest(TestApplyTemplateWithNoFormalArgs())
+##     suite.addTest(TestAnonTemplateArgs())
+##     suite.addTest(TestAnonTemplateArgs2())
+##     suite.addTest(TestFirstWithCatAttribute())
+##     suite.addTest(TestJustCat())
+##     suite.addTest(TestCat2Attributes())
+##     suite.addTest(TestCat2AttributesWithApply())
+##     suite.addTest(TestCat3Attributes())
+##     suite.addTest(TestListAsTemplateArgument())
+##     suite.addTest(TestSingleExprTemplateArgument())
+##     suite.addTest(TestSingleExprTemplateArgumentInApply())
+##     suite.addTest(TestSoleFormalTemplateArgumentInMultiApply())
+##     suite.addTest(TestSingleExprTemplateArgumentError())
+##     suite.addTest(TestInvokeIndirectTemplateWithSingleFormalArgs())
+##     suite.addTest(TestParallelAttributeIteration())
+##     suite.addTest(TestParallelAttributeIterationWithDifferentSizes())
+##     suite.addTest(TestParallelAttributeIterationWithSingletons())
+##     suite.addTest(TestParallelAttributeIterationWithMismatchArgListSizes())
+##     suite.addTest(TestParallelAttributeIterationWithMissingArgs())
+##     suite.addTest(TestParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo())
+##     suite.addTest(TestAnonTemplateOnLeftOfApply())
+##     suite.addTest(TestNonPublicPropertyAccess())
+
+##     doGUI = options.guiRunner
+##     if doGUI:
+## 	try:
+##             import unittestgui
+## 	    tk = unittestgui.tk
+## 	except:
+##             doGUI = False
+
+##     if doGUI:
+
+##         class STTkTestRunner(unittestgui.TkTestRunner):
+
+## 	    def __init__(self, *args, **kwargs):
+## 	    	self.root = tk.Tk()
+## 		self.root.title("PyUnit")
+## 		self.test = None
+##         	self.currentResult = None
+##         	self.running = 0
+##         	self.__rollbackImporter = None
+## 	        super(STTkTestRunner, self).__init__(self.root, 'TestStringTemplate')
+
+## 	    def runClicked(self):
+##         	"To be called in response to user choosing to run a test"
+##         	if self.running:
+## 		    return
+## 		if not self.test:
+## 		    self.errorDialog("Test entry", "You must provide a TestCase or TestSuite to run")
+##         	    return
+##         	if self.__rollbackImporter:
+##         	    self.__rollbackImporter.rollbackImports()
+##         	self.__rollbackImporter = unittestgui.RollbackImporter()
+##         	self.currentResult = unittestgui.GUITestResult(self)
+##         	self.totalTests = self.test.countTestCases()
+##         	self.running = 1
+##         	self.notifyRunning()
+##         	self.test(self.currentResult)
+##         	self.running = 0
+##         	self.notifyStopped()
+
+##             def run(self, test):
+## 	        self.test = test
+## 		self.root.protocol('WM_DELETE_WINDOW', self.root.quit)
+## 		self.root.mainloop()
+
+## 	runner = STTkTestRunner(suite)
+## 	result = runner.run(suite)
+
+##     else: # doGUI = False
+
+##         runner = unittest.TextTestRunner(sys.stdout)
+## 	result = runner.run(suite)
+## 	sys.exit(not result.wasSuccessful())
+
+
+
 if __name__ == '__main__':
-
-    from optparse import OptionParser
-
-    parser = OptionParser()
-
-    parser.set_defaults(guiRunner=False)
-    parser.add_option("-g", "--gui",
-    		      action="store_true", dest="guiRunner",
-    		      help="use TkInter based GUI for test")
-
-    (options, args) = parser.parse_args()
-
-    suite = unittest.TestSuite()
-    suite.addTest(TestGroupFileFormat())
-    suite.addTest(TestTemplateParameterDecls())
-    suite.addTest(TestTemplateRedef())
-    suite.addTest(TestMissingInheritedAttribute())
-    suite.addTest(TestFormalArgumentAssignment())
-    suite.addTest(TestUndefinedArgumentAssignment())
-    suite.addTest(TestFormalArgumentAssignmentInApply())
-    suite.addTest(TestUndefinedArgumentAssignmentInApply())
-    suite.addTest(TestUndefinedAttributeReference())
-    suite.addTest(TestUndefinedDefaultAttributeReference())
-    suite.addTest(TestAngleBracketsWithGroupFileAsString())
-    suite.addTest(TestAngleBracketsWithGroupFile())
-    suite.addTest(TestAngleBracketsNoGroup())
-    suite.addTest(TestSimpleInheritance())
-    suite.addTest(TestOverrideInheritance())
-    suite.addTest(TestMultiLevelInheritance())
-    suite.addTest(TestExprInParens())
-    suite.addTest(TestMultipleAdditions())
-    suite.addTest(TestCollectionAttributes())
-    suite.addTest(TestParenthesizedExpression())
-    suite.addTest(TestApplyTemplateNameExpression())
-    suite.addTest(TestTemplateNameExpression())
-    suite.addTest(TestMissingEndDelimiter())
-    suite.addTest(TestSetButNotRefd())
-    suite.addTest(TestNullTemplateApplication())
-    suite.addTest(TestNullTemplateToMultiValuedApplication())
-    suite.addTest(TestChangingAttrValueTemplateApplicationToVector())
-    suite.addTest(TestChangingAttrValueRepeatedTemplateApplicationToVector())
-    suite.addTest(TestAlternatingTemplateApplication())
-    suite.addTest(TestExpressionAsRHSOfAssignment())
-    suite.addTest(TestTemplateApplicationAsRHSOfAssignment())
-    suite.addTest(TestParameterAndAttributeScoping())
-    suite.addTest(TestComplicatedSeparatorExpr())
-    suite.addTest(TestAttributeRefButtedUpAgainstEndifAndWhitespace())
-    suite.addTest(TestStringCatenationOnSingleValuedAttributeViaTemplateLiteral())
-    suite.addTest(TestApplyingTemplateFromDiskWithPrecompiledIF())
-    suite.addTest(TestMultiValuedAttributeWithAnonymousTemplateUsingIndexVariableI())
-    suite.addTest(TestDictAttributeWithAnonymousTemplateUsingKeyVariableIk())
-    suite.addTest(TestFindTemplateInCurrentDir())
-    suite.addTest(TestApplyTemplateToSingleValuedAttribute())
-    suite.addTest(TestStringLiteralAsAttribute())
-    suite.addTest(TestApplyTemplateToSingleValuedAttributeWithDefaultAttribute())
-    suite.addTest(TestApplyAnonymousTemplateToSingleValuedAttribute())
-    suite.addTest(TestApplyAnonymousTemplateToMultiValuedAttribute())
-    suite.addTest(TestApplyAnonymousTemplateToAggregateAttribute())
-    suite.addTest(TestRepeatedApplicationOfTemplateToSingleValuedAttribute())
-    suite.addTest(TestRepeatedApplicationOfTemplateToMultiValuedAttributeWithSeparator())
-    suite.addTest(TestMultiValuedAttributeWithSeparator())
-    suite.addTest(TestSingleValuedAttributes())
-    suite.addTest(TestIFTemplate())
-    suite.addTest(TestIFCondWithParensTemplate())
-    suite.addTest(TestIFCondWithParensDollarDelimsTemplate())
-    suite.addTest(TestIFBoolean())
-    suite.addTest(TestNestedIFTemplate())
-    suite.addTest(TestObjectPropertyReference())
-    suite.addTest(TestApplyRepeatedAnonymousTemplateWithForeignTemplateRefToMultiValuedAttribute())
-    suite.addTest(TestRecursion())
-    suite.addTest(TestNestedAnonymousTemplates())
-    suite.addTest(TestAnonymousTemplateAccessToEnclosingAttributes())
-    suite.addTest(TestNestedAnonymousTemplatesAgain())
-    suite.addTest(TestEscapes())
-    suite.addTest(TestEscapesOutsideExpressions())
-    suite.addTest(TestElseClause())
-    suite.addTest(TestNestedIF())
-    suite.addTest(TestEmbeddedMultiLineIF())
-    suite.addTest(TestSimpleIndentOfAttributeList())
-    suite.addTest(TestIndentOfMultilineAttributes())
-    suite.addTest(TestIndentOfMultipleBlankLines())
-    suite.addTest(TestIndentBetweenLeftJustifiedLiterals())
-    suite.addTest(TestNestedIndent())
-    suite.addTest(TestApplyAnonymousTemplateToDictTupleAndList())
-    suite.addTest(TestApplyAnonymousTemplateToDictTupleAndList2())
-    suite.addTest(TestDumpDictTupleAndList())
-    suite.addTest(TestApplyAnonymousTemplateToListAndDictProperty())
-    suite.addTest(TestSuperTemplateRef())
-    suite.addTest(TestApplySuperTemplateRef())
-    suite.addTest(TestLazyEvalOfSuperInApplySuperTemplateRef())
-    suite.addTest(TestTemplatePolymorphism())
-    suite.addTest(TestListOfEmbeddedTemplateSeesEnclosingAttributes())
-    suite.addTest(TestInheritArgumentFromRecursiveTemplateApplication())
-    suite.addTest(TestDeliberateRecursiveTemplateApplication())
-    suite.addTest(TestImmediateTemplateAsAttributeLoop())
-    suite.addTest(TestTemplateAlias())
-    suite.addTest(TestTemplateGetPropertyGetsAttribute())
-    suite.addTest(TestComplicatedIndirectTemplateApplication())
-    suite.addTest(TestIndirectTemplateApplication())
-    suite.addTest(TestIndirectTemplateWithArgsApplication())
-    suite.addTest(TestNullIndirectTemplateApplication())
-    suite.addTest(TestNullIndirectTemplate())
-    suite.addTest(TestReflection())
-    suite.addTest(TestReflectionRecursive())
-    suite.addTest(TestReflectionTypeLoop())
-    suite.addTest(TestReflectionWithDict())
-    suite.addTest(TestDictPropertyFetch())
-    suite.addTest(TestDictPropertyFetchEmbeddedStringTemplate())
-    suite.addTest(TestEmbeddedComments())
-    suite.addTest(TestEmbeddedCommentsAngleBracketed())
-    suite.addTest(TestCharLiterals())
-    suite.addTest(TestEmptyIteratedValueGetsSeparator())
-    suite.addTest(TestEmptyIteratedConditionalValueGetsNoSeparator())
-    suite.addTest(TestEmptyIteratedConditionalWithElseValueGetsSeparator())
-    suite.addTest(TestWhiteSpaceAtEndOfTemplate())
-    suite.addTest(TestSizeZeroButNonNullListGetsNoOutput())
-    suite.addTest(TestSizeZeroOnLineByItselfGetsNoOutput())
-    suite.addTest(TestSizeZeroOnLineWithIndentGetsNoOutput())
-    suite.addTest(TestSimpleAutoIndent())
-    suite.addTest(TestComputedPropertyName())
-    suite.addTest(TestMultipleAttributeRefThroughReflection())
-    suite.addTest(TestNonNullButEmptyIteratorTestsFalse())
-    suite.addTest(TestDoNotInheritAttributesThroughFormalArgs())
-    suite.addTest(TestArgEvaluationContext())
-    suite.addTest(TestPassThroughAttributes())
-    suite.addTest(TestPassThroughAttributes2())
-    suite.addTest(TestDefaultArgument())
-    suite.addTest(TestDefaultArgument2())
-    suite.addTest(TestDefaultArgumentAsTemplate())
-    suite.addTest(TestDefaultArgumentAsTemplate2())
-    suite.addTest(TestDoNotUseDefaultArgument())
-    suite.addTest(TestArgumentsAsTemplates())
-    suite.addTest(TestArgumentsAsTemplatesDefaultDelimiters())
-    suite.addTest(TestDefaultArgsWhenNotInvoked())
-    suite.addTest(TestRendererForST())
-    suite.addTest(TestRendererForGroup())
-    suite.addTest(TestOverriddenRenderer())
-    suite.addTest(TestMap())
-    suite.addTest(TestMapHiddenByFormalArg())
-    suite.addTest(TestMapDefaultValue())
-    suite.addTest(TestMapViaEnclosingTemplates())
-    suite.addTest(TestMapViaEnclosingTemplates2())
-    suite.addTest(TestEmptyGroupTemplate())
-#    suite.addTest(Test8BitEuroChars())
-    suite.addTest(TestFirstOp())
-    suite.addTest(TestRestOp())
-    suite.addTest(TestLastOp())
-    suite.addTest(TestCombinedOp())
-    suite.addTest(TestCatListAndSingleAttribute())
-    suite.addTest(TestCatListAndEmptyAttributes())
-    suite.addTest(TestNestedOp())
-    suite.addTest(TestFirstWithOneAttributeOp())
-    suite.addTest(TestLastWithOneAttributeOp())
-    suite.addTest(TestLastWithLengthOneListAttributeOp())
-    suite.addTest(TestRestWithOneAttributeOp())
-    suite.addTest(TestRestWithLengthOneListAttributeOp())
-    suite.addTest(TestApplyTemplateWithSingleFormalArgs())
-    suite.addTest(TestApplyTemplateWithNoFormalArgs())
-    suite.addTest(TestAnonTemplateArgs())
-    suite.addTest(TestAnonTemplateArgs2())
-    suite.addTest(TestFirstWithCatAttribute())
-    suite.addTest(TestJustCat())
-    suite.addTest(TestCat2Attributes())
-    suite.addTest(TestCat2AttributesWithApply())
-    suite.addTest(TestCat3Attributes())
-    suite.addTest(TestListAsTemplateArgument())
-    suite.addTest(TestSingleExprTemplateArgument())
-    suite.addTest(TestSingleExprTemplateArgumentInApply())
-    suite.addTest(TestSoleFormalTemplateArgumentInMultiApply())
-    suite.addTest(TestSingleExprTemplateArgumentError())
-    suite.addTest(TestInvokeIndirectTemplateWithSingleFormalArgs())
-    suite.addTest(TestParallelAttributeIteration())
-    suite.addTest(TestParallelAttributeIterationWithDifferentSizes())
-    suite.addTest(TestParallelAttributeIterationWithSingletons())
-    suite.addTest(TestParallelAttributeIterationWithMismatchArgListSizes())
-    suite.addTest(TestParallelAttributeIterationWithMissingArgs())
-    suite.addTest(TestParallelAttributeIterationWithDifferentSizesTemplateRefInsideToo())
-    suite.addTest(TestAnonTemplateOnLeftOfApply())
-    suite.addTest(TestNonPublicPropertyAccess())
-
-    doGUI = options.guiRunner
-    if doGUI:
-	try:
-            import unittestgui
-	    tk = unittestgui.tk
-	except:
-            doGUI = False
-
-    if doGUI:
-
-        class STTkTestRunner(unittestgui.TkTestRunner):
-
-	    def __init__(self, *args, **kwargs):
-	    	self.root = tk.Tk()
-		self.root.title("PyUnit")
-		self.test = None
-        	self.currentResult = None
-        	self.running = 0
-        	self.__rollbackImporter = None
-	        super(STTkTestRunner, self).__init__(self.root, 'TestStringTemplate')
-
-	    def runClicked(self):
-        	"To be called in response to user choosing to run a test"
-        	if self.running:
-		    return
-		if not self.test:
-		    self.errorDialog("Test entry", "You must provide a TestCase or TestSuite to run")
-        	    return
-        	if self.__rollbackImporter:
-        	    self.__rollbackImporter.rollbackImports()
-        	self.__rollbackImporter = unittestgui.RollbackImporter()
-        	self.currentResult = unittestgui.GUITestResult(self)
-        	self.totalTests = self.test.countTestCases()
-        	self.running = 1
-        	self.notifyRunning()
-        	self.test(self.currentResult)
-        	self.running = 0
-        	self.notifyStopped()
-
-            def run(self, test):
-	        self.test = test
-		self.root.protocol('WM_DELETE_WINDOW', self.root.quit)
-		self.root.mainloop()
-
-	runner = STTkTestRunner(suite)
-	result = runner.run(suite)
-
-    else: # doGUI = False
-
-        runner = unittest.TextTestRunner(sys.stdout)
-	result = runner.run(suite)
-	sys.exit(not result.wasSuccessful())
-
-
-
-#if __name__ == '__main__':
-#    unittest.main()
+    unittest.main()

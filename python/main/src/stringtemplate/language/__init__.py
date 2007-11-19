@@ -4,7 +4,6 @@ from ActionEvaluator import *
 from ActionLexer import *
 from ActionParser import *
 from AngleBracketTemplateLexer import *
-from AttributeReflectionController import *
 from ChunkToken import *
 from ConditionalExpr import *
 from DefaultTemplateLexer import *

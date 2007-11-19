@@ -1,4 +1,4 @@
-### $ANTLR 2.7.6 (20060527): "group.g" -> "GroupLexer.py"$
+### $ANTLR 2.7.7 (2006-11-01): "group.g" -> "GroupLexer.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -11,14 +11,16 @@ if version < '2.3':
 ### header action >>> 
 from ASTExpr import *
 import stringtemplate
+import traceback
 ### header action <<< 
 ### preamble action >>> 
 
 ### preamble action <<< 
 ### >>>The Literals<<<
 literals = {}
-literals[u"default"] = 18
+literals[u"default"] = 21
 literals[u"group"] = 4
+literals[u"implements"] = 7
 
 
 ### import antlr.Token 
@@ -32,26 +34,29 @@ NULL_TREE_LOOKAHEAD = antlr.NULL_TREE_LOOKAHEAD
 MIN_USER_TYPE       = antlr.MIN_USER_TYPE
 LITERAL_group = 4
 ID = 5
-SEMI = 6
-LPAREN = 7
-RPAREN = 8
-DEFINED_TO_BE = 9
-STRING = 10
-BIGSTRING = 11
-COMMA = 12
-ASSIGN = 13
-ANONYMOUS_TEMPLATE = 14
-LBRACK = 15
-RBRACK = 16
-COLON = 17
-LITERAL_default = 18
-STAR = 19
-PLUS = 20
-OPTIONAL = 21
-SL_COMMENT = 22
-ML_COMMENT = 23
-NL = 24
-WS = 25
+COLON = 6
+LITERAL_implements = 7
+COMMA = 8
+SEMI = 9
+AT = 10
+DOT = 11
+LPAREN = 12
+RPAREN = 13
+DEFINED_TO_BE = 14
+STRING = 15
+BIGSTRING = 16
+ASSIGN = 17
+ANONYMOUS_TEMPLATE = 18
+LBRACK = 19
+RBRACK = 20
+LITERAL_default = 21
+STAR = 22
+PLUS = 23
+OPTIONAL = 24
+SL_COMMENT = 25
+ML_COMMENT = 26
+NL = 27
+WS = 28
 
 class Lexer(antlr.CharScanner) :
     ### user action >>>
@@ -74,7 +79,7 @@ class Lexer(antlr.CharScanner) :
                             la1 = self.LA(1)
                             if False:
                                 pass
-                            elif la1 and la1 in u'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz':
+                            elif la1 and la1 in u'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz':
                                 pass
                                 self.mID(True)
                                 theRetToken = self._returnToken
@@ -89,6 +94,10 @@ class Lexer(antlr.CharScanner) :
                             elif la1 and la1 in u'{':
                                 pass
                                 self.mANONYMOUS_TEMPLATE(True)
+                                theRetToken = self._returnToken
+                            elif la1 and la1 in u'@':
+                                pass
+                                self.mAT(True)
                                 theRetToken = self._returnToken
                             elif la1 and la1 in u'(':
                                 pass
@@ -109,6 +118,10 @@ class Lexer(antlr.CharScanner) :
                             elif la1 and la1 in u',':
                                 pass
                                 self.mCOMMA(True)
+                                theRetToken = self._returnToken
+                            elif la1 and la1 in u'.':
+                                pass
+                                self.mDOT(True)
                                 theRetToken = self._returnToken
                             elif la1 and la1 in u';':
                                 pass
@@ -156,8 +169,6 @@ class Lexer(antlr.CharScanner) :
                                 
                             if not self._returnToken:
                                 raise antlr.TryAgain ### found SKIP token
-                            ### option { testLiterals=true } 
-                            self.testForLiteral(self._returnToken)
                             ### return token to caller
                             return self._returnToken
                         ### handle lexical errors ....
@@ -188,6 +199,9 @@ class Lexer(antlr.CharScanner) :
         elif la1 and la1 in u'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
             pass
             self.matchRange(u'A', u'Z')
+        elif la1 and la1 in u'_':
+            pass
+            self.match('_')
         else:
                 self.raise_NoViableAlt(self.LA(1))
             
@@ -213,6 +227,8 @@ class Lexer(antlr.CharScanner) :
             else:
                     break
                 
+        ### option { testLiterals=true } 
+        _ttype = self.testLiteralsTable(_ttype)
         self.set_return_token(_createToken, _token, _ttype, _begin)
     
     def mSTRING(self, _createToken):    
@@ -297,6 +313,12 @@ class Lexer(antlr.CharScanner) :
                 pass
                 self.mNL(False)
                 self.newline()
+            elif (self.LA(1)==u'\\') and (self.LA(2)==u'>'):
+                pass
+                _saveIndex = self.text.length()
+                self.match('\\')
+                self.text.setLength(_saveIndex)
+                self.match('>')
             elif ((self.LA(1) >= u'\u0000' and self.LA(1) <= u'\ufffe')) and ((self.LA(2) >= u'\u0000' and self.LA(2) <= u'\ufffe')):
                 pass
                 self.matchNot(antlr.EOF_CHAR)
@@ -360,6 +382,12 @@ class Lexer(antlr.CharScanner) :
                     
                 self.match('\n')
                 self.newline()
+            elif (self.LA(1)==u'\\') and (self.LA(2)==u'>'):
+                pass
+                _saveIndex = self.text.length()
+                self.match('\\')
+                self.text.setLength(_saveIndex)
+                self.match('>')
             elif ((self.LA(1) >= u'\u0000' and self.LA(1) <= u'\ufffe')) and ((self.LA(2) >= u'\u0000' and self.LA(2) <= u'\ufffe')):
                 pass
                 self.matchNot(antlr.EOF_CHAR)
@@ -369,6 +397,16 @@ class Lexer(antlr.CharScanner) :
         _saveIndex = self.text.length()
         self.match('}')
         self.text.setLength(_saveIndex)
+        self.set_return_token(_createToken, _token, _ttype, _begin)
+    
+    def mAT(self, _createToken):    
+        _ttype = 0
+        _token = None
+        _begin = self.text.length()
+        _ttype = AT
+        _saveIndex = 0
+        pass
+        self.match('@')
         self.set_return_token(_createToken, _token, _ttype, _begin)
     
     def mLPAREN(self, _createToken):    
@@ -419,6 +457,16 @@ class Lexer(antlr.CharScanner) :
         _saveIndex = 0
         pass
         self.match(',')
+        self.set_return_token(_createToken, _token, _ttype, _begin)
+    
+    def mDOT(self, _createToken):    
+        _ttype = 0
+        _token = None
+        _begin = self.text.length()
+        _ttype = DOT
+        _saveIndex = 0
+        pass
+        self.match('.')
         self.set_return_token(_createToken, _token, _ttype, _begin)
     
     def mDEFINED_TO_BE(self, _createToken):    
@@ -548,7 +596,7 @@ class Lexer(antlr.CharScanner) :
         _ttype = WS
         _saveIndex = 0
         pass
-        _cnt55= 0
+        _cnt66= 0
         while True:
             la1 = self.LA(1)
             if False:
@@ -569,8 +617,8 @@ class Lexer(antlr.CharScanner) :
             else:
                     break
                 
-            _cnt55 += 1
-        if _cnt55 < 1:
+            _cnt66 += 1
+        if _cnt66 < 1:
             self.raise_NoViableAlt(self.LA(1))
         _ttype = SKIP
         self.set_return_token(_createToken, _token, _ttype, _begin)

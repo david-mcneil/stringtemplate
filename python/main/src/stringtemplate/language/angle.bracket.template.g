@@ -26,11 +26,8 @@ options {
 }
 
 {
-    def initialize(self, this, r):
-        self.this = this
-
     def reportError(self, e):
-        self.error("template parse error", e)
+        self.this.error("<...> chunk lexer error", e)
 
     def upcomingELSE(self, i):
         return self.LA(i) == '<' and \
@@ -49,6 +46,19 @@ options {
                self.LA(i+5) == 'f' and \
                self.LA(i+6) == '>'
 
+    def upcomingAtEND(self, i):
+        return self.LA(i) == '<' and \
+               self.LA(i+1) == '@' and \
+               self.LA(i+2) == 'e' and \
+               self.LA(i+3) == 'n' and \
+               self.LA(i+4) == 'd' and \
+               self.LA(i+5) == '>'
+
+    def upcomingNewline(self, i):
+        return (self.LA(i) == '\r' and
+                self.LA(i+1) == '\n') or \
+               self.LA(i) == '\n'
+
 }
 
 LITERAL
@@ -60,6 +70,7 @@ LITERAL
           }
         : '\\'! '<'  // allow escaped delimiter
         | '\\'! '>'
+        | '\\'! '\\' // always replace \\ with \o
         | '\\' ~('<'|'>')   // otherwise ignore escape char
         | ind:INDENT
           {
@@ -110,6 +121,40 @@ options {
             ( NL! {$newline})? // ignore any newline right after an ELSE
           | '<'! "endif" '>'! { $setType(ENDIF) }
             ( {startCol==1}? NL! {$newline})? // ignore after ENDIF if on line by itself
+        |   // match <@foo()> => foo
+            // match <@foo>...<@end> => foo::=...
+            '<'! '@'! (~('>'|'('))+
+            (   "()"! '>'! {$setType(REGION_REF)}
+            |   '>'!
+                {
+                    $setType(REGION_DEF)
+                    t = $getText
+                    $setText(t+"::=")
+                }
+                ( options {greedy=true;} : ('\r'!)? '\n'! {$newline})?
+                { atLeft = False }
+                (
+                    options {greedy=true;} // handle greedy=false with predicate
+                :   {not (self.upcomingAtEND(1) or (self.upcomingNewline(1) and self.upcomingAtEND(2)))}?
+                    ( ('\r')? '\n' 
+                        {
+                            $newline
+                            atLeft = True
+                        }
+                    | . {atLeft = False}
+                    )
+                )+
+                ( ('\r'!)? '\n'! 
+                    {
+                        $newline
+                        atLeft = True
+                    } 
+                )?
+                ( "<@end>"!
+                | . {self.this.error("missing region "+t+" <@end> tag")}
+                )
+                ( {atLeft}? ('\r'!)? '\n'! {$newline})?
+            )
           | '<'! EXPR '>'!
         )
         {
@@ -132,16 +177,16 @@ EXPR
     :   ( ESC
         | NL { $newline }
         | SUBTEMPLATE
-        | '=' TEMPLATE
-        | '=' SUBTEMPLATE
-        | '=' ~('"'|'<'|'{')
+        | ('='|'+') TEMPLATE
+        | ('='|'+') SUBTEMPLATE
+        | ('='|'+') ~('"'|'<'|'{')
         | ~'>'
         )+
     ;
 
 protected
 TEMPLATE
-    :    '"' ( ESC | ~'"' )+ '"'
+    :    '"' ( ESC | ~'"' )* '"'
     |    "<<"
          ( options { greedy = true; }
            : ( '\r'! )? '\n'! { $newline } )? // consume 1st \n
@@ -167,12 +212,12 @@ IF_EXPR
     ;
 
 protected
-ESC :   '\\' ('<'|'>'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
+ESC :   '\\' . // ('<'|'>'|'n'|'t'|'\\'|'"'|'\''|':'|'{'|'}')
     ;
 
 protected
 SUBTEMPLATE
-    :    '{' (SUBTEMPLATE|ESC|~'}')+ '}'
+    :    '{' (SUBTEMPLATE|ESC|~'}')* '}'
     ;
 
 protected

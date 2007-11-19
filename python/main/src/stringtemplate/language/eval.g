@@ -38,7 +38,7 @@ options {
         self.out = out
 
     def reportError(self, e):
-        self.this.error("template parse error", e)
+        self.this.error("eval tree parse error", e)
 }
 
 action returns [numCharsWritten = 0]
@@ -67,18 +67,10 @@ expr returns [value]
         // convert to string (force early eval)
         {
             buf = StringIO()
-            writerClass = self.out.__class__
-            sw = None
-            try:
-                sw = writerClass(buf)
-            except Exception, exc:
-                // default stringtemplate.AutoIndentWriter
-                self.this.error("eval: cannot make implementation of " +
-                                "StringTemplateWriter", exc)
-                sw = stringtemplate.AutoIndentWriter(buf)
-            self.chunk.writeAttribute(self.this, e, sw)
-            value = buf.getvalue()
-            buf.close()
+            sw = self.this.getGroup().getStringTemplateWriter(buf)
+            n = self.chunk.writeAttribute(self.this, e, sw)
+            if n > 0:
+                value = buf.getvalue()
         }
     ;
 
@@ -98,6 +90,11 @@ list returns [value=None]
             }
           )+
         )
+    |   NOTHING
+        {
+            nullSingleton = [None]
+            element.append(nullSingleton)
+        }
     ;
 
 templateInclude returns [value = None]
@@ -154,6 +151,9 @@ function returns [value = None]
            ( "first" a=singleFunctionArg { value = self.chunk.first(a) }
            | "rest"  a=singleFunctionArg { value = self.chunk.rest(a) }
            | "last"  a=singleFunctionArg { value = self.chunk.last(a) }
+           | "length"  a=singleFunctionArg { value = self.chunk.length(a) }
+           | "strip"  a=singleFunctionArg { value = self.chunk.strip(a) }
+           | "trunc"  a=singleFunctionArg { value = self.chunk.trunc(a) }
            )
         )
     ;
@@ -182,6 +182,9 @@ template[templatesToApply]
            | anon:ANONYMOUS_TEMPLATE
              {
                  anonymous = anon.getStringTemplate()
+                 // to properly see overridden templates, always set
+                 // anonymous' group to be self's group
+                 anonymous.setGroup(self.this.getGroup())
                  templatesToApply.append(anonymous)
              }
            | #( VALUE n=expr args2:.

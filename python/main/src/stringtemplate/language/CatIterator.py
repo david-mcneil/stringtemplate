@@ -22,6 +22,12 @@ class CatList(object):
 	    for item in list_:
 	        yield item
 
+    def __iter__(self):
+        for list_ in self._lists:
+	    for item in list_:
+	        yield item
+
+        
     ## The result of asking for the string of a CatList is the list of
     #  items and so this is just the cat'd list of both items.  This
     #  is destructive in that the iterator cursors have moved to the end

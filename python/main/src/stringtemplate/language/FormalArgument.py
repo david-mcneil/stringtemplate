@@ -1,7 +1,3 @@
-import sys
-
-import stringtemplate
-
 ## Represents the name of a formal argument
 #  defined in a template:
 #
@@ -54,6 +50,25 @@ class FormalArgument(object):
         else:
 	    return 'unknown'
 
+    def __eq__(self, other):
+        if not isinstance(other, FormalArgument):
+            return False
+        
+        if self.name != other.name:
+            return False
+
+        # only check if there is a default value; that's all
+        if ( (self.defaultValueST is not None
+              and other.defaultValueST is None) or
+             (self.defaultValueST is None
+              and other.defaultValueST is not None) ):
+            return False
+
+        return True
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
+    
     def __str__(self):
         if self.defaultValueST:
 	    return self.name + '=' + str(defaultValueST)

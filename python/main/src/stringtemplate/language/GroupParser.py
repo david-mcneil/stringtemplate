@@ -1,4 +1,4 @@
-### $ANTLR 2.7.6 (20060527): "group.g" -> "GroupParser.py"$
+### $ANTLR 2.7.7 (2006-11-01): "group.g" -> "GroupParser.py"$
 ### import antlr and other modules ..
 import sys
 import antlr
@@ -11,6 +11,7 @@ if version < '2.3':
 ### header action >>> 
 from ASTExpr import *
 import stringtemplate
+import traceback
 ### header action <<< 
 ### preamble action>>>
 
@@ -27,26 +28,29 @@ NULL_TREE_LOOKAHEAD = antlr.NULL_TREE_LOOKAHEAD
 MIN_USER_TYPE       = antlr.MIN_USER_TYPE
 LITERAL_group = 4
 ID = 5
-SEMI = 6
-LPAREN = 7
-RPAREN = 8
-DEFINED_TO_BE = 9
-STRING = 10
-BIGSTRING = 11
-COMMA = 12
-ASSIGN = 13
-ANONYMOUS_TEMPLATE = 14
-LBRACK = 15
-RBRACK = 16
-COLON = 17
-LITERAL_default = 18
-STAR = 19
-PLUS = 20
-OPTIONAL = 21
-SL_COMMENT = 22
-ML_COMMENT = 23
-NL = 24
-WS = 25
+COLON = 6
+LITERAL_implements = 7
+COMMA = 8
+SEMI = 9
+AT = 10
+DOT = 11
+LPAREN = 12
+RPAREN = 13
+DEFINED_TO_BE = 14
+STRING = 15
+BIGSTRING = 16
+ASSIGN = 17
+ANONYMOUS_TEMPLATE = 18
+LBRACK = 19
+RBRACK = 20
+LITERAL_default = 21
+STAR = 22
+PLUS = 23
+OPTIONAL = 24
+SL_COMMENT = 25
+ML_COMMENT = 26
+NL = 27
+WS = 28
 
 
 ###/** Match a group of template definitions beginning
@@ -74,9 +78,10 @@ class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
        if self.group_:
-           self.group_.error("template parse error", e)
+           self.group_.error("template group parse error", e)
        else:
-           sys.stderr.write("template parse error: " + str(e) + '\n')
+           sys.stderr.write("template group parse error: " + str(e) + '\n')
+           traceback.print_exc()
     ### user action <<<
     
     def __init__(self, *args, **kwargs):
@@ -91,15 +96,57 @@ class Parser(antlr.LLkParser):
     ):    
         
         name = None
+        s = None
+        i = None
+        i2 = None
+        self.group_ = g
         try:      ## for error handling
             pass
             self.match(LITERAL_group)
             name = self.LT(1)
             self.match(ID)
             g.setName(name.getText())
+            la1 = self.LA(1)
+            if False:
+                pass
+            elif la1 and la1 in [COLON]:
+                pass
+                self.match(COLON)
+                s = self.LT(1)
+                self.match(ID)
+                g.setSuperGroup(s.getText())
+            elif la1 and la1 in [LITERAL_implements,SEMI]:
+                pass
+            else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
+            la1 = self.LA(1)
+            if False:
+                pass
+            elif la1 and la1 in [LITERAL_implements]:
+                pass
+                self.match(LITERAL_implements)
+                i = self.LT(1)
+                self.match(ID)
+                g.implementInterface(i.getText())
+                while True:
+                    if (self.LA(1)==COMMA):
+                        pass
+                        self.match(COMMA)
+                        i2 = self.LT(1)
+                        self.match(ID)
+                        g.implementInterface(i2.getText())
+                    else:
+                        break
+                    
+            elif la1 and la1 in [SEMI]:
+                pass
+            else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
             self.match(SEMI)
             while True:
-                if (self.LA(1)==ID) and (self.LA(2)==LPAREN or self.LA(2)==DEFINED_TO_BE) and (self.LA(3)==ID or self.LA(3)==RPAREN):
+                if (self.LA(1)==ID or self.LA(1)==AT) and (self.LA(2)==ID or self.LA(2)==LPAREN or self.LA(2)==DEFINED_TO_BE) and (self.LA(3)==ID or self.LA(3)==DOT or self.LA(3)==RPAREN):
                     pass
                     self.template(g)
                 elif (self.LA(1)==ID) and (self.LA(2)==DEFINED_TO_BE) and (self.LA(3)==LBRACK):
@@ -108,6 +155,7 @@ class Parser(antlr.LLkParser):
                 else:
                     break
                 
+            self.match(EOF_TYPE)
         
         except antlr.RecognitionException, ex:
             self.reportError(ex)
@@ -119,6 +167,8 @@ class Parser(antlr.LLkParser):
         g
     ):    
         
+        scope = None
+        region = None
         name = None
         t = None
         bt = None
@@ -127,17 +177,68 @@ class Parser(antlr.LLkParser):
         formalArgs = {}
         st = None
         ignore = False
+        templateName = None
+        line = self.LT(1).getLine()
         try:      ## for error handling
-            if (self.LA(1)==ID) and (self.LA(2)==LPAREN):
+            if (self.LA(1)==ID or self.LA(1)==AT) and (self.LA(2)==ID or self.LA(2)==LPAREN):
                 pass
-                name = self.LT(1)
-                self.match(ID)
-                if g.isDefinedInThisGroup(name.getText()):
-                   g.error("redefinition of template: " + name.getText())
-                   # create bogus template to fill in
-                   st = stringtemplate.StringTemplate()
+                la1 = self.LA(1)
+                if False:
+                    pass
+                elif la1 and la1 in [AT]:
+                    pass
+                    self.match(AT)
+                    scope = self.LT(1)
+                    self.match(ID)
+                    self.match(DOT)
+                    region = self.LT(1)
+                    self.match(ID)
+                    templateName = g.getMangledRegionName(scope.getText(),region.getText())
+                    if g.isDefinedInThisGroup(templateName):
+                       g.error("group "+g.getName()+" line "+str(line)+": redefinition of template region: @"+
+                           scope.getText()+"."+region.getText())
+                       st = stringtemplate.StringTemplate() # create bogus template to fill in
+                    
+                    else:
+                       err = False
+                       # @template.region() ::= "..."
+                       scopeST = g.lookupTemplate(scope.getText())
+                       if scopeST is None:
+                           g.error("group "+g.getName()+" line "+str(line)+": reference to region within undefined template: "+
+                               scope.getText())
+                           err = True
+                    
+                       if not scopeST.containsRegionName(region.getText()):
+                           g.error("group "+g.getName()+" line "+str(line)+": template "+scope.getText()+" has no region called "+
+                               region.getText())
+                           err = True
+                    
+                       if err:
+                           st = stringtemplate.StringTemplate()
+                    
+                       else:
+                           st = g.defineRegionTemplate(
+                               scope.getText(),
+                               region.getText(),
+                               None,
+                               stringtemplate.StringTemplate.REGION_EXPLICIT
+                           )
+                elif la1 and la1 in [ID]:
+                    pass
+                    name = self.LT(1)
+                    self.match(ID)
+                    templateName = name.getText()
+                    if g.isDefinedInThisGroup(templateName):
+                       g.error("redefinition of template: " + templateName)
+                       # create bogus template to fill in
+                       st = stringtemplate.StringTemplate()
+                    else:
+                       st = g.defineTemplate(templateName, None)
                 else:
-                   st = g.defineTemplate(name.getText(), None)
+                        raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                    
+                if st is not None:
+                   st.setGroupFileLine(line)
                 self.match(LPAREN)
                 la1 = self.LA(1)
                 if False:
@@ -267,7 +368,7 @@ class Parser(antlr.LLkParser):
                 defaultValue.setName("<" + st.getName() + "'s arg " + \
                                     name.getText() + \
                                     " default value subtemplate>")
-            elif (self.LA(1)==RPAREN or self.LA(1)==COMMA):
+            elif (self.LA(1)==COMMA or self.LA(1)==RPAREN):
                 pass
             else:
                 raise antlr.NoViableAltException(self.LT(1), self.getFilename())
@@ -286,15 +387,7 @@ class Parser(antlr.LLkParser):
         try:      ## for error handling
             pass
             self.match(LBRACK)
-            self.keyValuePair(mapping)
-            while True:
-                if (self.LA(1)==COMMA):
-                    pass
-                    self.match(COMMA)
-                    self.keyValuePair(mapping)
-                else:
-                    break
-                
+            self.mapPairs(mapping)
             self.match(RBRACK)
         
         except antlr.RecognitionException, ex:
@@ -304,56 +397,125 @@ class Parser(antlr.LLkParser):
         
         return mapping
     
-    def keyValuePair(self,
+    def mapPairs(self,
         mapping
     ):    
         
-        key1 = None
-        s1 = None
-        key2 = None
-        s2 = None
-        s3 = None
-        s4 = None
         try:      ## for error handling
-            if (self.LA(1)==STRING) and (self.LA(2)==COLON) and (self.LA(3)==STRING):
+            la1 = self.LA(1)
+            if False:
                 pass
-                key1 = self.LT(1)
-                self.match(STRING)
-                self.match(COLON)
-                s1 = self.LT(1)
-                self.match(STRING)
-                mapping[key1.getText()] = s1.getText()
-            elif (self.LA(1)==STRING) and (self.LA(2)==COLON) and (self.LA(3)==BIGSTRING):
+            elif la1 and la1 in [STRING]:
                 pass
-                key2 = self.LT(1)
-                self.match(STRING)
-                self.match(COLON)
-                s2 = self.LT(1)
-                self.match(BIGSTRING)
-                mapping[key2.getText()] = s2.getText()
-            elif (self.LA(1)==LITERAL_default) and (self.LA(2)==COLON) and (self.LA(3)==STRING):
+                self.keyValuePair(mapping)
+                while True:
+                    if (self.LA(1)==COMMA) and (self.LA(2)==STRING):
+                        pass
+                        self.match(COMMA)
+                        self.keyValuePair(mapping)
+                    else:
+                        break
+                    
+                la1 = self.LA(1)
+                if False:
+                    pass
+                elif la1 and la1 in [COMMA]:
+                    pass
+                    self.match(COMMA)
+                    self.defaultValuePair(mapping)
+                elif la1 and la1 in [RBRACK]:
+                    pass
+                else:
+                        raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                    
+            elif la1 and la1 in [LITERAL_default]:
                 pass
-                self.match(LITERAL_default)
-                self.match(COLON)
-                s3 = self.LT(1)
-                self.match(STRING)
-                mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s3.getText()
-            elif (self.LA(1)==LITERAL_default) and (self.LA(2)==COLON) and (self.LA(3)==BIGSTRING):
-                pass
-                self.match(LITERAL_default)
-                self.match(COLON)
-                s4 = self.LT(1)
-                self.match(BIGSTRING)
-                mapping[ASTExpr.DEFAULT_MAP_VALUE_NAME] = s4.getText()
+                self.defaultValuePair(mapping)
             else:
-                raise antlr.NoViableAltException(self.LT(1), self.getFilename())
-            
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
         
         except antlr.RecognitionException, ex:
             self.reportError(ex)
             self.consume()
             self.consumeUntil(_tokenSet_4)
         
+    
+    def keyValuePair(self,
+        mapping
+    ):    
+        
+        key = None
+        try:      ## for error handling
+            pass
+            key = self.LT(1)
+            self.match(STRING)
+            self.match(COLON)
+            v=self.keyValue()
+            mapping[key.getText()] = v
+        
+        except antlr.RecognitionException, ex:
+            self.reportError(ex)
+            self.consume()
+            self.consumeUntil(_tokenSet_5)
+        
+    
+    def defaultValuePair(self,
+        mapping
+    ):    
+        
+        try:      ## for error handling
+            pass
+            self.match(LITERAL_default)
+            self.match(COLON)
+            v=self.keyValue()
+            mapping[stringtemplate.language.ASTExpr.DEFAULT_MAP_VALUE_NAME] = v
+        
+        except antlr.RecognitionException, ex:
+            self.reportError(ex)
+            self.consume()
+            self.consumeUntil(_tokenSet_4)
+        
+    
+    def keyValue(self):    
+        value = None
+        
+        s1 = None
+        s2 = None
+        k = None
+        try:      ## for error handling
+            la1 = self.LA(1)
+            if False:
+                pass
+            elif la1 and la1 in [STRING]:
+                pass
+                s1 = self.LT(1)
+                self.match(STRING)
+                value = stringtemplate.StringTemplate(self.group_, s1.getText())
+            elif la1 and la1 in [BIGSTRING]:
+                pass
+                s2 = self.LT(1)
+                self.match(BIGSTRING)
+                value = stringtemplate.StringTemplate(self.group_, s2.getText())
+            elif la1 and la1 in [ID]:
+                pass
+                k = self.LT(1)
+                self.match(ID)
+                if not  k.getText() == "key" :
+                    raise antlr.SemanticException(" k.getText() == \"key\" ")
+                value = stringtemplate.language.ASTExpr.MAP_KEY_VALUE
+            elif la1 and la1 in [COMMA,RBRACK]:
+                pass
+            else:
+                    raise antlr.NoViableAltException(self.LT(1), self.getFilename())
+                
+        
+        except antlr.RecognitionException, ex:
+            self.reportError(ex)
+            self.consume()
+            self.consumeUntil(_tokenSet_5)
+        
+        return value
     
 
 _tokenNames = [
@@ -363,18 +525,21 @@ _tokenNames = [
     "NULL_TREE_LOOKAHEAD", 
     "\"group\"", 
     "ID", 
+    "COLON", 
+    "\"implements\"", 
+    "COMMA", 
     "SEMI", 
+    "AT", 
+    "DOT", 
     "LPAREN", 
     "RPAREN", 
     "DEFINED_TO_BE", 
     "STRING", 
     "BIGSTRING", 
-    "COMMA", 
     "ASSIGN", 
     "ANONYMOUS_TEMPLATE", 
     "LBRACK", 
     "RBRACK", 
-    "COLON", 
     "\"default\"", 
     "STAR", 
     "PLUS", 
@@ -396,28 +561,35 @@ _tokenSet_0 = antlr.BitSet(mk_tokenSet_0())
 ### generate bit set
 def mk_tokenSet_1(): 
     ### var1
-    data = [ 34L, 0L]
+    data = [ 1058L, 0L]
     return data
 _tokenSet_1 = antlr.BitSet(mk_tokenSet_1())
 
 ### generate bit set
 def mk_tokenSet_2(): 
     ### var1
-    data = [ 256L, 0L]
+    data = [ 8192L, 0L]
     return data
 _tokenSet_2 = antlr.BitSet(mk_tokenSet_2())
 
 ### generate bit set
 def mk_tokenSet_3(): 
     ### var1
-    data = [ 4352L, 0L]
+    data = [ 8448L, 0L]
     return data
 _tokenSet_3 = antlr.BitSet(mk_tokenSet_3())
 
 ### generate bit set
 def mk_tokenSet_4(): 
     ### var1
-    data = [ 69632L, 0L]
+    data = [ 1048576L, 0L]
     return data
 _tokenSet_4 = antlr.BitSet(mk_tokenSet_4())
+
+### generate bit set
+def mk_tokenSet_5(): 
+    ### var1
+    data = [ 1048832L, 0L]
+    return data
+_tokenSet_5 = antlr.BitSet(mk_tokenSet_5())
     
