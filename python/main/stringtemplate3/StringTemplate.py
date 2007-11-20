@@ -38,15 +38,17 @@ import codecs
 import antlr
 #from synchronize import *
 
-from stringtemplate.language import FormalArgument, ChunkToken, \
-                                    ASTExpr, StringTemplateAST, \
-                                    AngleBracketTemplateLexer, \
-                                    DefaultTemplateLexer, TemplateParser, \
-                                    GroupLexer, GroupParser, \
-                                    ActionLexer, ActionParser, \
-                                    ConditionalExpr, NewlineRef, \
-                                    StringTemplateToken, InterfaceLexer, \
-                                    InterfaceParser
+from stringtemplate3.language import (
+    FormalArgument, ChunkToken,
+    ASTExpr, StringTemplateAST,
+    AngleBracketTemplateLexer,
+    DefaultTemplateLexer, TemplateParser,
+    GroupLexer, GroupParser,
+    ActionLexer, ActionParser,
+    ConditionalExpr, NewlineRef,
+    StringTemplateToken,
+    InterfaceLexer, InterfaceParser
+    )
 
 
 class STAttributeList(list):
@@ -1565,10 +1567,11 @@ class StringTemplate(object):
         for chunk in self.chunks:
             if not isinstance(chunk, ASTExpr):
                 continue
-            
+
+            from stringtemplate3.language.ActionEvaluator import INCLUDE
             tree = expr.getAST()
             includeAST = CommonAST(
-                CommonToken(ActionEvaluator.INCLUDE,"include")
+                CommonToken(INCLUDE,"include")
                 )
             
             for t in tree.findAllPartial(includeAST):

@@ -1,7 +1,7 @@
 
 header {
 from ASTExpr import *
-import stringtemplate
+import stringtemplate3
 import traceback
 }
 
@@ -78,7 +78,7 @@ template[g]
                 if g.isDefinedInThisGroup(templateName):
                     g.error("group "+g.getName()+" line "+str(line)+": redefinition of template region: @"+
                         scope.getText()+"."+region.getText())
-                    st = stringtemplate.StringTemplate() // create bogus template to fill in
+                    st = stringtemplate3.StringTemplate() // create bogus template to fill in
 
                 else:
                     err = False
@@ -95,14 +95,14 @@ template[g]
                         err = True
 
                     if err:
-                        st = stringtemplate.StringTemplate()
+                        st = stringtemplate3.StringTemplate()
 
                     else:
                         st = g.defineRegionTemplate(
                             scope.getText(),
                             region.getText(),
                             None,
-                            stringtemplate.StringTemplate.REGION_EXPLICIT
+                            stringtemplate3.StringTemplate.REGION_EXPLICIT
                         )
 
             }
@@ -111,7 +111,7 @@ template[g]
                 if g.isDefinedInThisGroup(templateName):
                     g.error("redefinition of template: " + templateName)
                     // create bogus template to fill in
-                    st = stringtemplate.StringTemplate()
+                    st = stringtemplate3.StringTemplate()
                 else:
                     st = g.defineTemplate(templateName, None)
             }
@@ -142,7 +142,7 @@ arg[st]
     :   name:ID
         ( ASSIGN s:STRING
           {
-              defaultValue = stringtemplate.StringTemplate("$_val_$")
+              defaultValue = stringtemplate3.StringTemplate("$_val_$")
               defaultValue["_val_"] = s.getText()
               defaultValue.defineFormalArgument("_val_")
               defaultValue.setName("<" + st.getName() + "'s arg " + \
@@ -151,7 +151,7 @@ arg[st]
           }
         | ASSIGN bs:ANONYMOUS_TEMPLATE
           {
-              defaultValue = stringtemplate.StringTemplate(st.getGroup(), \
+              defaultValue = stringtemplate3.StringTemplate(st.getGroup(), \
                   bs.getText())
               defaultValue.setName("<" + st.getName() + "'s arg " + \
                                    name.getText() + \
@@ -196,7 +196,7 @@ mapPairs[mapping]
 
 defaultValuePair[mapping]
     : "default" COLON v=keyValue
-        { mapping[stringtemplate.language.ASTExpr.DEFAULT_MAP_VALUE_NAME] = v }
+        { mapping[stringtemplate3.language.ASTExpr.DEFAULT_MAP_VALUE_NAME] = v }
     ;
 
 keyValuePair[mapping]
@@ -205,11 +205,11 @@ keyValuePair[mapping]
 
 keyValue returns [value = None]
     :    s1:STRING
-         { value = stringtemplate.StringTemplate(self.group_, s1.getText()) }
+         { value = stringtemplate3.StringTemplate(self.group_, s1.getText()) }
     |    s2:BIGSTRING
-         { value = stringtemplate.StringTemplate(self.group_, s2.getText()) }
+         { value = stringtemplate3.StringTemplate(self.group_, s2.getText()) }
     |    k:ID { k.getText() == "key" }?
-         { value = stringtemplate.language.ASTExpr.MAP_KEY_VALUE }
+         { value = stringtemplate3.language.ASTExpr.MAP_KEY_VALUE }
     |    
     ;
 

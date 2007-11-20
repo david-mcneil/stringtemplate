@@ -1,7 +1,7 @@
 header {
-import stringtemplate
-import stringtemplate.language.TemplateParser
-from ChunkToken import ChunkToken
+import stringtemplate3
+import stringtemplate3.language.TemplateParser
+from stringtemplate3.language.ChunkToken import ChunkToken
 }
 
 header "AngleBracketTemplateLexer.__init__" {

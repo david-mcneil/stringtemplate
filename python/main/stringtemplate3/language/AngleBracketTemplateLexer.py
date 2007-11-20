@@ -9,9 +9,9 @@ if version < '2.2.1':
 if version < '2.3':
     True = not False
 ### header action >>> 
-import stringtemplate
-import stringtemplate.language.TemplateParser
-from ChunkToken import ChunkToken
+import stringtemplate3
+import stringtemplate3.language.TemplateParser
+from stringtemplate3.language.ChunkToken import ChunkToken
 ### header action <<< 
 ### preamble action >>> 
 

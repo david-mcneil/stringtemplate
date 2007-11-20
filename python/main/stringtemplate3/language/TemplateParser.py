@@ -9,10 +9,10 @@ if version < '2.2.1':
 if version < '2.3':
     True = not False
 ### header action >>> 
-import stringtemplate
-from ChunkToken import ChunkToken
-from StringRef import StringRef
-from NewlineRef import NewlineRef
+import stringtemplate3
+from stringtemplate3.language.ChunkToken import ChunkToken
+from stringtemplate3.language.StringRef import StringRef
+from stringtemplate3.language.NewlineRef import NewlineRef
 ### header action <<< 
 ### preamble action>>>
 
@@ -54,7 +54,7 @@ class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
        group = self.this.getGroup()
-       if group == stringtemplate.StringTemplate.defaultGroup:
+       if group == stringtemplate3.StringTemplate.defaultGroup:
            self.this.error("template parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
     
        else:
@@ -131,7 +131,7 @@ class Parser(antlr.LLkParser):
                 self.match(IF)
                 c = this.parseAction(i.getText())
                 # create and precompile the subtemplate
-                subtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
+                subtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
                 subtemplate.setEnclosingInstance(this)
                 subtemplate.setName(i.getText() + "_subtemplate")
                 this.addChunk(c)
@@ -144,7 +144,7 @@ class Parser(antlr.LLkParser):
                         self.match(ELSEIF)
                         ec = this.parseAction(ei.getText())
                         # create and precompile the subtemplate
-                        elseIfSubtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
+                        elseIfSubtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
                         elseIfSubtemplate.setEnclosingInstance(this)
                         elseIfSubtemplate.setName(ei.getText()+"_subtemplate")
                         self.template(elseIfSubtemplate)
@@ -160,7 +160,7 @@ class Parser(antlr.LLkParser):
                     pass
                     self.match(ELSE)
                     # create and precompile the subtemplate
-                    elseSubtemplate = stringtemplate.StringTemplate(this.getGroup(), None)
+                    elseSubtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
                     elseSubtemplate.setEnclosingInstance(this)
                     elseSubtemplate.setName("else_subtemplate")
                     self.template(elseSubtemplate)
@@ -225,7 +225,7 @@ class Parser(antlr.LLkParser):
                        this,
                        regionName,
                        template,
-                       stringtemplate.StringTemplate.REGION_EMBEDDED
+                       stringtemplate3.StringTemplate.REGION_EMBEDDED
                        )
                    # treat as regular action: mangled template include
                    indent = rd.getIndentation()

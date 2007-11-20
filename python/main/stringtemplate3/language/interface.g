@@ -30,7 +30,7 @@ header {
 import sys
 import traceback
 
-from stringtemplate.language.FormalArgument import FormalArgument
+from stringtemplate3.language.FormalArgument import FormalArgument
 }
 
 header "InterfaceParser.__init__" {

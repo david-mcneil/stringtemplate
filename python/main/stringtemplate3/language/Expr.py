@@ -1,5 +1,4 @@
 
-import stringtemplate
 
 ## A string template expression embedded within the template.
 #  A template is parsed into a tokenized vector of Expr objects

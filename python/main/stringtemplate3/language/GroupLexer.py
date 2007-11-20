@@ -10,7 +10,7 @@ if version < '2.3':
     True = not False
 ### header action >>> 
 from ASTExpr import *
-import stringtemplate
+import stringtemplate3
 import traceback
 ### header action <<< 
 ### preamble action >>> 

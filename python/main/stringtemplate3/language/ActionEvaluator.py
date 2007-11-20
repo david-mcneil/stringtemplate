@@ -12,7 +12,7 @@ if version < '2.3':
 #from ASTExpr import *
 import ASTExpr
 from CatIterator import *
-import stringtemplate
+import stringtemplate3
 
 from cStringIO import StringIO
 
@@ -366,7 +366,7 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
                 value = at.getText();
                 if at.getText():
-                   valueST = stringtemplate.StringTemplate(self.this.group, \
+                   valueST = stringtemplate3.StringTemplate(self.this.group, \
                        at.getText())
                    valueST.setEnclosingInstance(self.this)
                    valueST.setName("<anonymous template argument>")

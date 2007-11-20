@@ -1,10 +1,10 @@
 header {
 from StringTemplateToken import *
-import stringtemplate
+import stringtemplate3
 }
 
 header "ActionParser.__init__" {
-    if len(args) > 1 and isinstance(args[1], stringtemplate.StringTemplate):
+    if len(args) > 1 and isinstance(args[1], stringtemplate3.StringTemplate):
         self.this = args[1]
     else:
         raise ValueError("ActionParser requires a StringTemplate instance")
@@ -19,7 +19,7 @@ class ActionParser extends Parser;
 options {
     k = 2;
     buildAST = true;
-    ASTLabelType = "stringtemplate.language.StringTemplateAST";
+    ASTLabelType = "stringtemplate3.language.StringTemplateAST";
 }
 
 tokens {
@@ -39,7 +39,7 @@ tokens {
 {
     def reportError(self, e):
         group = self.this.getGroup()
-        if group == stringtemplate.StringTemplate.defaultGroup:
+        if group == stringtemplate3.StringTemplate.defaultGroup:
             self.this.error("action parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
 
         else:
@@ -61,7 +61,7 @@ optionList! returns [opts = {}]
 option[opts]
     : i:ID
         ( ASSIGN e:expr { v=#e }
-        | {v = stringtemplate.language.ASTExpr.EMPTY_OPTION}
+        | {v = stringtemplate3.language.ASTExpr.EMPTY_OPTION}
         )
         {opts[#i.getText()] = v}
     ;
@@ -148,7 +148,7 @@ namedTemplate
 anonymousTemplate
     :   t:ANONYMOUS_TEMPLATE
         {
-            anonymous = stringtemplate.StringTemplate()
+            anonymous = stringtemplate3.StringTemplate()
             anonymous.setGroup(self.this.getGroup())
             anonymous.setEnclosingInstance(self.this)
             anonymous.setTemplate(t.getText())

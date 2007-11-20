@@ -10,7 +10,7 @@ if version < '2.3':
     True = not False
 ### header action >>> 
 from StringTemplateToken import *
-import stringtemplate
+import stringtemplate3
 ### header action <<< 
 ### preamble action >>> 
 

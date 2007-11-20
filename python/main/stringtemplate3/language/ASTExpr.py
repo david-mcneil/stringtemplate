@@ -9,7 +9,7 @@ from Expr import *
 import ActionEvaluator
 from StringTemplateAST import *
 from CatIterator import *
-import stringtemplate
+import stringtemplate3
 
 class IllegalStateException(Exception):
 
@@ -17,7 +17,7 @@ class IllegalStateException(Exception):
         Exception.__init__(self, *args)
 
 def isiterable(o):
-    if isinstance(o, (basestring, stringtemplate.StringTemplate)):
+    if isinstance(o, (basestring, stringtemplate3.StringTemplate)):
         # don't consider strings and templates as iterables
         return False
     
@@ -178,7 +178,7 @@ class ASTExpr(Expr):
         argumentContext = None
         
         # indicate it's an ST-created list
-        results = stringtemplate.STAttributeList()
+        results = stringtemplate3.STAttributeList()
 
         # convert all attributes to iterators even if just one value
         attributesList = []
@@ -242,7 +242,7 @@ class ASTExpr(Expr):
 
         if isiterable(attributeValue):
             # results can be treated list an attribute, indicate ST created list
-            resultVector = stringtemplate.STAttributeList()
+            resultVector = stringtemplate3.STAttributeList()
             for i, ithValue in enumerate(attributeValue):
                 if ithValue is None:
                     if self.nullValue is None:
@@ -261,20 +261,20 @@ class ASTExpr(Expr):
                 embedded.setArgumentsAST(args)
                 argumentContext = {}
                 formalArgs = embedded.getFormalArguments()
-                isAnonymous = embedded.getName() == stringtemplate.StringTemplate.ANONYMOUS_ST_NAME
+                isAnonymous = embedded.getName() == stringtemplate3.StringTemplate.ANONYMOUS_ST_NAME
                 self.setSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue)
                 if isinstance(attributeValue, dict):
                     argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_KEY] = ithValue
                     # formalArgs might be UNKNOWN, which is non-empty but treated
                     # like 'no formal args'. FIXME: Is this correct
-                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate.language.FormalArgument.UNKNOWN):
+                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
                         argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = attributeValue[ithValue]
                         argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue[ithValue]
                 else:
                     argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_KEY] = None
                     # formalArgs might be UNKNOWN, which is non-empty but treated
                     # like 'no formal args'. FIXME: Is this correct
-                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate.language.FormalArgument.UNKNOWN):
+                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
                         argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = ithValue
                         argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue
                 argumentContext[ASTExpr.DEFAULT_INDEX_VARIABLE_NAME] = i+1
@@ -302,11 +302,11 @@ class ASTExpr(Expr):
             formalArgs = embedded.getFormalArguments()
             args = embedded.getArgumentsAST()
             self.setSoleFormalArgumentToIthValue(embedded, argumentContext, attributeValue)
-            isAnonymous = embedded.getName() == stringtemplate.StringTemplate.ANONYMOUS_ST_NAME
+            isAnonymous = embedded.getName() == stringtemplate3.StringTemplate.ANONYMOUS_ST_NAME
             # if it's an anonymous template with a formal arg, don't set it/attr
             # formalArgs might be UNKNOWN, which is non-empty but treated
             # like 'no formal args'. FIXME: Is this correct
-            if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate.language.FormalArgument.UNKNOWN):
+            if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
                 argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = attributeValue
                 argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue
             argumentContext[ASTExpr.DEFAULT_INDEX_VARIABLE_NAME] = 1
@@ -319,7 +319,7 @@ class ASTExpr(Expr):
         formalArgs = embedded.getFormalArguments()
         if formalArgs:
             soleArgName = None
-            isAnonymous = (embedded.getName() == stringtemplate.StringTemplate.ANONYMOUS_ST_NAME)
+            isAnonymous = (embedded.getName() == stringtemplate3.StringTemplate.ANONYMOUS_ST_NAME)
             if len(formalArgs) == 1 or (isAnonymous and len(formalArgs) > 0):
                 if isAnonymous and len(formalArgs) > 1:
                     embedded.error('too many arguments on {...} template: ' +
@@ -344,7 +344,7 @@ class ASTExpr(Expr):
 
         # Special case: our automatically created Aggregates via
         # attribute name: "{obj.{prop1,prop2}}"
-        if isinstance(o, stringtemplate.Aggregate):
+        if isinstance(o, stringtemplate3.Aggregate):
 	    #sys.stderr.write("[getObjectProperty] o = " + str(o) + '\n')
             value = o.get(propertyName, None)
             if value is None:
@@ -374,7 +374,7 @@ class ASTExpr(Expr):
         # Special case: if it's a template, pull property from
         # it's attribute table.
         # TODO: TJP just asked himself why we can't do inherited attr here?
-        elif isinstance(o, stringtemplate.StringTemplate):
+        elif isinstance(o, stringtemplate3.StringTemplate):
             attributes = o.getAttributes()
             if attributes:
                 if attributes.has_key(propertyName): # prevent KeyError...
@@ -497,7 +497,7 @@ class ASTExpr(Expr):
             
         n = 0
         try:
-            if isinstance(o, stringtemplate.StringTemplate):
+            if isinstance(o, stringtemplate3.StringTemplate):
                 # failsafe: perhaps enclosing instance not set
                 # Or, it could be set to another context!  This occurs
                 # when you store a template instance as an attribute of more
@@ -507,8 +507,8 @@ class ASTExpr(Expr):
                 o.setEnclosingInstance(this)
                 # if this is found up the enclosing instance chain, then
                 # infinite recursion
-                if stringtemplate.StringTemplate.inLintMode() and \
-                   stringtemplate.StringTemplate.isRecursiveEnclosingInstance(o):
+                if stringtemplate3.StringTemplate.inLintMode() and \
+                   stringtemplate3.StringTemplate.isRecursiveEnclosingInstance(o):
                     # throw exception since sometimes eval keeps going
                     # even after I ignore self write of o.
                     raise IllegalStateException('infinite recursion to ' +
@@ -627,7 +627,7 @@ class ASTExpr(Expr):
         # context and the embedded context.  The dummy has the predefined
         # context as does the embedded.
         enclosing = this.getEnclosingInstance();
-        argContextST = stringtemplate.StringTemplate(this.getGroup(), "")
+        argContextST = stringtemplate3.StringTemplate(this.getGroup(), "")
         argContextST.setName('<invoke ' + this.getName() + ' arg context>')
         argContextST.setEnclosingInstance(enclosing)
         argContextST.setArgumentContext(this.getArgumentContext())

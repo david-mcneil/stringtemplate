@@ -10,7 +10,7 @@ if version < '2.3':
     True = not False
 ### header action >>> 
 from StringTemplateToken import *
-import stringtemplate
+import stringtemplate3
 ### header action <<< 
 ### preamble action>>>
 
@@ -72,7 +72,7 @@ class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
        group = self.this.getGroup()
-       if group == stringtemplate.StringTemplate.defaultGroup:
+       if group == stringtemplate3.StringTemplate.defaultGroup:
            self.this.error("action parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
     
        else:
@@ -84,9 +84,9 @@ class Parser(antlr.LLkParser):
         self.tokenNames = _tokenNames
         self.buildTokenTypeASTClassMap()
         self.astFactory = antlr.ASTFactory(self.getTokenTypeToASTClassMap())
-        self.astFactory.setASTNodeClass(stringtemplate.language.StringTemplateAST)
+        self.astFactory.setASTNodeClass(stringtemplate3.language.StringTemplateAST)
         ### __init__ header action >>> 
-        if len(args) > 1 and isinstance(args[1], stringtemplate.StringTemplate):
+        if len(args) > 1 and isinstance(args[1], stringtemplate3.StringTemplate):
            self.this = args[1]
         else:
            raise ValueError("ActionParser requires a StringTemplate instance")
@@ -322,7 +322,7 @@ class Parser(antlr.LLkParser):
             elif la1 and la1 in [EOF,COMMA]:
                 pass
                 if not self.inputState.guessing:
-                    v = stringtemplate.language.ASTExpr.EMPTY_OPTION
+                    v = stringtemplate3.language.ASTExpr.EMPTY_OPTION
             else:
                     raise antlr.NoViableAltException(self.LT(1), self.getFilename())
                 
@@ -481,7 +481,7 @@ class Parser(antlr.LLkParser):
             self.addASTChild(currentAST, t_AST)
             self.match(ANONYMOUS_TEMPLATE)
             if not self.inputState.guessing:
-                anonymous = stringtemplate.StringTemplate()
+                anonymous = stringtemplate3.StringTemplate()
                 anonymous.setGroup(self.this.getGroup())
                 anonymous.setEnclosingInstance(self.this)
                 anonymous.setTemplate(t.getText())

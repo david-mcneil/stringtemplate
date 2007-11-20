@@ -2,7 +2,7 @@ header {
 #from ASTExpr import *
 import ASTExpr
 from CatIterator import *
-import stringtemplate
+import stringtemplate3
 
 from cStringIO import StringIO
 
@@ -28,7 +28,7 @@ class ActionEvaluator extends TreeParser;
 
 options {
     importVocab=ActionParser;
-    ASTLabelType = "stringtemplate.language.StringTemplateAST";
+    ASTLabelType = "stringtemplate3.language.StringTemplateAST";
 }
 
 {
@@ -237,7 +237,7 @@ attribute returns [value = None]
         {
             value = at.getText();
             if at.getText():
-                valueST = stringtemplate.StringTemplate(self.this.group, \
+                valueST = stringtemplate3.StringTemplate(self.this.group, \
                     at.getText())
                 valueST.setEnclosingInstance(self.this)
                 valueST.setName("<anonymous template argument>")

@@ -41,7 +41,7 @@ if version < '2.3':
 import sys
 import traceback
 
-from stringtemplate.language.FormalArgument import FormalArgument
+from stringtemplate3.language.FormalArgument import FormalArgument
 ### header action <<< 
 ### preamble action>>>
 
