@@ -192,7 +192,7 @@ class StringTemplate(object):
     #  Or:
     #    Create a template
     #
-    def __init__(self, group=None, template=None, lexer=None, attributes=None):
+    def __init__(self, template=None, group=None, lexer=None, attributes=None):
         self.referencedAttributes = None
 
         ## What's the name of self template?
