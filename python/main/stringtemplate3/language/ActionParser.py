@@ -71,12 +71,12 @@ WS_CHAR = 43
 class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
-       group = self.this.getGroup()
+       group = self.this.group
        if group == stringtemplate3.StringTemplate.defaultGroup:
-           self.this.error("action parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
+           self.this.error("action parse error; template context is "+self.this.enclosingInstanceStackString, e)
     
        else:
-           self.this.error("action parse error in group "+self.this.getGroup().getName()+" line "+str(self.this.getGroupFileLine())+"; template context is "+self.this.getEnclosingInstanceStackString(), e)
+           self.this.error("action parse error in group "+self.this.group.name+" line "+str(self.this.groupFileLine)+"; template context is "+self.this.enclosingInstanceStackString, e)
     ### user action <<<
     
     def __init__(self, *args, **kwargs):
@@ -482,9 +482,9 @@ class Parser(antlr.LLkParser):
             self.match(ANONYMOUS_TEMPLATE)
             if not self.inputState.guessing:
                 anonymous = stringtemplate3.StringTemplate()
-                anonymous.setGroup(self.this.getGroup())
-                anonymous.setEnclosingInstance(self.this)
-                anonymous.setTemplate(t.getText())
+                anonymous.group = self.this.group
+                anonymous.enclosingInstance = self.this
+                anonymous.template = t.getText()
                 anonymous.defineFormalArgument(t.args)
                 t_AST.setStringTemplate(anonymous)
             anonymousTemplate_AST = currentAST.root

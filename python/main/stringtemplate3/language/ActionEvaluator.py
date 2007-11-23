@@ -178,7 +178,7 @@ class Walker(antlr.TreeParser):
                 _t = _t4
                 _t = _t.getNextSibling()
                 buf = StringIO()
-                sw = self.this.getGroup().getStringTemplateWriter(buf)
+                sw = self.this.group.getStringTemplateWriter(buf)
                 n = self.chunk.writeAttribute(self.this, e, sw)
                 if n > 0:
                    value = buf.getvalue()
@@ -368,8 +368,8 @@ class Walker(antlr.TreeParser):
                 if at.getText():
                    valueST = stringtemplate3.StringTemplate(self.this.group, \
                        at.getText())
-                   valueST.setEnclosingInstance(self.this)
-                   valueST.setName("<anonymous template argument>")
+                   valueST.enclosingInstance = self.this
+                   valueST.name = "<anonymous template argument>"
                    value = valueST
             else:
                     raise antlr.NoViableAltException(_t)
@@ -623,10 +623,12 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
                 templateName = t.getText()
                 group = self.this.group
-                embedded = group.getEmbeddedInstanceOf(self.this, \
-                   templateName)
+                embedded = group.getEmbeddedInstanceOf(
+                      templateName,
+                      self.this
+                  )
                 if embedded:
-                   embedded.setArgumentsAST(args)
+                   embedded.argumentsAST = args
                    templatesToApply.append(embedded)
             elif la1 and la1 in [ANONYMOUS_TEMPLATE]:
                 pass
@@ -636,7 +638,7 @@ class Walker(antlr.TreeParser):
                 anonymous = anon.getStringTemplate()
                 # to properly see overridden templates, always set
                 # anonymous' group to be self's group
-                anonymous.setGroup(self.this.getGroup())
+                anonymous.group = self.this.group
                 templatesToApply.append(anonymous)
             elif la1 and la1 in [VALUE]:
                 pass
@@ -654,10 +656,12 @@ class Walker(antlr.TreeParser):
                 if n:
                    templateName = str(n)
                    group = self.this.group
-                   embedded = group.getEmbeddedInstanceOf(self.this, \
-                       templateName)
+                   embedded = group.getEmbeddedInstanceOf(
+                       templateName,
+                       self.this
+                       )
                    if embedded:
-                       embedded.setArgumentsAST(args2)
+                       embedded.argumentsAST = args2
                        templatesToApply.append(embedded)
                 _t = _t28
                 _t = _t.getNextSibling()
@@ -886,7 +890,7 @@ class Walker(antlr.TreeParser):
                soleArgName = None
                # find the sole defined formal argument for embedded
                error = False
-               formalArgs = embedded.getFormalArguments()
+               formalArgs = embedded.formalArguments
                if formalArgs:
                    argNames = formalArgs.keys()
                    if len(argNames) == 1:
@@ -899,10 +903,10 @@ class Walker(antlr.TreeParser):
             else:
                error = True
             if error:
-               self.this.error("template " + embedded.getName() +
+               self.this.error("template " + embedded.name +
                                " must have exactly one formal arg in" +
                                " template context " +
-                               self.this.getEnclosingInstanceStackString())
+                               self.this.enclosingInstanceStackString)
             else:
                self.this.rawSetArgumentAttribute(embedded, \
                    argumentContext, soleArgName, e)

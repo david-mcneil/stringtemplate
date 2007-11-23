@@ -4,7 +4,7 @@ import antlr
 class StringTemplateAST(antlr.CommonAST):
 
     def __init__(self, type=None, text=None):
-	super(StringTemplateAST, self).__init__() 
+        super(StringTemplateAST, self).__init__() 
 
         if type is not None:
             self.setType(type)

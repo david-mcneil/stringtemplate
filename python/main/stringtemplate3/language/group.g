@@ -54,8 +54,8 @@ group[g]
 {
     self.group_ = g
 }
-    :   "group" name:ID { g.setName(name.getText()) } 
-        ( COLON s:ID {g.setSuperGroup(s.getText())} )?
+    :   "group" name:ID { g.name = name.getText() } 
+        ( COLON s:ID {g.superGroup = s.getText()} )?
         ( "implements" i:ID {g.implementInterface(i.getText())}
             ( COMMA i2:ID {g.implementInterface(i2.getText())} )*
         )?
@@ -76,7 +76,7 @@ template[g]
             {
                 templateName = g.getMangledRegionName(scope.getText(),region.getText())
                 if g.isDefinedInThisGroup(templateName):
-                    g.error("group "+g.getName()+" line "+str(line)+": redefinition of template region: @"+
+                    g.error("group "+g.name+" line "+str(line)+": redefinition of template region: @"+
                         scope.getText()+"."+region.getText())
                     st = stringtemplate3.StringTemplate() // create bogus template to fill in
 
@@ -85,12 +85,12 @@ template[g]
                     // @template.region() ::= "..."
                     scopeST = g.lookupTemplate(scope.getText())
                     if scopeST is None:
-                        g.error("group "+g.getName()+" line "+str(line)+": reference to region within undefined template: "+
+                        g.error("group "+g.name+" line "+str(line)+": reference to region within undefined template: "+
                             scope.getText())
                         err = True
 
                     if not scopeST.containsRegionName(region.getText()):
-                        g.error("group "+g.getName()+" line "+str(line)+": template "+scope.getText()+" has no region called "+
+                        g.error("group "+g.name+" line "+str(line)+": template "+scope.getText()+" has no region called "+
                             region.getText())
                         err = True
 
@@ -102,7 +102,7 @@ template[g]
                             scope.getText(),
                             region.getText(),
                             None,
-                            stringtemplate3.StringTemplate.REGION_EXPLICIT
+                            stringtemplate3.REGION_EXPLICIT
                         )
 
             }
@@ -118,14 +118,14 @@ template[g]
         )
         {
             if st is not None:
-                st.setGroupFileLine(line)
+                st.groupFileLine = line
         }
         LPAREN
         ( args[st] | { st.defineEmptyFormalArgumentList() } )
         RPAREN
         DEFINED_TO_BE
-        ( t:STRING { st.setTemplate(t.getText()) }
-        | bt:BIGSTRING { st.setTemplate(bt.getText()) }
+        ( t:STRING { st.template = t.getText() }
+        | bt:BIGSTRING { st.template = bt.getText() }
         )
     |   alias:ID DEFINED_TO_BE target:ID
         { g.defineTemplateAlias(alias.getText(), target.getText()) }
@@ -142,19 +142,23 @@ arg[st]
     :   name:ID
         ( ASSIGN s:STRING
           {
-              defaultValue = stringtemplate3.StringTemplate("$_val_$")
+              defaultValue = stringtemplate3.StringTemplate(
+                    template="$_val_$"
+                    )
               defaultValue["_val_"] = s.getText()
               defaultValue.defineFormalArgument("_val_")
-              defaultValue.setName("<" + st.getName() + "'s arg " + \
-                                   name.getText() + \
+              defaultValue.name = ("<" + st.name + "'s arg " +
+                                   name.getText() +
                                    " default value subtemplate>")
           }
         | ASSIGN bs:ANONYMOUS_TEMPLATE
           {
-              defaultValue = stringtemplate3.StringTemplate(st.getGroup(), \
-                  bs.getText())
-              defaultValue.setName("<" + st.getName() + "'s arg " + \
-                                   name.getText() + \
+              defaultValue = stringtemplate3.StringTemplate(
+                    group=st.group,
+                    template=bs.getText()
+                    )
+              defaultValue.name = ("<" + st.name + "'s arg " +
+                                   name.getText() +
                                    " default value subtemplate>")
           }
         )?
@@ -204,12 +208,23 @@ keyValuePair[mapping]
     ;
 
 keyValue returns [value = None]
-    :    s1:STRING
-         { value = stringtemplate3.StringTemplate(self.group_, s1.getText()) }
-    |    s2:BIGSTRING
-         { value = stringtemplate3.StringTemplate(self.group_, s2.getText()) }
-    |    k:ID { k.getText() == "key" }?
-         { value = stringtemplate3.language.ASTExpr.MAP_KEY_VALUE }
+    :   s1:STRING
+        { 
+            value = stringtemplate3.StringTemplate(
+                group=self.group_, template=s1.getText()
+                )
+        }
+    |   s2:BIGSTRING
+        {
+            value = stringtemplate3.StringTemplate(
+                group=self.group_,
+                template=s2.getText()
+                )
+        }
+    |   k:ID { k.getText() == "key" }?
+        { 
+            value = stringtemplate3.language.ASTExpr.MAP_KEY_VALUE
+        }
     |    
     ;
 

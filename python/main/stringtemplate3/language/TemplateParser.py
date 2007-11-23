@@ -53,12 +53,12 @@ COMMENT = 21
 class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
-       group = self.this.getGroup()
+       group = self.this.group
        if group == stringtemplate3.StringTemplate.defaultGroup:
-           self.this.error("template parse error; template context is "+self.this.getEnclosingInstanceStackString(), e)
+           self.this.error("template parse error; template context is "+self.this.enclosingInstanceStackString, e)
     
        else:
-           self.this.error("template parse error in group "+self.this.getGroup().getName()+" line "+str(self.this.getGroupFileLine())+"; template context is "+self.this.getEnclosingInstanceStackString(), e)
+           self.this.error("template parse error in group "+self.this.group.name+" line "+str(self.this.groupFileLine)+"; template context is "+self.this.enclosingInstanceStackString, e)
     ### user action <<<
     
     def __init__(self, *args, **kwargs):
@@ -121,9 +121,9 @@ class Parser(antlr.LLkParser):
                 pass
                 a = self.LT(1)
                 self.match(ACTION)
-                indent = a.getIndentation()
+                indent = a.indentation
                 c = this.parseAction(a.getText())
-                c.setIndentation(indent)
+                c.indentation = indent
                 this.addChunk(c)
             elif la1 and la1 in [IF]:
                 pass
@@ -131,12 +131,12 @@ class Parser(antlr.LLkParser):
                 self.match(IF)
                 c = this.parseAction(i.getText())
                 # create and precompile the subtemplate
-                subtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
-                subtemplate.setEnclosingInstance(this)
-                subtemplate.setName(i.getText() + "_subtemplate")
+                subtemplate = stringtemplate3.StringTemplate(group=this.group)
+                subtemplate.enclosingInstance = this
+                subtemplate.name = i.getText() + "_subtemplate"
                 this.addChunk(c)
                 self.template(subtemplate)
-                if c: c.setSubtemplate(subtemplate)
+                if c: c.subtemplate = subtemplate
                 while True:
                     if (self.LA(1)==ELSEIF):
                         pass
@@ -144,9 +144,9 @@ class Parser(antlr.LLkParser):
                         self.match(ELSEIF)
                         ec = this.parseAction(ei.getText())
                         # create and precompile the subtemplate
-                        elseIfSubtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
-                        elseIfSubtemplate.setEnclosingInstance(this)
-                        elseIfSubtemplate.setName(ei.getText()+"_subtemplate")
+                        elseIfSubtemplate = stringtemplate3.StringTemplate(group=this.group)
+                        elseIfSubtemplate.enclosingInstance = this
+                        elseIfSubtemplate.name = ei.getText()+"_subtemplate"
                         self.template(elseIfSubtemplate)
                         if c is not None:
                            c.addElseIfSubtemplate(ec, elseIfSubtemplate)
@@ -160,11 +160,11 @@ class Parser(antlr.LLkParser):
                     pass
                     self.match(ELSE)
                     # create and precompile the subtemplate
-                    elseSubtemplate = stringtemplate3.StringTemplate(this.getGroup(), None)
-                    elseSubtemplate.setEnclosingInstance(this)
-                    elseSubtemplate.setName("else_subtemplate")
+                    elseSubtemplate = stringtemplate3.StringTemplate(group=this.group)
+                    elseSubtemplate.enclosingInstance = this
+                    elseSubtemplate.name = "else_subtemplate"
                     self.template(elseSubtemplate)
-                    if c: c.setElseSubtemplate(elseSubtemplate)
+                    if c: c.elseSubtemplate = elseSubtemplate
                 elif la1 and la1 in [ENDIF]:
                     pass
                 else:
@@ -185,32 +185,31 @@ class Parser(antlr.LLkParser):
                 if regionName.startswith("super."):
                    #System.out.println("super region ref "+regionName);
                    regionRef = regionName[len("super."):len(regionName)]
-                   templateScope = this.getGroup().getUnMangledTemplateName(this.getName())
-                   scopeST = this.getGroup().lookupTemplate(templateScope)
+                   templateScope = this.group.getUnMangledTemplateName(this.name)
+                   scopeST = this.group.lookupTemplate(templateScope)
                    if scopeST is None:
-                       this.getGroup().error("reference to region within undefined template: "+
+                       this.group.error("reference to region within undefined template: "+
                            templateScope)
                        err = True
                 
                    if not scopeST.containsRegionName(regionRef):
-                       this.getGroup().error("template "+templateScope+" has no region called "+
+                       this.group.error("template "+templateScope+" has no region called "+
                            regionRef)
                        err = True
                 
                    else:
-                       mangledRef = this.getGroup().getMangledRegionName(templateScope, regionRef)
+                       mangledRef = this.group.getMangledRegionName(templateScope, regionRef)
                        mangledRef = "super." + mangledRef
                 
                 else:
-                   #System.out.println("region ref "+regionName);
-                   regionST = this.getGroup().defineImplicitRegionTemplate(this, regionName)
-                   mangledRef = regionST.getName()
+                   regionST = this.group.defineImplicitRegionTemplate(this, regionName)
+                   mangledRef = regionST.name
                 
                 if not err:
                    # treat as regular action: mangled template include
-                   indent = rr.getIndentation()
+                   indent = rr.indentation
                    c = this.parseAction(mangledRef+"()")
-                   c.setIndentation(indent)
+                   c.indentation = indent
                    this.addChunk(c)
             elif la1 and la1 in [REGION_DEF]:
                 pass
@@ -221,16 +220,16 @@ class Parser(antlr.LLkParser):
                 if indexOfDefSymbol >= 1:
                    regionName = combinedNameTemplateStr[0:indexOfDefSymbol]
                    template = combinedNameTemplateStr[indexOfDefSymbol+3:len(combinedNameTemplateStr)]
-                   regionST = this.getGroup().defineRegionTemplate(
+                   regionST = this.group.defineRegionTemplate(
                        this,
                        regionName,
                        template,
-                       stringtemplate3.StringTemplate.REGION_EMBEDDED
+                       stringtemplate3.REGION_EMBEDDED
                        )
                    # treat as regular action: mangled template include
-                   indent = rd.getIndentation()
-                   c = this.parseAction(regionST.getName() + "()")
-                   c.setIndentation(indent)
+                   indent = rd.indentation
+                   c = this.parseAction(regionST.name + "()")
+                   c.indentation = indent
                    this.addChunk(c)
                 
                 else:

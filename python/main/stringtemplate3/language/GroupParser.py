@@ -105,7 +105,7 @@ class Parser(antlr.LLkParser):
             self.match(LITERAL_group)
             name = self.LT(1)
             self.match(ID)
-            g.setName(name.getText())
+            g.name = name.getText()
             la1 = self.LA(1)
             if False:
                 pass
@@ -114,7 +114,7 @@ class Parser(antlr.LLkParser):
                 self.match(COLON)
                 s = self.LT(1)
                 self.match(ID)
-                g.setSuperGroup(s.getText())
+                g.superGroup = s.getText()
             elif la1 and la1 in [LITERAL_implements,SEMI]:
                 pass
             else:
@@ -195,7 +195,7 @@ class Parser(antlr.LLkParser):
                     self.match(ID)
                     templateName = g.getMangledRegionName(scope.getText(),region.getText())
                     if g.isDefinedInThisGroup(templateName):
-                       g.error("group "+g.getName()+" line "+str(line)+": redefinition of template region: @"+
+                       g.error("group "+g.name+" line "+str(line)+": redefinition of template region: @"+
                            scope.getText()+"."+region.getText())
                        st = stringtemplate3.StringTemplate() # create bogus template to fill in
                     
@@ -204,12 +204,12 @@ class Parser(antlr.LLkParser):
                        # @template.region() ::= "..."
                        scopeST = g.lookupTemplate(scope.getText())
                        if scopeST is None:
-                           g.error("group "+g.getName()+" line "+str(line)+": reference to region within undefined template: "+
+                           g.error("group "+g.name+" line "+str(line)+": reference to region within undefined template: "+
                                scope.getText())
                            err = True
                     
                        if not scopeST.containsRegionName(region.getText()):
-                           g.error("group "+g.getName()+" line "+str(line)+": template "+scope.getText()+" has no region called "+
+                           g.error("group "+g.name+" line "+str(line)+": template "+scope.getText()+" has no region called "+
                                region.getText())
                            err = True
                     
@@ -221,7 +221,7 @@ class Parser(antlr.LLkParser):
                                scope.getText(),
                                region.getText(),
                                None,
-                               stringtemplate3.StringTemplate.REGION_EXPLICIT
+                               stringtemplate3.REGION_EXPLICIT
                            )
                 elif la1 and la1 in [ID]:
                     pass
@@ -238,7 +238,7 @@ class Parser(antlr.LLkParser):
                         raise antlr.NoViableAltException(self.LT(1), self.getFilename())
                     
                 if st is not None:
-                   st.setGroupFileLine(line)
+                   st.groupFileLine = line
                 self.match(LPAREN)
                 la1 = self.LA(1)
                 if False:
@@ -261,12 +261,12 @@ class Parser(antlr.LLkParser):
                     pass
                     t = self.LT(1)
                     self.match(STRING)
-                    st.setTemplate(t.getText())
+                    st.template = t.getText()
                 elif la1 and la1 in [BIGSTRING]:
                     pass
                     bt = self.LT(1)
                     self.match(BIGSTRING)
-                    st.setTemplate(bt.getText())
+                    st.template = bt.getText()
                 else:
                         raise antlr.NoViableAltException(self.LT(1), self.getFilename())
                     
@@ -352,21 +352,25 @@ class Parser(antlr.LLkParser):
                 self.match(ASSIGN)
                 s = self.LT(1)
                 self.match(STRING)
-                defaultValue = stringtemplate3.StringTemplate("$_val_$")
+                defaultValue = stringtemplate3.StringTemplate(
+                     template="$_val_$"
+                     )
                 defaultValue["_val_"] = s.getText()
                 defaultValue.defineFormalArgument("_val_")
-                defaultValue.setName("<" + st.getName() + "'s arg " + \
-                                    name.getText() + \
+                defaultValue.name = ("<" + st.name + "'s arg " +
+                                    name.getText() +
                                     " default value subtemplate>")
             elif (self.LA(1)==ASSIGN) and (self.LA(2)==ANONYMOUS_TEMPLATE):
                 pass
                 self.match(ASSIGN)
                 bs = self.LT(1)
                 self.match(ANONYMOUS_TEMPLATE)
-                defaultValue = stringtemplate3.StringTemplate(st.getGroup(), \
-                   bs.getText())
-                defaultValue.setName("<" + st.getName() + "'s arg " + \
-                                    name.getText() + \
+                defaultValue = stringtemplate3.StringTemplate(
+                     group=st.group,
+                     template=bs.getText()
+                     )
+                defaultValue.name = ("<" + st.name + "'s arg " +
+                                    name.getText() +
                                     " default value subtemplate>")
             elif (self.LA(1)==COMMA or self.LA(1)==RPAREN):
                 pass
@@ -491,12 +495,17 @@ class Parser(antlr.LLkParser):
                 pass
                 s1 = self.LT(1)
                 self.match(STRING)
-                value = stringtemplate3.StringTemplate(self.group_, s1.getText())
+                value = stringtemplate3.StringTemplate(
+                   group=self.group_, template=s1.getText()
+                   )
             elif la1 and la1 in [BIGSTRING]:
                 pass
                 s2 = self.LT(1)
                 self.match(BIGSTRING)
-                value = stringtemplate3.StringTemplate(self.group_, s2.getText())
+                value = stringtemplate3.StringTemplate(
+                   group=self.group_,
+                   template=s2.getText()
+                   )
             elif la1 and la1 in [ID]:
                 pass
                 k = self.LT(1)

@@ -1,10 +1,9 @@
 
-import sys
-
 import antlr
 
-from ASTExpr import *
+from ASTExpr import ASTExpr
 import ActionEvaluator
+from stringtemplate3.utils import deprecated
 
 
 class ElseIfClauseData(object):
@@ -13,9 +12,8 @@ class ElseIfClauseData(object):
         self.st = st
 
 
-## A conditional reference to an embedded subtemplate.
-#
 class ConditionalExpr(ASTExpr):
+    """A conditional reference to an embedded subtemplate."""
 
     def __init__(self, enclosingTemplate, tree):
         super(ConditionalExpr, self).__init__(enclosingTemplate, tree, None)
@@ -23,17 +21,24 @@ class ConditionalExpr(ASTExpr):
         self.elseIfSubtemplates = None
         self.elseSubtemplate = None
 
+
+    @deprecated
     def setSubtemplate(self, subtemplate):
         self.subtemplate = subtemplate
 
+    @deprecated
     def getSubtemplate(self):
         return self.subtemplate
 
+
+    @deprecated
     def setElseSubtemplate(self, elseSubtemplate):
         self.elseSubtemplate = elseSubtemplate
 
+    @deprecated
     def getElseSubtemplate(self):
         return self.elseSubtemplate
+
 
     def addElseIfSubtemplate(self, conditionalTree, subtemplate):
         if self.elseIfSubtemplates is None:
@@ -54,20 +59,20 @@ class ConditionalExpr(ASTExpr):
             return 0
         
         evaluator = ActionEvaluator.Walker()
-	evaluator.initialize(this, self, out)
-	n = 0
+        evaluator.initialize(this, self, out)
+        n = 0
         try:
             testedTrue = False
             # get conditional from tree and compute result
             cond = self.exprTree.getFirstChild()
 
-	    # eval and write out tree. In case the condition refers to an
+            # eval and write out tree. In case the condition refers to an
             # undefined attribute, we catch the KeyError exception and proceed
             # with a False value.
-	    try:
+            try:
                 includeSubtemplate = evaluator.ifCondition(cond)
-	    except KeyError, ke:
-	        includeSubtemplate = False
+            except KeyError, ke:
+                includeSubtemplate = False
 
             if includeSubtemplate:
                 n = self.writeSubTemplate(this, out, self.subtemplate)
@@ -91,9 +96,11 @@ class ConditionalExpr(ASTExpr):
                 n = self.writeSubTemplate(this, out, self.elseSubtemplate)
                         
         except antlr.RecognitionException, re:
-            this.error('can\'t evaluate tree: ' + exprTree.toStringList(), re)
+            this.error(
+                "can't evaluate tree: " + self.exprTree.toStringList(), re
+                )
 
-	return n
+        return n
 
 
     def writeSubTemplate(self, this, out, subtemplate):
@@ -104,9 +111,9 @@ class ConditionalExpr(ASTExpr):
         # "enclosing instance" pointer.
 
         s = subtemplate.getInstanceOf()
-        s.setEnclosingInstance(this)
+        s.enclosingInstance = this
         # make sure we evaluate in context of enclosing template's
         # group so polymorphism works. :)
-        s.setGroup(this.getGroup())
-        s.setNativeGroup(this.getNativeGroup())
+        s.group = this.group
+        s.nativeGroup = this.nativeGroup
         return s.write(out)

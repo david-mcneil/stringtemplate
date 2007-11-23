@@ -6,9 +6,10 @@ class StringRef(Expr):
     Represents a chunk of just simple text to spit out; nothing to "evaluate"
     """
 
-    def __init__(self, enclosingTemplate, str_):
-	super(StringRef, self).__init__(enclosingTemplate)
-	self.str = str_
+    def __init__(self, enclosingTemplate, text):
+        super(StringRef, self).__init__(enclosingTemplate)
+        self.str = text
+
 
     def write(self, this, out):
         """
@@ -18,14 +19,13 @@ class StringRef(Expr):
         <"foo"; wrap="\n"> should wrap though if necessary.
         """
         
-	if self.str is not None:
-	    n = out.write(self.str)
-            return n
+        if self.str is not None:
+            return out.write(self.str)
 
         return 0
 
     
     def __str__(self):
-	if self.str:
-	    return self.str
-	return ''
+        if self.str:
+            return self.str
+        return ''

@@ -1,5 +1,4 @@
 
-import sys
 from StringIO import StringIO
 
 ## Given a list of lists, return the combined elements one by one.
@@ -19,20 +18,19 @@ class CatList(object):
 
     def lists(self):
         for list_ in self._lists:
-	    for item in list_:
-	        yield item
+            for item in list_:
+                yield item
 
     def __iter__(self):
         for list_ in self._lists:
-	    for item in list_:
-	        yield item
+            for item in list_:
+                yield item
 
         
     ## The result of asking for the string of a CatList is the list of
     #  items and so this is just the cat'd list of both items.  This
     #  is destructive in that the iterator cursors have moved to the end
     #  after printing.
-    #
     def __str__(self):
         buf = StringIO()
         #buf.write('[')
@@ -43,8 +41,7 @@ class CatList(object):
             #if k:
             #    buf.write(', ')
         #buf.write(']')
-        result = buf.getvalue()
-	buf.close()
-        return result
+
+        return buf.getvalue()
 
     __repr__ = __str__
