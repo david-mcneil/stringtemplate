@@ -5,9 +5,9 @@ def deprecated(func):
         warnings.warn(
             'Use of this method is deprecated, use property instead',
             DeprecationWarning,
-            stacklevel=1
+            stacklevel=2
             )
-        return wrap(*args, **kwargs)
+        return func(*args, **kwargs)
 
     wrap.__name__ = func.__name__
     wrap.__doc__ = func.__doc__

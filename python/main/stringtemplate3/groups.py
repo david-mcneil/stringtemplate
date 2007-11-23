@@ -173,7 +173,7 @@ class StringTemplateGroup(object):
         ## How long before tossing out all templates in seconds.
         #  default: no refreshing from disk
         #
-        self.refreshIntervalInSeconds = sys.maxint/1000
+        self.refreshInterval = sys.maxint/1000
         self.lastCheckedDisk = 0L
         
         if name is not None:
@@ -416,9 +416,9 @@ class StringTemplateGroup(object):
     def checkRefreshInterval(self):
         if self.templatesDefinedInGroupFile:
             return
-        if self.refreshIntervalInSeconds == 0 or \
+        if self.refreshInterval == 0 or \
            (time.time() - self.lastCheckedDisk) >= \
-           self.refreshIntervalInSeconds:
+           self.refreshInterval:
             # throw away all pre-compiled references
             self.templates = {}
             self.lastCheckedDisk = time.time()
@@ -648,7 +648,7 @@ class StringTemplateGroup(object):
 
     @deprecated
     def getRefreshInterval(self):
-        return self.refreshIntervalInSeconds
+        return self.refreshInterval
 
     ## How often to refresh all templates from disk.  This is a crude
     #  mechanism at the moment--just tosses everything out at this
@@ -657,7 +657,7 @@ class StringTemplateGroup(object):
     #  at all (DEFAULT); it will cache stuff.
     @deprecated
     def setRefreshInterval(self, refreshInterval):
-        self.refreshIntervalInSeconds = refreshInterval
+        self.refreshInterval = refreshInterval
 
 
     def setErrorListener(self, listener):
