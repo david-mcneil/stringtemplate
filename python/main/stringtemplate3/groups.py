@@ -42,7 +42,7 @@ from stringtemplate3.language import (
 
 from stringtemplate3.utils import deprecated
 from stringtemplate3.errors import (
-    StringTemplateErrorListener
+    DEFAULT_ERROR_LISTENER
     )
 from stringtemplate3.templates import (
     StringTemplate, REGION_IMPLICIT
@@ -50,64 +50,45 @@ from stringtemplate3.templates import (
 from stringtemplate3.writers import AutoIndentWriter
 from stringtemplate3.interfaces import StringTemplateGroupInterface
 
-class StringTemplateGroupErrorListener(StringTemplateErrorListener):
+DEFAULT_EXTENSION = '.st'
 
-    def error(self, s, e):
-        sys.stderr.write(s + '\n')
-        if e:
-            traceback.print_exc()
-
-    def warning(self, s):
-        sys.stderr.write(s + '\n')
+## Used to indicate that the template doesn't exist.
+#  We don't have to check disk for it; we know it's not there.
+#  Set later to work around cyclic class definitions
+NOT_FOUND_ST = None
 
 
-## Manages a group of named mutually-referential StringTemplate objects.
-#  Currently the templates must all live under a directory so that you
-#  can reference them as foo.st or gutter/header.st.  To refresh a
-#  group of templates, just create a new StringTemplateGroup and start
-#  pulling templates from there.  Or, set the refresh interval.
-#
-#  Use getInstanceOf(template-name) to get a string template
-#  to fill in.
-#
-#  The name of a template is the file name minus ".st" ending if present
-#  unless you name it as you load it.
-# 
-#  You can use the group file format also to define a group of templates
-#  (this works better for code gen than for html page gen).  You must give
-#  a Reader to the ctor for it to load the group; this is general and
-#  distinguishes it from the ctors for the old-style "load template files
-#  from the disk".
-#
-#  10/2005 I am adding a StringTemplateGroupLoader concept so people can define
-#  supergroups within a group and have it load that group automatically.
 class StringTemplateGroup(object):
+    """
+    Manages a group of named mutually-referential StringTemplate objects.
+    Currently the templates must all live under a directory so that you
+    can reference them as foo.st or gutter/header.st.  To refresh a
+    group of templates, just create a new StringTemplateGroup and start
+    pulling templates from there.  Or, set the refresh interval.
 
+    Use getInstanceOf(template-name) to get a string template
+    to fill in.
+
+    The name of a template is the file name minus ".st" ending if present
+    unless you name it as you load it.
+
+    You can use the group file format also to define a group of templates
+    (this works better for code gen than for html page gen).  You must give
+    a Reader to the ctor for it to load the group; this is general and
+    distinguishes it from the ctors for the old-style "load template files
+    from the disk".
+
+    10/2005 I am adding a StringTemplateGroupLoader concept so people can
+    define supergroups within a group and have it load that group
+    automatically.
+    """
+    
     ## Track all groups by name; maps name to StringTemplateGroup
     nameToGroupMap = {}
 
     ## Track all interfaces by name; maps name to StringTemplateGroupInterface
     nameToInterfaceMap = {}
     
-    DEFAULT_ERROR_LISTENER = StringTemplateGroupErrorListener()
-
-    DEFAULT_EXTENSION = '.st'
-
-    ## Used to indicate that the template doesn't exist.
-    #  We don't have to check disk for it; we know it's not there.
-    #  Set later to work around cyclic class definitions
-    NOT_FOUND_ST = None
-
-    ## this is a list of attributes (properties in StringTemplate jargon)
-    #  that are derived for the StringTemplate, but which we want to hide
-    #  from the properties overview in the AttributeReflectionController.
-    #
-    hideProperties = [
-        'attributeRenderers', 'errorListener', 'name',
-        'refreshInterval', 'rootDir', 'superGroup', 'templateLexerClass'
-        ]
-
-
     ## If a group file indicates it derives from a supergroup, how do we
     #  find it?  Shall we make it so the initial StringTemplateGroup file
     #  can be loaded via this loader?  Right now we pass a Reader to ctor
@@ -187,7 +168,7 @@ class StringTemplateGroup(object):
         if errors is not None:
             self.listener = errors
         else:
-            self.listener = StringTemplateGroup.DEFAULT_ERROR_LISTENER
+            self.listener = DEFAULT_ERROR_LISTENER
             
         ## How long before tossing out all templates in seconds.
         #  default: no refreshing from disk
@@ -514,7 +495,7 @@ class StringTemplateGroup(object):
     #  purpose method)
     #
     def getFileNameFromTemplateName(self, templateName):
-        return templateName + StringTemplateGroup.DEFAULT_EXTENSION
+        return templateName + DEFAULT_EXTENSION
 
     ## Convert a filename relativePath/name.st to relativePath/name.
     #  (def that people can override behavior; not a general
@@ -522,7 +503,7 @@ class StringTemplateGroup(object):
     #
     def getTemplateNameFromFileName(self, fileName):
         name = fileName
-        suffix = name.rfind(StringTemplateGroup.DEFAULT_EXTENSION)
+        suffix = name.rfind(DEFAULT_EXTENSION)
         if suffix >= 0:
             name = name[:suffix]
         return name

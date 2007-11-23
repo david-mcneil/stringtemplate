@@ -9,7 +9,7 @@ if version < '2.2.1':
 if version < '2.3':
     True = not False
 ### header action >>> 
-from StringTemplateToken import *
+from stringtemplate3.language.StringTemplateToken import StringTemplateToken
 import stringtemplate3
 ### header action <<< 
 ### preamble action>>>

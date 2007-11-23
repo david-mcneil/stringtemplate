@@ -17,10 +17,13 @@ from stringtemplate3 import (
     PathGroupLoader,
     StringTemplateErrorListener,
     AttributeRenderer, StringTemplateWriter,
+    resetTemplateCounter
     )
 from stringtemplate3.language import (
     DefaultTemplateLexer, AngleBracketTemplateLexer, IllegalStateException
     )
+import stringtemplate3
+
 
 class BrokenTest(unittest.TestCase.failureException):
     def __str__(self):
@@ -1237,7 +1240,6 @@ class TestExprInParens(unittest.TestCase):
         duh["list"] = "a"
         duh["list"] = "b"
         duh["list"] = "c"
-        # sys.stderr.write(str(duh) + os.linesep)
         expecting = "<b>blort: abc</b>"
         self.assertEqual(str(duh), expecting)
 
@@ -1276,7 +1278,6 @@ class TestCollectionAttributes(unittest.TestCase):
         t["list"] = list_
         t["tuple"] = tuple_
         t["map"] = map_
-        # sys.stderr.write(str(t) + os.linesep)
         expecting = "123, <b>123</b>, <b><b>1</b></b><b><b>2</b></b>" + \
             "<b><b>3</b></b>, <b>a</b><b>b</b><b>c</b>, 231"
         self.assertEqual(str(t), expecting)
@@ -1292,7 +1293,6 @@ class TestParenthesizedExpression(unittest.TestCase):
             )
         t["f"] = "Joe"
         t["l"] = "Schmoe"
-        # sys.stderr.write(t + os.linesep)
         expecting = "<b>JoeSchmoe</b>"
         self.assertEqual(str(t), expecting)
 
@@ -1306,7 +1306,6 @@ class TestApplyTemplateNameExpression(unittest.TestCase):
         t["data"] = "Ter"
         t["data"] = "Tom"
         t["name"] = "foo"
-        # sys.stderr.write(str(t) + '\n')
         expecting = "fooTerbarfooTombar"
         self.assertEqual(str(t), expecting)
 
@@ -1330,7 +1329,6 @@ class TestTemplateNameExpression(unittest.TestCase):
         foo = group.defineTemplate("foo", "hi there!")
         t = StringTemplate(group=group, template="$(name)()$")
         t["name"] = "foo"
-        # sys.stderr.write(str(t) + '\n')
         expecting = "hi there!"
         self.assertEqual(str(t), expecting)
 
@@ -1351,20 +1349,21 @@ class TestMissingEndDelimiter(unittest.TestCase):
 class TestSetButNotRefd(unittest.TestCase):
 
     def runTest(self):
-        StringTemplate.setLintMode(True)
-        group = StringTemplateGroup(name="test")
-        errors = ErrorBuffer()
-        group.errorListener = errors
-        t = StringTemplate(group=group, template="$a$ then $b$ and $c$ refs.")
-        t["a"] = "Terence"
-        t["b"] = "Terence"
-        t["cc"] = "Terence" # oops...should be 'c'
-        expectingError = "anonymous: set but not used: cc\n"
-        result = str(t)    # result is irrelevant
-        # sys.stderr.write("result error: '"+str(errors)+"'\n")
-        # sys.stderr.write("expecting: '"+expectingError+"'\n")
-        StringTemplate.setLintMode(False)
-        self.assertEqual(str(errors), expectingError)
+        stringtemplate3.lintMode = True
+        try:
+            group = StringTemplateGroup(name="test")
+            errors = ErrorBuffer()
+            group.errorListener = errors
+            t = StringTemplate(group=group, template="$a$ then $b$ and $c$ refs.")
+            t["a"] = "Terence"
+            t["b"] = "Terence"
+            t["cc"] = "Terence" # oops...should be 'c'
+            expectingError = "anonymous: set but not used: cc\n"
+            result = str(t)    # result is irrelevant
+            self.assertEqual(str(errors), expectingError)
+
+        finally:
+            stringtemplate3.lintMode = False
 
 
 class TestNullTemplateApplication(unittest.TestCase):
@@ -1375,7 +1374,6 @@ class TestNullTemplateApplication(unittest.TestCase):
         group.errorListener = errors
         t = StringTemplate(group=group, template="$names:bold(x=it)$")
         t["names"] = "Terence"
-        # sys.stderr.write(str(t)+'\n')
         #expecting="" # bold not found...empty string
         #self.assertEqual(str(t), expecting)
         expecting = "Can't load template bold.st; context is [anonymous]"
@@ -1396,7 +1394,6 @@ class TestNullTemplateToMultiValuedApplication(unittest.TestCase):
         t = StringTemplate(group=group, template="$names:bold(x=it)$")
         t["names"] = "Terence"
         t["names"] = "Tom"
-        # sys.stderr.write(str(t)+'\n')
         #expecting="" # bold not found...empty string
         #self.assertEqual(str(t), expecting)
         expecting = "Can't load template bold.st; context is [anonymous]"
@@ -1416,7 +1413,6 @@ class TestChangingAttrValueTemplateApplicationToVector(unittest.TestCase):
         t = StringTemplate(group=group, template="$names:bold(x=it)$")
         t["names"] = "Terence"
         t["names"] = "Tom"
-        # sys.stderr.write("'"+str(t)+"'\n")
         expecting = "<b>Terence</b><b>Tom</b>"
         self.assertEqual(str(t), expecting)
 
@@ -1433,7 +1429,6 @@ class TestChangingAttrValueRepeatedTemplateApplicationToVector(unittest.TestCase
         members["members"] = "Jim"
         members["members"] = "Mike"
         members["members"] = "Ashar"
-        # sys.stderr.write("members="+members+'\n')
         expecting = "<i><b>Jim</b></i><i><b>Mike</b></i><i><b>Ashar</b></i>"
         self.assertEqual(str(members), expecting)
 
@@ -1451,7 +1446,6 @@ class TestAlternatingTemplateApplication(unittest.TestCase):
         item["item"] = "Jim"
         item["item"] = "Mike"
         item["item"] = "Ashar"
-        # sys.stderr.write("ITEM="+item+'\n')
         expecting = "<li><b>Jim</b></li><li><i>Mike</i></li><li><b>Ashar</b></li>"
         self.assertEqual(str(item), expecting)
 
@@ -1494,7 +1488,6 @@ class TestParameterAndAttributeScoping(unittest.TestCase):
             group=group, template="$bold(x=italics(x=name))$"
             )
         t["name"] = "Terence"
-        # sys.stderr.write(str(t)+'\n')
         expecting = "<b><i>Terence</i></b>"
         self.assertEqual(str(t), expecting)
 
@@ -1512,7 +1505,6 @@ class TestComplicatedSeparatorExpr(unittest.TestCase):
         t["name"] = "Ter"
         t["name"] = "Tom"
         t["name"] = "Mel"
-        # sys.stderr.write(str(t)+'\n')
         expecting = "<ul>Ter</li> <li>&nbsp;Tom</li> <li>&nbsp;Mel</ul>"
         self.assertEqual(str(t), expecting)
 
@@ -1591,7 +1583,6 @@ class TestApplyingTemplateFromDiskWithPrecompiledIF(unittest.TestCase):
         # specify a template to apply to an attribute
         # Use a template group so we can specify the start/stop chars
         group = StringTemplateGroup(name="dummy", rootDir="/tmp")
-        # sys.stderr.write(str(group)+"\n")
 
         a = group.getInstanceOf("page")
         a.setAttribute("member", Connector())
@@ -1601,7 +1592,6 @@ class TestApplyingTemplateFromDiskWithPrecompiledIF(unittest.TestCase):
             "User: Terence Parr (<tt>parrt@jguru.com</tt>)"+os.linesep+ \
             "</body>"+os.linesep+ \
             "</head>"
-        # sys.stderr.write("'"+a+"'\n")
         self.assertEqual(str(a), expecting)
 
 
@@ -1618,7 +1608,6 @@ class TestMultiValuedAttributeWithAnonymousTemplateUsingIndexVariableI(unittest.
         t["names"] = "Terence"
         t["names"] = "Jim"
         t["names"] = "Sriram"
-        # sys.stderr.write(str(t)+'\n')
         expecting = \
             " List:"+os.linesep+ \
             "  "+os.linesep+ \
@@ -1645,7 +1634,6 @@ class TestDictAttributeWithAnonymousTemplateUsingKeyVariableIk(unittest.TestCase
         map_["family"] = "Neutron"
         map_["encoding"] = "Strange"
         map_["year"] = 2005
-        # sys.stderr.write(str(t)+'\n')
         expecting = \
             " Dict:"+os.linesep+ \
             "  "+os.linesep+ \
@@ -1680,7 +1668,7 @@ class TestFindTemplateInCurrentDir(unittest.TestCase):
             "\tx=i;"+os.linesep+ \
             "\t// end of a body"+os.linesep+ \
             "}"
-        # sys.stderr.write(str(m)+'\n')
+
         self.assertEqual(str(m), expecting)
 
 
@@ -1781,7 +1769,6 @@ class TestRepeatedApplicationOfTemplateToMultiValuedAttributeWithSeparator(unitt
         item["item"] = "Mike"
         item["item"] = "Ashar"
         # first application of template must yield another vector!
-        # sys.stderr.write("ITEM="+item+'\n')
         self.assertEqual(str(item), "<b><b>Jim</b></b>,<b><b>Mike</b></b>,<b><b>Ashar</b></b>")
 
 
@@ -1805,7 +1792,6 @@ class TestMultiValuedAttributeWithSeparator(unittest.TestCase):
         query["table"] = "User"
         # uncomment next line to make "DISTINCT" appear in output
         # query["distince"] = "DISTINCT"
-        # sys.stderr.write(str(query)+'\n')
         self.assertEqual(str(query), "SELECT  name, email FROM User;")
 
 
@@ -1816,7 +1802,6 @@ class TestSingleValuedAttributes(unittest.TestCase):
         query = StringTemplate(template="SELECT $column$ FROM $table$;")
         query["column"] = "name"
         query["table"] = "User"
-        # sys.stderr.write(str(query)+'\n')
         self.assertEqual(str(query), "SELECT name FROM User;")
 
 
@@ -1902,7 +1887,6 @@ class TestIf(unittest.TestCase):
             )
         t["a"] = "blort"
         # leave b as None
-        # sys.stderr.write("t="+t+'\n')
         expecting = \
             "ackfoo"+os.linesep+ \
             "stuff"+os.linesep+ \
@@ -2014,7 +1998,6 @@ class TestObjectPropertyReference(unittest.TestCase):
                       )
             )
         t.setAttribute("p", Connector())
-        # sys.stderr.write("t is "+str(t)+'\n')
         expecting = \
             "<b>Name: Terence Parr</b><br>"+os.linesep+ \
             "<b>Email: parrt@jguru.com</b><br>"+os.linesep+ \
@@ -2037,7 +2020,6 @@ class TestApplyRepeatedAnonymousTemplateWithForeignTemplateRefToMultiValuedAttri
             )
         duh.setAttribute("p", Connector())
         duh.setAttribute("p", Connector2())
-        # sys.stderr.write(str(duh)+'\n')
         expecting = "start|<a href=\"/member/view?ID=1\"><b>Terence</b></a> <br>"+os.linesep+ \
             "<a href=\"/member/view?ID=2\"><b>Tom</b></a> canEdit<br>"+os.linesep+ \
             "|end"
@@ -2174,17 +2156,14 @@ class TestEscapes(unittest.TestCase):
             )
 
         t["A"] = "ick"
-        # sys.stderr.write("t is '"+str(t)+"'\n")
         expecting = "dog\"\" && ick"
         self.assertEqual(str(t), expecting)
 
         u["A"] = "ick"
-        # sys.stderr.write("u is '"+str(u)+"'\n")
         expecting = "dog\"g && ick"
         self.assertEqual(str(u), expecting)
 
         v["A"] = "ick"
-        # sys.stderr.write("v is '"+str(v)+"'\n")
         expecting = "{dog}\" && ick is cool"
         self.assertEqual(str(v), expecting)
 
@@ -2699,16 +2678,20 @@ class TestListOfEmbeddedTemplateSeesEnclosingAttributes(unittest.TestCase):
             )
 
     def runTest(self):
-        StringTemplate.setLintMode(True)
-        outputST = self.group.getInstanceOf("output")
-        bodyST1 = self.group.getInstanceOf("mybody")
-        bodyST2 = self.group.getInstanceOf("mybody")
-        bodyST3 = self.group.getInstanceOf("mybody")
-        outputST["items"] = bodyST1
-        outputST["items"] = bodyST2
-        outputST["items"] = bodyST3
-        expecting = "page: thatstuffthatstuffthatstuff"
-        StringTemplate.setLintMode(False)
+        stringtemplate3.lintMode = True
+        try:
+            outputST = self.group.getInstanceOf("output")
+            bodyST1 = self.group.getInstanceOf("mybody")
+            bodyST2 = self.group.getInstanceOf("mybody")
+            bodyST3 = self.group.getInstanceOf("mybody")
+            outputST["items"] = bodyST1
+            outputST["items"] = bodyST2
+            outputST["items"] = bodyST3
+            expecting = "page: thatstuffthatstuffthatstuff"
+
+        finally:
+            stringtemplate3.lintMode = False
+            
         self.assertEqual(str(outputST), expecting)
 
 
@@ -2731,7 +2714,6 @@ class TestInheritArgumentFromRecursiveTemplateApplication(unittest.TestCase):
         b["stats"] = self.group.getInstanceOf("ifstat")
         expecting = "IF True then IF True then "
         result = str(b)
-        # sys.stderr.write("result='"+result+"'\n")
         self.assertEqual(result, expecting)
 
 
@@ -2739,48 +2721,48 @@ class TestDeliberateRecursiveTemplateApplication(unittest.TestCase):
 
     # This test will cause infinite loop.  block contains a stat which
     # contains the same block.  Must be in lintMode to detect
-    def setUp(self):
-        self.templates = \
-            "group test;" +os.linesep+ \
-            "block(stats)::= \"<stats>\"" + \
-            "ifstat(stats)::= \"IF True then <stats>\""+os.linesep
-        StringTemplate.resetTemplateCounter()
-        self.group = StringTemplateGroup(
-            file=StringIO(self.templates)
-            )
-        StringTemplate.setLintMode(True)
-
-    def tearDown(self):
-        StringTemplate.setLintMode(False)
-
     def runTest(self):
-        b = self.group.getInstanceOf("block")
-        ifstat = self.group.getInstanceOf("ifstat")
-        b["stats"] = ifstat # block has if stat
-        expectingError = \
-            "infinite recursion to <ifstat(['stats'])@4> referenced in <block(['stats'])@3>; stack trace:" + os.linesep + \
-            "<ifstat(['stats'])@4>, attributes=[stats=<block()@3>]>" + os.linesep + \
-            "<block(['stats'])@3>, attributes=[stats=<ifstat()@4>], references=['stats']>" + os.linesep + \
-            "<ifstat(['stats'])@4> (start of recursive cycle)" + os.linesep + \
-            "..."
-        # note that attributes attribute doesn't show up in ifstat() because
-        # recursion detection traps the problem before it writes out the
-        # infinitely-recursive template; I set the attributes attribute right
-        # before I render.
-        errors = ""
+        templates = (
+            "group test;" +os.linesep+ 
+            "block(stats)::= \"<stats>\"" + 
+            "ifstat(stats)::= \"IF True then <stats>\""+os.linesep
+            )
+        resetTemplateCounter()
+        group = StringTemplateGroup(
+            file=StringIO(templates)
+            )
+        
+        stringtemplate3.lintMode = True
         try:
-            ifstat["stats"] = b # but make "if" contain block
-            result = str(b)
-        except IllegalStateException, e:
-            errors = str(e)
-        except Exception, e:
-            traceback.print_exc()
-            raise e
+            b = group.getInstanceOf("block")
+            ifstat = group.getInstanceOf("ifstat")
+            b["stats"] = ifstat # block has if stat
+            expectingError = (
+                "infinite recursion to <ifstat(['stats'])@4> referenced in <block(['stats'])@3>; stack trace:" + os.linesep + 
+                "<ifstat(['stats'])@4>, attributes=[stats=<block()@3>]>" + os.linesep +
+                "<block(['stats'])@3>, attributes=[stats=<ifstat()@4>], references=['stats']>" + os.linesep +
+                "<ifstat(['stats'])@4> (start of recursive cycle)" + os.linesep +
+                "..."
+                )
+            
+            # note that attributes attribute doesn't show up in ifstat() because
+            # recursion detection traps the problem before it writes out the
+            # infinitely-recursive template; I set the attributes attribute right
+            # before I render.
+            errors = ""
+            try:
+                ifstat["stats"] = b # but make "if" contain block
+                result = str(b)
+            except IllegalStateException, e:
+                errors = str(e)
+            except Exception, e:
+                traceback.print_exc()
+                raise e
 
-        # sys.stderr.write("errors="+errors+"'\n")
-        # sys.stderr.write("expecting="+expectingError+"'\n")
-        self.assertEqual(errors, expectingError)
+            self.assertEqual(errors, expectingError)
 
+        finally:
+            stringtemplate3.lintMode = False
 
 
 class TestImmediateTemplateAsAttributeLoop(unittest.TestCase):
@@ -2801,7 +2783,6 @@ class TestImmediateTemplateAsAttributeLoop(unittest.TestCase):
         b["stats"] = self.group.getInstanceOf("block")
         expecting = "::"
         result = str(b)
-        # sys.stderr.write(result)
         self.assertEqual(result, expecting)
 
 
@@ -2895,7 +2876,6 @@ class TestComplicatedIndirectTemplateApplication(unittest.TestCase):
         f = self.group.getInstanceOf("file")
         f.setAttribute("variables.{decl,format}", Decl("i","int"), "intdecl")
         f.setAttribute("variables.{decl,format}", Decl("a","int-array"), "intarray")
-        # sys.stderr.write("f='"+f+"'\n")
         expecting = "int i = 0;" +os.linesep+ \
             "int[] a = null;"
         self.assertEqual(str(f), expecting)
@@ -3002,7 +2982,6 @@ class TestDictPropertyFetch(unittest.TestCase):
         a["stuff"] = map_
         map_["prop"] = "Terence"
         results = str(a)
-        # sys.stderr.write(results + '\n')
         expecting = "Terence"
         self.assertEqual(results, expecting)
 
@@ -3018,7 +2997,6 @@ class TestDictPropertyFetchEmbeddedStringTemplate(unittest.TestCase):
         a["title"] = "ST rocks"
         map_["prop"] = StringTemplate(template="embedded refers to $title$")
         results = str(a)
-        # sys.stderr.write(results + '\n')
         expecting = "embedded refers to ST rocks"
         self.assertEqual(results, expecting)
 
@@ -3115,7 +3093,6 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
             )
         expecting = "boo"+os.linesep
         result = str(st)
-        # sys.stderr.write(result)
         self.assertEqual(result, expecting)
 
         st = StringTemplate(
@@ -3244,7 +3221,6 @@ class TestWhiteSpaceAtEndOfTemplate(unittest.TestCase):
         expecting ="some title" +os.linesep+ \
             "Terence parrt@jguru.comTom tombu@jguru.com"
         result = str(pageST)
-        # sys.stderr.write("'" + result + "'\n")
         self.assertEqual(result, expecting)
             
 
@@ -3399,7 +3375,6 @@ class TestSimpleAutoIndent(unittest.TestCase):
         a["name"] = "Terence"
         a["name"] = "Frank"
         results = str(a)
-        # sys.stderr.write("'" + results + "'\n")
         expecting = \
             "foo: {\n" + \
             "        Terence\n" + \
@@ -3484,7 +3459,6 @@ class TestDoNotInheritAttributesThroughFormalArgs(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=y; // "
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3510,7 +3484,6 @@ class TestArgEvaluationContext(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=y; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3531,7 +3504,6 @@ class TestPassThroughAttributes(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=y; // foo"
         result = str(b)
-        #sys.stderr.write("result='" + result + "'")
         self.assertEqual(result, expecting)
 
 
@@ -3554,7 +3526,6 @@ class TestPassThroughAttributes2(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=34; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3577,7 +3548,6 @@ class TestDefaultArgument(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=99; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3597,7 +3567,6 @@ class TestDefaultArgument2(unittest.TestCase):
         b["name"] = "foo"
         expecting = "x=99; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3621,7 +3590,6 @@ class TestDefaultArgumentAsTemplate(unittest.TestCase):
         b["size"] = "2"
         expecting = "x=foo; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -3645,7 +3613,6 @@ class TestDefaultArgumentAsTemplate2(unittest.TestCase):
         b["size"] = "2"
         expecting = "x= [foo] ; // foo"
         result = str(b)
-        #sys.stderr.write("result='"+result+"'")
         self.assertEqual(result, expecting)
 
 
@@ -4159,23 +4126,48 @@ class TestEmptyString(unittest.TestCase):
         self.assertEqual(result, expecting)
 
 
-## class Test8BitEuroChars(unittest.TestCase):
+class TestUnicode(unittest.TestCase):
 
-##     def runTest(self):
-##         e = StringTemplate(
-##             "Danish: � char"
-##             )
-##         e = e.getInstanceOf()
-##         expecting = "Danish: � char"
-##         self.assertEqual(str(e), expecting)
+    def testStringTemplate(self):
+        e = StringTemplate(
+            template=u"äöü"
+            )
+        e = e.getInstanceOf()
+        expecting = u"äöü"
+        self.assertEqual(e.toString(), expecting)
 
-## public void test16BitUnicodeChar() throws Exception {
-## StringTemplate e = new StringTemplate(
-## "DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780"
-## );
-## e = e.getInstanceOf();
-## String expecting = "DINGBAT CIRCLED SANS-SERIF DIGIT ONE: \u2780";
-## assertEquals(expecting, e.toString());
+
+    def testAttributes(self):
+        group = StringTemplateGroup(name="dummy", rootDir=".")
+        group.defineTemplate("bold", "<b>$it$</b>")
+
+        duh = StringTemplate( 
+            group=group,
+            template="$(\"blort: \"+(list)):bold()$"
+            )
+        duh["list"] = u"ä"
+        duh["list"] = u"ö"
+        duh["list"] = u"ü"
+
+        expecting = u"<b>blort: äöü</b>"
+        self.assertEqual(duh.toString(), expecting)
+
+
+    def testTemplate(self):
+        group = StringTemplateGroup(name="dummy", rootDir=".")
+        group.defineTemplate("bold", u"ö-$it$-ö")
+
+        duh = StringTemplate( 
+            group=group,
+            template="$(\"blort: \"+(list)):bold()$"
+            )
+        duh["list"] = u"ä"
+        duh["list"] = u"ö"
+        duh["list"] = u"ü"
+
+        expecting = u"ö-blort: äöü-ö"
+        self.assertEqual(duh.toString(), expecting)
+
 
 class TestFirstOp(unittest.TestCase):
 

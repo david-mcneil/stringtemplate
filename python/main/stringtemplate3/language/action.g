@@ -1,5 +1,5 @@
 header {
-from StringTemplateToken import *
+from stringtemplate3.language.StringTemplateToken import StringTemplateToken
 import stringtemplate3
 }
 

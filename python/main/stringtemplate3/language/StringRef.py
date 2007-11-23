@@ -1,5 +1,5 @@
 
-from Expr import Expr
+from stringtemplate3.language.Expr import Expr
 
 class StringRef(Expr):
     """

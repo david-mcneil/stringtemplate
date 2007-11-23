@@ -170,7 +170,7 @@ class DefaultTemplateLexer extends Lexer;
 
 options {
     k=7; // see "$endif$"
-//    charVocabulary = '\u0001'..'\uFFFE';
+    charVocabulary = '\u0001'..'\uFFFE';
 }
 
 {

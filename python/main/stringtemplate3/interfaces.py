@@ -33,9 +33,7 @@ from stringtemplate3.language import (
     )
 
 from stringtemplate3.utils import deprecated
-from stringtemplate3.errors import (
-    DEFAULT_ERROR_LISTENER
-    )
+from stringtemplate3.errors import DEFAULT_ERROR_LISTENER
 
 
 class TemplateDefinition(object):
@@ -57,7 +55,7 @@ class StringTemplateGroupInterface(object):
     method(name,args,body);
     """
 
-    def __init__(self, r, errors=DEFAULT_ERROR_LISTENER, superInterface=None):
+    def __init__(self, file, errors=None, superInterface=None):
         """Create an interface from the input stream"""
 
 	## What is the group name
@@ -71,10 +69,13 @@ class StringTemplateGroupInterface(object):
         self.superInterface = superInterface
 
 	## Where to report errors.  All string templates in this group
-        # use this error handler by default.
-        self.listener = errors
+        #  use this error handler by default.
+        if errors is not None:
+            self.listener = errors
+        else:
+            self.listener = DEFAULT_ERROR_LISTENER
 
-        self.parseInterface(r)
+        self.parseInterface(file)
 
 
     @deprecated

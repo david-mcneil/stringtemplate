@@ -29,7 +29,7 @@
 import sys
 import os
 import traceback
-
+import codecs
 
 from stringtemplate3.utils import deprecated
 from stringtemplate3.groups import StringTemplateGroup
@@ -136,8 +136,8 @@ class PathGroupLoader(StringTemplateGroupLoader):
             if os.path.isfile(path):
                 fr = open(path, 'r')
                 # FIXME: something breaks, when stream return unicode
-                #if self.fileCharEncoding is not None:
-                #    fr = codecs.getreader(self.fileCharEncoding)(fr)
+                if self.fileCharEncoding is not None:
+                    fr = codecs.getreader(self.fileCharEncoding)(fr)
                 return fr
 
         return None

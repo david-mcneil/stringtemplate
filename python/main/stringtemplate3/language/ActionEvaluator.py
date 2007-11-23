@@ -9,12 +9,10 @@ if version < '2.2.1':
 if version < '2.3':
     True = not False
 ### header action >>> 
-#from ASTExpr import *
-import ASTExpr
-from CatIterator import *
-import stringtemplate3
+from stringtemplate3.language.CatIterator import CatList
+from stringtemplate3.language.StringTemplateAST import StringTemplateAST
 
-from cStringIO import StringIO
+from StringIO import StringIO
 
 class NameValuePair(object):
 
@@ -366,8 +364,11 @@ class Walker(antlr.TreeParser):
                 _t = _t.getNextSibling()
                 value = at.getText();
                 if at.getText():
-                   valueST = stringtemplate3.StringTemplate(self.this.group, \
-                       at.getText())
+                   from stringtemplate3.templates import StringTemplate
+                   valueST = StringTemplate(
+                       group=self.this.group,
+                       template=at.getText()
+                       )
                    valueST.enclosingInstance = self.this
                    valueST.name = "<anonymous template argument>"
                    value = valueST
@@ -559,7 +560,8 @@ class Walker(antlr.TreeParser):
                         e=self.expr(_t)
                         _t = self._retTree
                         if e:
-                           e = ASTExpr.convertAnythingToList(e)
+                           from stringtemplate3.language.ASTExpr import convertAnythingToList
+                           e = convertAnythingToList(e)
                            elements.append(e)
                     else:
                         break

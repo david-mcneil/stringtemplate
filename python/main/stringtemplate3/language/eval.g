@@ -1,10 +1,8 @@
 header {
-#from ASTExpr import *
-import ASTExpr
-from CatIterator import *
-import stringtemplate3
+from stringtemplate3.language.CatIterator import CatList
+from stringtemplate3.language.StringTemplateAST import StringTemplateAST
 
-from cStringIO import StringIO
+from StringIO import StringIO
 
 class NameValuePair(object):
 
@@ -28,7 +26,7 @@ class ActionEvaluator extends TreeParser;
 
 options {
     importVocab=ActionParser;
-    ASTLabelType = "stringtemplate3.language.StringTemplateAST";
+    ASTLabelType = "StringTemplateAST";
 }
 
 {
@@ -85,7 +83,8 @@ list returns [value=None]
           ( e=expr
             {
               if e:
-                  e = ASTExpr.convertAnythingToList(e)
+                  from stringtemplate3.language.ASTExpr import convertAnythingToList
+                  e = convertAnythingToList(e)
                   elements.append(e)
             }
           )+
@@ -241,8 +240,11 @@ attribute returns [value = None]
         {
             value = at.getText();
             if at.getText():
-                valueST = stringtemplate3.StringTemplate(self.this.group, \
-                    at.getText())
+                from stringtemplate3.templates import StringTemplate
+                valueST = StringTemplate(
+                    group=self.this.group,
+                    template=at.getText()
+                    )
                 valueST.enclosingInstance = self.this
                 valueST.name = "<anonymous template argument>"
                 value = valueST

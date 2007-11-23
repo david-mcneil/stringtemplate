@@ -33,10 +33,10 @@ from copy import copy
 
 
 import antlr
-#from synchronize import *
 
 from stringtemplate3.language import (
-    FormalArgument, ChunkToken,
+    FormalArgument, UNKNOWN_ARGS,
+    ChunkToken,
     ASTExpr, StringTemplateAST,
     TemplateParser,
     ActionLexer, ActionParser,
@@ -46,6 +46,7 @@ from stringtemplate3.language import (
 
 from stringtemplate3.writers import StringTemplateWriter
 from stringtemplate3.utils import deprecated
+import stringtemplate3
 
 
 class STAttributeList(list):
@@ -56,48 +57,50 @@ class STAttributeList(list):
 
     pass
 
-                
-## An automatically created aggregate of properties.
-#
-#  I often have lists of things that need to be formatted, but the list
-#  items are actually pieces of data that are not already in an object.  I
-#  need ST to do something like:
-#
-#  Ter=3432
-#  Tom=32234
-#  ....
-#
-#  using template:
-#
-#  $items:{$attr.name$=$attr.type$$
-#
-#  This example will call getName() on the objects in items attribute, but
-#  what if they aren't objects?  I have perhaps two parallel arrays
-#  instead of a single array of objects containing two fields.  One
-#  solution is allow dictionaries to be handled like properties so that
-#  it.name would fail getName() but then see that it's a dictionary and
-#  do it.get("name") instead.
-#
-#  This very clean approach is espoused by some, but the problem is that
-#  it's a hole in my separation rules.  People can put the logic in the
-#  view because you could say: "go get bob's data" in the view:
-#
-#  Bob's Phone: $db.bob.phone$
-#
-#  A view should not be part of the program and hence should never be able
-#  to go ask for a specific person's data.
-#
-#  After much thought, I finally decided on a simple solution.  I've
-#  added setAttribute variants that pass in multiple property values,
-#  with the property names specified as part of the name using a special
-#  attribute name syntax: "name.{propName1,propName2,...".  This
-#  object is a special kind of dictionary that hopefully prevents people
-#  from passing a subclass or other variant that they have created as
-#  it would be a loophole.  Anyway, the ASTExpr.getObjectProperty()
-#  method looks for Aggregate as a special case and does a get() instead
-#  of getPropertyName.
-#
+
 class Aggregate(object):
+    """
+    An automatically created aggregate of properties.
+
+    I often have lists of things that need to be formatted, but the list
+    items are actually pieces of data that are not already in an object.  I
+    need ST to do something like:
+
+    Ter=3432
+    Tom=32234
+    ....
+
+    using template:
+
+    $items:{$attr.name$=$attr.type$$
+
+    This example will call getName() on the objects in items attribute, but
+    what if they aren't objects?  I have perhaps two parallel arrays
+    instead of a single array of objects containing two fields.  One
+    solution is allow dictionaries to be handled like properties so that
+    it.name would fail getName() but then see that it's a dictionary and
+    do it.get('name') instead.
+
+    This very clean approach is espoused by some, but the problem is that
+    it's a hole in my separation rules.  People can put the logic in the
+    view because you could say: 'go get bob's data' in the view:
+
+    Bob's Phone: $db.bob.phone$
+
+    A view should not be part of the program and hence should never be able
+    to go ask for a specific person's data.
+
+    After much thought, I finally decided on a simple solution.  I've
+    added setAttribute variants that pass in multiple property values,
+    with the property names specified as part of the name using a special
+    attribute name syntax: 'name.{propName1,propName2,...'.  This
+    object is a special kind of dictionary that hopefully prevents people
+    from passing a subclass or other variant that they have created as
+    it would be a loophole.  Anyway, the ASTExpr.getObjectProperty()
+    method looks for Aggregate as a special case and does a get() instead
+    of getPropertyName.
+    """
+    
     def __init__(self, master):
         self.properties = {}
         self.master = master
@@ -150,6 +153,26 @@ REGION_EXPLICIT = 3
 
 ANONYMOUS_ST_NAME = "anonymous"
 
+
+## incremental counter for templates IDs
+templateCounter = 0
+
+def getNextTemplateCounter():
+    global templateCounter
+    templateCounter += 1
+    return templateCounter
+
+def resetTemplateCounter():
+    """
+    reset the template ID counter to 0; def that testing routine
+    can access but not really of interest to the user.
+    """
+    
+    global templateCounter
+    templateCounter = 0
+
+
+
 class StringTemplate(object):
     """
     A StringTemplate is a "document" with holes in it where you can stick
@@ -158,21 +181,6 @@ class StringTemplate(object):
     of attribute expressions, treating it as just text to spit
     out when you call StringTemplate.toString().
     """
-
-    ## track probable issues like setting attribute that is not referenced.
-    lintMode = False
-    
-    ## this is a list of attributes (properties in StringTemplate jargon)
-    #  that are derived for the StringTemplate, but which we want to hide
-    #  from the properties overview in the AttributeReflectionController.
-    hideProperties = [
-        'argumentContext', 'argumentsAST', 'attributeRenderers', 'attributes',
-        'chunks', 'enclosingInstance', 'enclosingInstanceStackTrace',
-        'errorListener', 'formalArgumentKeys', 'formalArguments', 'group',
-        'instanceOf', 'name', 'nextTemplateCounter', 'outermostName',
-        'template', 'templateDeclaratorString', 'templateID'
-        ]
-
 
     ## Either:
     #    Create a blank template with no pattern and no attributes
@@ -190,7 +198,7 @@ class StringTemplate(object):
         ## What's the name of self template?
         self.name = ANONYMOUS_ST_NAME
 
-        self.templateID = StringTemplate.getNextTemplateCounter()
+        self.templateID = getNextTemplateCounter()
 
         ## Enclosing instance if I'm embedded within another template.
         #  IF-subtemplates are considered embedded as well.
@@ -237,7 +245,7 @@ class StringTemplate(object):
         #  When actually rendering the template, the cardinality is checked.
         #  This is a {str:FormalArgument} dictionary.
         self.formalArgumentKeys = None
-        self.formalArguments = FormalArgument.UNKNOWN
+        self.formalArguments = UNKNOWN_ARGS
 
 	## How many formal arguments to this template have default values
 	#  specified?
@@ -335,27 +343,16 @@ class StringTemplate(object):
             self.attributes = attributes
 
 
-    templateCounter = 0
-    def getNextTemplateCounter():
-        StringTemplate.templateCounter += 1
-        return StringTemplate.templateCounter
-    getNextTemplateCounter = staticmethod(getNextTemplateCounter)
-
-    ## reset the template ID counter to 0; def that testing routine
-    #  can access but not really of interest to the user.
-    def resetTemplateCounter():
-        StringTemplate.templateCounter = 0
-    resetTemplateCounter = staticmethod(resetTemplateCounter)
-
-
-    ## Make the 'to' template look exactly like the 'from' template
-    #  except for the attributes.  This is like creating an instance
-    #  of a class in that the executable code is the same (the template
-    #  chunks), but the instance data is blank (the attributes).  Do
-    #  not copy the enclosingInstance pointer since you will want self
-    #  template to eval in a context different from the examplar.
-    #
     def dup(self, fr, to):
+        """
+        Make the 'to' template look exactly like the 'from' template
+        except for the attributes.  This is like creating an instance
+        of a class in that the executable code is the same (the template
+        chunks), but the instance data is blank (the attributes).  Do
+        not copy the enclosingInstance pointer since you will want self
+        template to eval in a context different from the examplar.
+        """
+        
         to.attributeRenderers = fr.attributeRenderers
         to.pattern = copy(fr.pattern)
         to.chunks = copy(fr.chunks)
@@ -370,12 +367,14 @@ class StringTemplate(object):
         to._isRegion = fr._isRegion
         to.regionDefTyep = fr.regionDefType
         
-    ## Make an instance of self template; it contains an exact copy of
-    #  everything (except the attributes and enclosing instance pointer).
-    #  So the new template refers to the previously compiled chunks of self
-    #  template but does not have any attribute values.
-    #
     def getInstanceOf(self):
+        """
+        Make an instance of self template; it contains an exact copy of
+        everything (except the attributes and enclosing instance pointer).
+        So the new template refers to the previously compiled chunks of self
+        template but does not have any attribute values.
+        """
+        
         if self.nativeGroup is not None:
             # create a template using the native group for this template
             # but it's "group" is set to this.group by dup after creation so
@@ -516,7 +515,7 @@ class StringTemplate(object):
 
     def setPredefinedAttributes(self):
         # only do self method so far in lint mode
-        if not StringTemplate.lintMode:
+        if not stringtemplate3.lintMode:
             return
 
     def removeAttribute(self, name):
@@ -524,20 +523,23 @@ class StringTemplate(object):
 
     __delitem__ = removeAttribute
 
-    ## Set an attribute for self template.  If you set the same
-    #  attribute more than once, you get a multi-valued attribute.
-    #  If you send in a StringTemplate object as a value, its
-    #  enclosing instance (where it will inherit values from) is
-    #  set to 'self'.  This would be the normal case, though you
-    #  can set it back to None after this call if you want.
-    #  If you send in a List plus other values to the same
-    #  attribute, they all get flattened into one List of values.
-    #  This will be a new list object so that incoming objects are
-    #  not altered.
-    #  If you send in an array, it is converted to a List.  Works
-    #  with arrays of objects and arrays of:int,float,double.
-    #
+
     def setAttribute(self, name, *values):
+        """
+        Set an attribute for self template.  If you set the same
+        attribute more than once, you get a multi-valued attribute.
+        If you send in a StringTemplate object as a value, its
+        enclosing instance (where it will inherit values from) is
+        set to 'self'.  This would be the normal case, though you
+        can set it back to None after this call if you want.
+        If you send in a List plus other values to the same
+        attribute, they all get flattened into one List of values.
+        This will be a new list object so that incoming objects are
+        not altered.
+        If you send in an array, it is converted to a List.  Works
+        with arrays of objects and arrays of:int,float,double.
+        """
+        
         if len(values) == 0:
             return
         if len(values) == 1:
@@ -614,10 +616,13 @@ class StringTemplate(object):
 
     __setitem__ = setAttribute
 
-    ## Split "aggrName.{propName1,propName2" into list [propName1,propName2]
-    #  and the aggrName. Space is allowed around ','
-    #
+
     def parseAggregateAttributeSpec(self, aggrSpec):
+        """
+        Split "aggrName.{propName1,propName2" into list [propName1,propName2]
+        and the aggrName. Space is allowed around ','
+        """
+
         dot = aggrSpec.find('.')
         if dot <= 0:
             raise ValueError('invalid aggregate attribute format: ' + aggrSpec)
@@ -630,12 +635,15 @@ class StringTemplate(object):
 
         return aggrName, propString
 
-    ## Map a value to a named attribute.  Throw KeyError if
-    #  the named attribute is not formally defined in self's specific template
-    #  and a formal argument list exists.
-    #
+
     def rawSetAttribute(self, attributes, name, value):
-        if self.formalArguments != FormalArgument.UNKNOWN and \
+        """
+        Map a value to a named attribute.  Throw KeyError if
+        the named attribute is not formally defined in self's specific template
+        and a formal argument list exists.
+        """
+        
+        if self.formalArguments != UNKNOWN_ARGS and \
            not self.hasFormalArgument(name):
             # a normal call to setAttribute with unknown attribute
             raise KeyError("no such attribute: " + name +
@@ -647,13 +655,16 @@ class StringTemplate(object):
              isinstance(value, set):
             attributes[name] = value
 
-    ## Argument evaluation such as foo(x=y), x must
-    #  be checked against foo's argument list not this's (which is
-    #  the enclosing context).  So far, only eval.g uses arg self as
-    #  something other than "this".
-    #
+
     def rawSetArgumentAttribute(self, embedded, attributes, name, value):
-        if embedded.formalArguments != FormalArgument.UNKNOWN and \
+        """
+        Argument evaluation such as foo(x=y), x must
+        be checked against foo's argument list not this's (which is
+        the enclosing context).  So far, only eval.g uses arg self as
+        something other than "this".
+        """
+
+        if embedded.formalArguments != UNKNOWN_ARGS and \
            not embedded.hasFormalArgument(name):
             raise KeyError("template " + embedded.name +
                 " has no such attribute: " + name + " in template context " +
@@ -665,13 +676,16 @@ class StringTemplate(object):
              isinstance(value, set):
             attributes[name] = value
 
-    ## Walk the chunks, asking them to write themselves out according
-    #  to attribute values of 'self.attributes'.  This is like evaluating or
-    #  interpreting the StringTemplate as a program using the
-    #  attributes.  The chunks will be identical (point at same list)
-    #  for all instances of self template.
-    #
+
     def write(self, out):
+        """
+        Walk the chunks, asking them to write themselves out according
+        to attribute values of 'self.attributes'.  This is like evaluating or
+        interpreting the StringTemplate as a program using the
+        attributes.  The chunks will be identical (point at same list)
+        for all instances of self template.
+        """
+        
         if self.group.debugTemplateOutput:
             self.group.emitTemplateStartDebugString(self, out)
             
@@ -708,45 +722,46 @@ class StringTemplate(object):
         if self.group.debugTemplateOutput:
             self.group.emitTemplateStopDebugString(self, out)
 
-        if StringTemplate.lintMode:
+        if stringtemplate3.lintMode:
             self.checkForTrouble()
             
         return n
 
-    ## Resolve an attribute reference.  It can be in four possible places:
-    #
-    #  1. the attribute list for the current template
-    #  2. if self is an embedded template, somebody invoked us possibly
-    #     with arguments--check the argument context
-    #  3. if self is an embedded template, the attribute list for the enclosing
-    #     instance (recursively up the enclosing instance chain)
-    #  4. if nothing is found in the enclosing instance chain, then it might
-    #     be a map defined in the group or the its supergroup etc...
-    #
-    #  Attribute references are checked for validity.  If an attribute has
-    #  a value, its validity was checked before template rendering.
-    #  If the attribute has no value, then we must check to ensure it is a
-    #  valid reference.  Somebody could reference any random value like $xyz$
-    #  formal arg checks before rendering cannot detect self--only the ref
-    #  can initiate a validity check.  So, if no value, walk up the enclosed
-    #  template tree again, this time checking formal parameters not
-    #  attributes dictionary.  The formal definition must exist even if no
-    #  value.
-    #
-    #  To avoid infinite recursion in str(), we have another condition
-    #  to check regarding attribute values.  If your template has a formal
-    #  argument, foo, then foo will hide any value available from "above"
-    #  in order to prevent infinite recursion.
-    #
-    #  This method is not static so people can override its functionality.
-    #
+
     def get(self, this, attribute):
-        #sys.stderr.write('get(' + self.getName() + ', ' + str(attribute) +
-        #                 ')\n')
+        """
+        Resolve an attribute reference.  It can be in four possible places:
+
+        1. the attribute list for the current template
+        2. if self is an embedded template, somebody invoked us possibly
+           with arguments--check the argument context
+        3. if self is an embedded template, the attribute list for the
+           enclosing instance (recursively up the enclosing instance chain)
+        4. if nothing is found in the enclosing instance chain, then it might
+           be a map defined in the group or the its supergroup etc...
+
+        Attribute references are checked for validity.  If an attribute has
+        a value, its validity was checked before template rendering.
+        If the attribute has no value, then we must check to ensure it is a
+        valid reference.  Somebody could reference any random value like $xyz$
+        formal arg checks before rendering cannot detect self--only the ref
+        can initiate a validity check.  So, if no value, walk up the enclosed
+        template tree again, this time checking formal parameters not
+        attributes dictionary.  The formal definition must exist even if no
+        value.
+
+        To avoid infinite recursion in str(), we have another condition
+        to check regarding attribute values.  If your template has a formal
+        argument, foo, then foo will hide any value available from "above"
+        in order to prevent infinite recursion.
+
+        This method is not static so people can override its functionality.
+        """
+            
         if not this:
             return None
 
-        if StringTemplate.lintMode:
+        if stringtemplate3.lintMode:
             this.trackAttributeReference(attribute)
 
         # is it here?
@@ -893,22 +908,24 @@ class StringTemplate(object):
         self.formalArguments = args
 
 
-    ## Set any default argument values that were not set by the
-    #  invoking template or by setAttribute directly.  Note
-    #  that the default values may be templates.  Their evaluation
-    #  context is the template itself and, hence, can see attributes
-    #  within the template, any arguments, and any values inherited
-    #  by the template.
-    #
-    #  Default values are stored in the argument context rather than
-    #  the template attributes table just for consistency's sake.
-    #
     def setDefaultArgumentValues(self):
+        """
+        Set any default argument values that were not set by the
+        invoking template or by setAttribute directly.  Note
+        that the default values may be templates.  Their evaluation
+        context is the template itself and, hence, can see attributes
+        within the template, any arguments, and any values inherited
+        by the template.
+
+        Default values are stored in the argument context rather than
+        the template attributes table just for consistency's sake.
+        """
+
         if not self.numberOfDefaultArgumentValues:
             return
         if not self.argumentContext:
             self.argumentContext = {}
-        if self.formalArguments != FormalArgument.UNKNOWN:
+        if self.formalArguments != UNKNOWN_ARGS:
             argNames = self.formalArgumentKeys
             for argName in argNames:
                 # use the default value then
@@ -922,10 +939,13 @@ class StringTemplate(object):
                         # the arg templates by the user.
                         self.argumentContext[argName] = arg.defaultValueST
 
-    ## From self template upward in the enclosing template tree,
-    #  recursively look for the formal parameter.
-    #
+
     def lookupFormalArgument(self, name):
+        """
+        From self template upward in the enclosing template tree,
+        recursively look for the formal parameter.
+        """
+
         if not self.hasFormalArgument(name):
             if self.enclosingInstance:
                 arg = self.enclosingInstance.lookupFormalArgument(name)
@@ -953,44 +973,56 @@ class StringTemplate(object):
             if defaultValue:
                 self.numberOfDefaultArgumentValues += 1
             a = FormalArgument(name, defaultValue)
-            if self.formalArguments == FormalArgument.UNKNOWN:
+            if self.formalArguments == UNKNOWN_ARGS:
                 self.formalArguments = {}
             self.formalArgumentKeys = [name]
             self.formalArguments[name] = a
         elif isinstance(names, list):
             for name in names:
                 a = FormalArgument(name, defaultValue)
-                if self.formalArguments == FormalArgument.UNKNOWN:
+                if self.formalArguments == UNKNOWN_ARGS:
                     self.formalArgumentKeys = []
                     self.formalArguments = {}
                 self.formalArgumentKeys.append(name)
                 self.formalArguments[name] = a
                 
-    ## Normally if you call template y from x, y cannot see any attributes
-    #  of x that are defined as formal parameters of y.  Setting this
-    #  passThroughAttributes to true, will override that and allow a
-    #  template to see through the formal arg list to inherited values.
-    #
+
     def setPassThroughAttributes(self, passThroughAttributes):
+        """
+        Normally if you call template y from x, y cannot see any attributes
+        of x that are defined as formal parameters of y.  Setting this
+        passThroughAttributes to true, will override that and allow a
+        template to see through the formal arg list to inherited values.
+        """
+        
         self.passThroughAttributes = passThroughAttributes
 
-    ## Specify a complete map of what object classes should map to which
-    #  renderer objects.
     @deprecated
     def setAttributeRenderers(self, renderers):
+        """
+        Specify a complete map of what object classes should map to which
+        renderer objects.
+        """
+        
         self.attributeRenderers = renderers
 
-    ## Register a renderer for all objects of a particular type.  This
-    #  overrides any renderer set in the group for this class type.
-    #
+
     def registerRenderer(self, attributeClassType, renderer):
+        """
+        Register a renderer for all objects of a particular type.  This
+        overrides any renderer set in the group for this class type.
+        """
+        
         if not self.attributeRenderers:
             self.attributeRenderers = {}
         self.attributeRenderers[attributeClassType] = renderer
 
-    ## What renderer is registered for this attributeClassType for
-    #  this template.  If not found, the template's group is queried.
     def getAttributeRenderer(self, attributeClassType):
+        """
+        What renderer is registered for this attributeClassType for
+        this template.  If not found, the template's group is queried.
+        """
+        
         renderer = None
         if self.attributeRenderers is not None:
             renderer = self.attributeRenderers.get(attributeClassType, None)
@@ -1029,29 +1061,24 @@ class StringTemplate(object):
             sys.stderr.write('StringTemplate: error: ' + msg)
 
 
-    ## Make StringTemplate check your work as it evaluates templates.
-    #  Problems are sent to error listener.   Currently warns when
-    #  you set attributes that are not used.
-    def setLintMode(lint):
-        StringTemplate.lintMode = lint
-    setLintMode = staticmethod(setLintMode)
-
-    def inLintMode():
-        return StringTemplate.lintMode
-    inLintMode = staticmethod(inLintMode)
-
-    ## Indicates that 'name' has been referenced in self template.
-    #
     def trackAttributeReference(self, name):
+        """
+        Indicates that 'name' has been referenced in self template.
+        """
+        
         if not self.referencedAttributes:
             self.referencedAttributes = []
         if not name in self.referencedAttributes:
             self.referencedAttributes.append(name)
 
-    ## Look up the enclosing instance chain (and include self) to see
-    #  if st is a template already in the enclosing instance chain.
-    #
-    def isRecursiveEnclosingInstance(st):
+
+    @classmethod
+    def isRecursiveEnclosingInstance(cls, st):
+        """
+        Look up the enclosing instance chain (and include self) to see
+        if st is a template already in the enclosing instance chain.
+        """
+        
         if not st:
             return False
         p = st.enclosingInstance
@@ -1064,7 +1091,7 @@ class StringTemplate(object):
                 return True
             p = p.enclosingInstance
         return False
-    isRecursiveEnclosingInstance = staticmethod(isRecursiveEnclosingInstance)
+
 
     def getEnclosingInstanceStackTrace(self):
         buf = StringIO()
@@ -1131,15 +1158,18 @@ class StringTemplate(object):
 
         return self.name
 
-    ## A reference to an attribute with no value, must be compared against
-    #  the formal parameter to see if it exists; if it exists all is well,
-    #  but if not, throw an exception.
-    #
-    #  Don't do the check if no formal parameters exist for self template
-    #  ask enclosing.
-    #
+
     def checkNullAttributeAgainstFormalArguments(self, this, attribute):
-        if this.formalArguments == FormalArgument.UNKNOWN:
+        """
+        A reference to an attribute with no value, must be compared against
+        the formal parameter to see if it exists; if it exists all is well,
+        but if not, throw an exception.
+
+        Don't do the check if no formal parameters exist for self template
+        ask enclosing.
+        """
+
+        if this.formalArguments == UNKNOWN_ARGS:
             # bypass unknown arg lists
             if this.enclosingInstance:
                 self.checkNullAttributeAgainstFormalArguments(
@@ -1151,10 +1181,13 @@ class StringTemplate(object):
                                ' in template context ' +
                                self.enclosingInstanceStackString)
 
-    ## Executed after evaluating a template.  For now, checks for setting
-    #  of attributes not reference.
-    #
+
     def checkForTrouble(self):
+        """
+        Executed after evaluating a template.  For now, checks for setting
+        of attributes not reference.
+        """
+        
         # we have table of set values and list of values referenced
         # compare, looking for SET BUT NOT REFERENCED ATTRIBUTES
         if not self.attributes:
@@ -1166,11 +1199,14 @@ class StringTemplate(object):
 
         # can do the reverse, but will have lots of False warnings :(
 
-    ## If an instance of x is enclosed in a y which is in a z, return
-    #  a String of these instance names in order from topmost to lowest;
-    #  here that would be "[z y x]".
 
     def getEnclosingInstanceStackString(self):
+        """
+        If an instance of x is enclosed in a y which is in a z, return
+        a String of these instance names in order from topmost to lowest;
+        here that would be "[z y x]".
+        """
+        
         names = []
         p = self
         while p:
@@ -1367,41 +1403,41 @@ class StringTemplate(object):
             map[key] = [value]
 
 
-    def printDebugString(self):
-        sys.stderr.write('template-' + self.name + ':\n')
-        sys.stderr.write('chunks=' + str(self.chunks))
+    def printDebugString(self, out=sys.stderr):
+        out.write('template-' + self.name + ':\n')
+        out.write('chunks=' + str(self.chunks))
         if not self.attributes:
             return
-        sys.stderr.write("attributes=[")
+        out.write("attributes=[")
         n = 0
         for name in self.attributes.keys():
             if n > 0:
-                sys.stderr.write(',')
+                out.write(',')
             value = self.attributes[name]
             if isinstance(value, StringTemplate):
-                sys.stderr.write(name + '=')
+                out.write(name + '=')
                 value.printDebugString()
             else:
                 if isinstance(value, list):
                     i = 0
                     for o in value:
-                        sys.stderr.write(name + '[' + i + '] is ' +
+                        out.write(name + '[' + i + '] is ' +
                                          o.__class__.__name__ + '=')
                         if isinstance(o, StringTemplate):
                             o.printDebugString()
                         else:
-                            sys.stderr.write(o)
+                            out.write(o)
                         i += 1
                 else:
-                    sys.stderr.write(name + '=' + value + '\n')
+                    out.write(name + '=' + value + '\n')
 
             n += 1
-        sys.stderr.write("]\n")
+        out.write("]\n")
 
 
     def toString(self, lineWidth=StringTemplateWriter.NO_WRAP):
         # Write the output to a StringIO
-        out = StringIO()
+        out = StringIO(u'')
         wr = self.group.getStringTemplateWriter(out)
         wr.lineWidth = lineWidth
         try:
@@ -1420,9 +1456,8 @@ class StringTemplate(object):
     __str__ = toString
     
 
+# initialize here, because of cyclic imports
 from stringtemplate3.groups import StringTemplateGroup
 StringTemplateGroup.NOT_FOUND_ST = StringTemplate()
-    
-## # FIXME: ugly hack to work around cyclic import conflict
 ASTExpr.MAP_KEY_VALUE = StringTemplate()
 

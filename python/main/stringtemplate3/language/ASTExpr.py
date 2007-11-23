@@ -3,16 +3,20 @@ from StringIO import StringIO
 import antlr
 
 from stringtemplate3.utils import deprecated
-from Expr import Expr
-import ActionEvaluator
-from StringTemplateAST import StringTemplateAST
-from CatIterator import CatList
+from stringtemplate3.language.Expr import Expr
+from stringtemplate3.language import ActionEvaluator
+from stringtemplate3.language.StringTemplateAST import StringTemplateAST
+from stringtemplate3.language.CatIterator import CatList
+from stringtemplate3.language.FormalArgument import (
+    FormalArgument, UNKNOWN_ARGS
+    )
 import stringtemplate3
 
 class IllegalStateException(Exception):
 
     def __init__(self, *args):
         Exception.__init__(self, *args)
+
 
 def isiterable(o):
     if isinstance(o, (basestring, stringtemplate3.StringTemplate)):
@@ -26,11 +30,45 @@ def isiterable(o):
     else:
         return True
     
-## A single string template expression enclosed in $...; separator=...$
-#  parsed into an AST chunk to be evaluated.
-#
-class ASTExpr(Expr):
+def convertAnyCollectionToList(o):
+    list_ = None
+    if isinstance(o, list):
+        list_ = o
+    elif isinstance(o, tuple) or isinstance(o, set):
+        list_ = list(o)
+    elif isinstance(o, dict):
+        list_ = o.values()
+    elif isinstance(o, CatList):
+        list_ = []
+        for item in o.lists():
+            list_.append(item)
+    if not list_:
+        return o
+    return list_
 
+
+def convertAnythingToList(o):
+    list_ = None
+    if isinstance(o, list):
+        list_ = o
+    elif isinstance(o, tuple) or isinstance(o, set):
+        list_ = list(o)
+    elif isinstance(o, dict):
+        list_ = o.values()
+    elif isinstance(o, CatList):
+        list_ = []
+        for item in o.lists():
+            list_.append(item)
+    if not list_:
+        return [o]
+    return list_
+
+
+class ASTExpr(Expr):
+    """
+    A single string template expression enclosed in $...; separator=...$
+    parsed into an AST chunk to be evaluated.
+    """
 
     DEFAULT_ATTRIBUTE_NAME = 'it'
     DEFAULT_ATTRIBUTE_KEY = 'ik'
@@ -41,7 +79,7 @@ class ASTExpr(Expr):
     DEFAULT_MAP_KEY_NAME = 'key'
 
     MAP_KEY_VALUE = None
-    
+
     ## Using an expr option w/o value, makes options table hold EMPTY_OPTION
     #  value for that key.
     EMPTY_OPTION = "empty expr option"
@@ -182,7 +220,7 @@ class ASTExpr(Expr):
         attributesList = []
         for o in attributes:
             if o is not None:
-                o = self.convertAnythingToList(o)
+                o = convertAnythingToList(o)
                 attributesList.append(o)
         attributes = attributesList
 
@@ -262,21 +300,21 @@ class ASTExpr(Expr):
                 isAnonymous = embedded.name == stringtemplate3.ANONYMOUS_ST_NAME
                 self.setSoleFormalArgumentToIthValue(embedded, argumentContext, ithValue)
                 if isinstance(attributeValue, dict):
-                    argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_KEY] = ithValue
+                    argumentContext[self.DEFAULT_ATTRIBUTE_KEY] = ithValue
                     # formalArgs might be UNKNOWN, which is non-empty but treated
                     # like 'no formal args'. FIXME: Is this correct
-                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
-                        argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = attributeValue[ithValue]
-                        argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue[ithValue]
+                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != UNKNOWN_ARGS):
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME] = attributeValue[ithValue]
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue[ithValue]
                 else:
-                    argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_KEY] = None
+                    argumentContext[self.DEFAULT_ATTRIBUTE_KEY] = None
                     # formalArgs might be UNKNOWN, which is non-empty but treated
                     # like 'no formal args'. FIXME: Is this correct
-                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
-                        argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = ithValue
-                        argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue
-                argumentContext[ASTExpr.DEFAULT_INDEX_VARIABLE_NAME] = i+1
-                argumentContext[ASTExpr.DEFAULT_INDEX0_VARIABLE_NAME] = i
+                    if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != UNKNOWN_ARGS):
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME] = ithValue
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = ithValue
+                argumentContext[self.DEFAULT_INDEX_VARIABLE_NAME] = i+1
+                argumentContext[self.DEFAULT_INDEX0_VARIABLE_NAME] = i
                 embedded.argumentContext = argumentContext
                 self.evaluateArguments(embedded)
                 #sys.stderr.write('i=' + str(i) + ': applyTemplate(' +
@@ -293,7 +331,7 @@ class ASTExpr(Expr):
         else:
             embedded = templatesToApply[0]
             #sys.stderr.write('setting attribute ' +
-            #                 ASTExpr.DEFAULT_ATTRIBUTE_NAME +
+            #                 DEFAULT_ATTRIBUTE_NAME +
             #                 ' in arg context of ' + embedded.getName() +
             #                 ' to ' + str(attributeValue) + '\n')
             argumentContext = {}
@@ -304,11 +342,11 @@ class ASTExpr(Expr):
             # if it's an anonymous template with a formal arg, don't set it/attr
             # formalArgs might be UNKNOWN, which is non-empty but treated
             # like 'no formal args'. FIXME: Is this correct
-            if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != stringtemplate3.language.FormalArgument.UNKNOWN):
-                argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME] = attributeValue
-                argumentContext[ASTExpr.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue
-            argumentContext[ASTExpr.DEFAULT_INDEX_VARIABLE_NAME] = 1
-            argumentContext[ASTExpr.DEFAULT_INDEX0_VARIABLE_NAME] = 0
+            if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != UNKNOWN_ARGS):
+                argumentContext[self.DEFAULT_ATTRIBUTE_NAME] = attributeValue
+                argumentContext[self.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue
+            argumentContext[self.DEFAULT_INDEX_VARIABLE_NAME] = 1
+            argumentContext[self.DEFAULT_INDEX0_VARIABLE_NAME] = 0
             embedded.argumentContext = argumentContext
             self.evaluateArguments(embedded)
             return embedded
@@ -348,7 +386,7 @@ class ASTExpr(Expr):
             if value is None:
                 # no property defined; if a map in this group
                 # then there may be a default value
-                value = o.get(ASTExpr.DEFAULT_MAP_VALUE_NAME, None)
+                value = o.get(self.DEFAULT_MAP_VALUE_NAME, None)
 
         # Or: if it's a dictionary then pull using key not the
         # property method.
@@ -444,13 +482,14 @@ class ASTExpr(Expr):
     #  strings then cat.
     #
     def add(self, a, b):
-        if not a: # a None value means don't do cat, just return other value
+        # a None value means don't do cat, just return other value
+        if a is None:
             return b
-        elif not b:
+        elif b is None:
             return a
 
-        return str(a) + str(b)
-
+        return unicode(a) + unicode(b)
+    
     ## Call a string template with args and return result.  Do not convert
     #  to a string yet.  It may need attributes that will be available after
     #  self is inserted into another template.
@@ -505,7 +544,7 @@ class ASTExpr(Expr):
                 o.enclosingInstance = this
                 # if this is found up the enclosing instance chain, then
                 # infinite recursion
-                if stringtemplate3.StringTemplate.inLintMode() and \
+                if stringtemplate3.lintMode and \
                    stringtemplate3.StringTemplate.isRecursiveEnclosingInstance(o):
                     # throw exception since sometimes eval keeps going
                     # even after I ignore self write of o.
@@ -652,40 +691,6 @@ class ASTExpr(Expr):
             this.error('can\'t evaluate tree: ' + argumentsAST.toStringList(),
                        re)
 
-    @staticmethod
-    def convertAnyCollectionToList(o):
-        list_ = None
-        if isinstance(o, list):
-            list_ = o
-        elif isinstance(o, tuple) or isinstance(o, set):
-            list_ = list(o)
-        elif isinstance(o, dict):
-            list_ = o.values()
-        elif isinstance(o, CatList):
-            list_ = []
-            for item in o.lists():
-                list_.append(item)
-        if not list_:
-            return o
-        return list_
-
-    @staticmethod
-    def convertAnythingToList(o):
-        list_ = None
-        if isinstance(o, list):
-            list_ = o
-        elif isinstance(o, tuple) or isinstance(o, set):
-            list_ = list(o)
-        elif isinstance(o, dict):
-            list_ = o.values()
-        elif isinstance(o, CatList):
-            list_ = []
-            for item in o.lists():
-                list_.append(item)
-        if not list_:
-            return [o]
-        return list_
-
     ## Return the first attribute if multiple valued or the attribute
     #  itself if single-valued.  Used in <names:first()>
     #
@@ -693,7 +698,7 @@ class ASTExpr(Expr):
         if not attribute:
             return None
         f = attribute
-        attribute = self.convertAnyCollectionToList(attribute)
+        attribute = convertAnyCollectionToList(attribute)
         if attribute and isinstance(attribute, list):
             f = attribute[0]
         return f
@@ -705,7 +710,7 @@ class ASTExpr(Expr):
         if not attribute:
             return None
         theRest = attribute
-        attribute = self.convertAnyCollectionToList(attribute)
+        attribute = convertAnyCollectionToList(attribute)
         if not attribute:
             # if not even one value return None
             return None
@@ -731,7 +736,7 @@ class ASTExpr(Expr):
         if not attribute:
             return None
         l = attribute
-        attribute = self.convertAnyCollectionToList(attribute)
+        attribute = convertAnyCollectionToList(attribute)
         if attribute and isinstance(attribute, list):
             l = attribute[-1]
         return l
@@ -809,35 +814,3 @@ class ASTExpr(Expr):
 
         return value
 
-
-def convertAnyCollectionToList(o):
-    list_ = None
-    if isinstance(o, list):
-        list_ = o
-    elif isinstance(o, tuple) or isinstance(o, set):
-        list_ = list(o)
-    elif isinstance(o, dict):
-        list_ = o.values()
-    elif isinstance(o, CatList):
-        list_ = []
-        for item in o.lists():
-            list_.append(item)
-    if not list_:
-        return o
-    return list_
-
-def convertAnythingToList(o):
-    list_ = None
-    if isinstance(o, list):
-        list_ = o
-    elif isinstance(o, tuple) or isinstance(o, set):
-        list_ = list(o)
-    elif isinstance(o, dict):
-        list_ = o.values()
-    elif isinstance(o, CatList):
-        list_ = []
-        for item in o.lists():
-            list_.append(item)
-    if not list_:
-        return [o]
-    return list_
