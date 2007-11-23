@@ -334,7 +334,7 @@ class TestGroupLoader(unittest.TestCase):
 
         group = StringTemplateGroup(
             file=open(tmpdir+"/testG.stg"),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=errors
             )
         st = group.getInstanceOf("main")
@@ -354,7 +354,7 @@ class TestGroupFileFormat(unittest.TestCase):
             "duh() ::= <<"+os.linesep+"xx"+os.linesep+">>"+os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def testGroupFileFormat(self):
@@ -394,7 +394,7 @@ class TestEscapedTemplateDelimiters(unittest.TestCase):
         
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 	
         expecting = (
@@ -428,7 +428,7 @@ class TestTemplateParameterDecls(unittest.TestCase):
             "t4(a,b,c,d)::= <<$a$ $b$ $c$ $d$>>"+os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     # check setting unknown arg in empty formal list
@@ -499,7 +499,7 @@ class TestMissingInheritedAttribute(unittest.TestCase):
             "body()::= \"<font face=$font$>my body</font>\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -522,7 +522,7 @@ class TestFormalArgumentAssignment(unittest.TestCase):
             "body(font)::= \"<font face=$font$>my body</font>\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -540,7 +540,7 @@ class TestUndefinedArgumentAssignment(unittest.TestCase):
             "body()::= \"<font face=$font$>my body</font>\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         
     def runTest(self):
@@ -564,7 +564,7 @@ class TestFormalArgumentAssignmentInApply(unittest.TestCase):
         "bold(font)::= \"<font face=$font$><b>$it$</b></font>\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -583,7 +583,7 @@ class TestUndefinedArgumentAssignmentInApply(unittest.TestCase):
             "bold()::= \"<font face=$font$><b>$it$</b></font>\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -608,7 +608,7 @@ class TestUndefinedAttributeReference(unittest.TestCase):
             "bold()::= \"$name$\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -631,7 +631,7 @@ class TestUndefinedDefaultAttributeReference(unittest.TestCase):
             "bold()::= \"$it$\"" +os.linesep
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -684,7 +684,7 @@ class TestAngleBracketsNoGroup(unittest.TestCase):
     def runTest(self):
         st = StringTemplate(
             template="Tokens: <rules; separator=\"|\"> ;",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st["rules"] = "A"
         st["rules"] = "B"
@@ -701,7 +701,7 @@ class TestRegions(unittest.TestCase):
         
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         st = group.getInstanceOf("a")
         result = str(st)
@@ -716,7 +716,7 @@ class TestRegions(unittest.TestCase):
             )
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         st = group.getInstanceOf("a")
         result = str(st)
@@ -839,7 +839,7 @@ class TestRegions(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
 
@@ -866,7 +866,7 @@ class TestRegions(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
 
@@ -905,7 +905,7 @@ class TestRegions(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
 
@@ -915,7 +915,7 @@ class TestRegions(unittest.TestCase):
             )
         subSubGroup = StringTemplateGroup(
             file=StringIO(templates3),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=subGroup
             )
 
@@ -940,7 +940,7 @@ class TestRegions(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
         st = subGroup.getInstanceOf("a")
@@ -1006,7 +1006,7 @@ class TestRegions(unittest.TestCase):
         errors = ErrorBuffer()
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             errors=errors,
             superGroup=group
             )
@@ -1053,7 +1053,7 @@ class TestRegions(unittest.TestCase):
         errors = ErrorBuffer()
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             errors=errors,
             superGroup=group
             )
@@ -1073,7 +1073,7 @@ class TestRegions(unittest.TestCase):
         errors = ErrorBuffer()
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=errors,
             )
         st = group.getInstanceOf("a")
@@ -1207,7 +1207,7 @@ class Test3LevelSuperRef(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
 
@@ -1217,7 +1217,7 @@ class Test3LevelSuperRef(unittest.TestCase):
             )
         subSubGroup = StringTemplateGroup(
             file=StringIO(templates3),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=subGroup
             )
         st = subSubGroup.getInstanceOf("r")
@@ -1652,7 +1652,7 @@ class TestFindTemplateInCurrentDir(unittest.TestCase):
         mgroup = StringTemplateGroup(
             name="method stuff",
             rootDir=os.path.dirname(__file__) or '.',
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         m = mgroup.getInstanceOf("method")
         # "method.st" references body() so "body.st" will be loaded too
@@ -1781,7 +1781,7 @@ class TestMultiValuedAttributeWithSeparator(unittest.TestCase):
         group = StringTemplateGroup(
             name="dummy",
             rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         query = StringTemplate(
             group=group,
@@ -1810,7 +1810,7 @@ class TestIf(unittest.TestCase):
         group = StringTemplateGroup(
             name="dummy",
             rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = StringTemplate(
             group=group,
@@ -1826,7 +1826,7 @@ class TestIf(unittest.TestCase):
         group = StringTemplateGroup(
             name="dummy",
             rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = StringTemplate(
             group=group,
@@ -1873,7 +1873,7 @@ class TestIf(unittest.TestCase):
     def testNestedIFTemplate(self):
         group = StringTemplateGroup(
             name="dummy", rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = StringTemplate(
             group=group,
@@ -2052,7 +2052,7 @@ class TestRecursion(unittest.TestCase):
     def runTest(self):
         group = StringTemplateGroup(
             name="dummy", rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         group.defineTemplate("tree", \
                              "<if(it.firstChild)>"+ \
@@ -2273,7 +2273,7 @@ class TestSimpleIndentOfAttributeList(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -2299,7 +2299,7 @@ class TestIndentOfMultilineAttributes(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -2331,7 +2331,7 @@ class TestIndentOfMultipleBlankLines(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -2359,7 +2359,7 @@ class TestIndentBetweenLeftJustifiedLiterals(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -2396,7 +2396,7 @@ class TestNestedIndent(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -2673,7 +2673,7 @@ class TestListOfEmbeddedTemplateSeesEnclosingAttributes(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=self.errors
             )
 
@@ -3056,7 +3056,7 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
     def runTest(self):
         st = StringTemplate(
             template="Foo <! ignore !>bar" +os.linesep,
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = "Foo bar"+os.linesep
         result = str(st)
@@ -3067,7 +3067,7 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
                       " and a line break!>" +os.linesep+
                       "bar" +os.linesep
                       ),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = "Foo "+os.linesep+"bar"+os.linesep
         result = str(st)
@@ -3077,7 +3077,7 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
             template=("<! start of line $ and <! ick" +os.linesep+
                       "!>boo"+os.linesep
                       ),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = "boo"+os.linesep
         result = str(st)
@@ -3089,7 +3089,7 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
                       "<! ick" +os.linesep+
                       "!>boo"+os.linesep
                       ),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = "boo"+os.linesep
         result = str(st)
@@ -3100,7 +3100,7 @@ class TestEmbeddedCommentsAngleBracketed(unittest.TestCase):
                       "<! ick" +os.linesep+
                       "!>boo"+os.linesep
                       ),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = os.linesep+"boo"+os.linesep
         result = str(st)
@@ -3112,7 +3112,7 @@ class TestCharLiterals(unittest.TestCase):
     def runTest(self):
         st = StringTemplate(
             template="Foo <\\n><\\t> bar" +os.linesep,
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         expecting = "Foo "+os.linesep+"\t bar"+os.linesep
         result = str(st)
@@ -3673,7 +3673,7 @@ class TestArgumentsAsTemplatesDefaultDelimiters(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
 
     def runTest(self):
@@ -3730,7 +3730,7 @@ class TestRenderer(unittest.TestCase):
     def testRendererForST(self):
         st = StringTemplate(
             template="date: <created>",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st["created"] = date(year=2005, month=7, day=5)
         st.registerRenderer(date, DateRenderer())
@@ -3742,7 +3742,7 @@ class TestRenderer(unittest.TestCase):
     def testRendererWithFormat(self):
         st = StringTemplate(
             template="date: <created; format=\"%Y.%m.%d\">",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st.setAttribute("created", date(year=2005, month=7, day=5))
         st.registerRenderer(date, DateRenderer3())
@@ -3756,11 +3756,11 @@ class TestRenderer(unittest.TestCase):
         # still see it.
         outer = StringTemplate(
             template="X: <x>",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st = StringTemplate(
             template="date: <created>",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st.setAttribute("created",
                         date(year=2005, month=07, day=05))
@@ -3809,7 +3809,7 @@ class TestRenderer(unittest.TestCase):
     def testRendererWithFormatAndList(self):
         st = StringTemplate(
             template="The names: <names; format=\"upper\">",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st.setAttribute("names", "ter")
         st.setAttribute("names", "tom")
@@ -3823,7 +3823,7 @@ class TestRenderer(unittest.TestCase):
     def testRendererWithFormatAndSeparator(self):
         st = StringTemplate(
             template="The names: <names; separator=\" and \", format=\"upper\">",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         st.setAttribute("names", "ter")
         st.setAttribute("names", "tom")
@@ -3837,7 +3837,7 @@ class TestRenderer(unittest.TestCase):
     def testRendererWithFormatAndSeparatorAndNull(self):
         st = StringTemplate(
             template="The names: <names; separator=\" and \", null=\"n/a\", format=\"upper\">",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         names = [ "ter", None, "sriram" ]
         st.setAttribute("names", names)
@@ -4118,7 +4118,7 @@ class TestEmptyString(unittest.TestCase):
 
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         a = group.getInstanceOf("top")
         expecting = "a=, b="
@@ -4360,7 +4360,7 @@ class TestRestOp(unittest.TestCase):
             )
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         e = group.getInstanceOf("root")
         names = [ "Ter", "Tom" ]
@@ -4384,7 +4384,7 @@ class TestRestOp(unittest.TestCase):
         
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer
+            lexer='default'
             )
         e = group.getInstanceOf("root")
         e.setAttribute("names", "Ter")
@@ -4477,7 +4477,7 @@ class TestApplyTemplateWithNoFormalArgs(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
 
     def runTest(self):
@@ -4617,7 +4617,7 @@ class TestListAsTemplateArgument(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
 
     def runTest(self):
@@ -4641,7 +4641,7 @@ class TestSingleExprTemplateArgument(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
 
     def runTest(self):
@@ -4665,7 +4665,7 @@ class TestSingleExprTemplateArgumentInApply(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
 
     def runTest(self):
@@ -4689,7 +4689,7 @@ class TestSoleFormalTemplateArgumentInMultiApply(unittest.TestCase):
                         
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
 
     def runTest(self):
@@ -4712,7 +4712,7 @@ class TestSingleExprTemplateArgumentError(unittest.TestCase):
         self.errors = ErrorBuffer()
         self.group = StringTemplateGroup(
             file=StringIO(self.templates),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             errors=self.errors
             )
 
@@ -4847,7 +4847,7 @@ class TestParallelAttributeIteration(unittest.TestCase):
             "value(x=\"n/a\") ::= \"$x$\"" + os.linesep
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=errors
             )
 
@@ -4911,7 +4911,7 @@ class TestOverrideThroughConditional(unittest.TestCase):
             )
         subgroup = StringTemplateGroup(
             file=StringIO(templates2),
-            lexer=AngleBracketTemplateLexer.Lexer,
+            lexer='angle-bracket',
             superGroup=group
             )
 
@@ -5044,7 +5044,7 @@ class TestDotsInNames(unittest.TestCase):
             )
         group = StringTemplateGroup(
             file=StringIO(templates),
-            lexer=DefaultTemplateLexer.Lexer,
+            lexer='default',
             errors=errors
             )
         expecting = "template group parse error: <AST>:2:1:"
@@ -5063,7 +5063,7 @@ class TestEscape(unittest.TestCase):
     def testEscapeEscapeNestedAngle(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<v:{a|\\\\<a>}>")
         t.setAttribute("v", "Joe")
@@ -5075,7 +5075,7 @@ class TestListOfArrays(unittest.TestCase):
     def testListOfIntArrays(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data:array()>")
         group.defineTemplate("array", "[<it:element(); separator=\",\">]")
@@ -5466,7 +5466,7 @@ class TestNullOption(unittest.TestCase):
     def testNullOptionSingleNullValue(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data; null=\"0\">")
         expecting = "0"
@@ -5476,7 +5476,7 @@ class TestNullOption(unittest.TestCase):
     def testNullOptionHasEmptyNullValue(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data; null=\"\", separator=\", \">")
         data = [ None, 1 ]
@@ -5488,7 +5488,7 @@ class TestNullOption(unittest.TestCase):
     def testNullOptionSingleNullValueInList(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data; null=\"0\">")
         data = [ None ]
@@ -5500,7 +5500,7 @@ class TestNullOption(unittest.TestCase):
     def testNullValueInList(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data; null=\"-1\", separator=\", \">")
         data = [ None, 1, None, 3, 4, None ]
@@ -5512,7 +5512,7 @@ class TestNullOption(unittest.TestCase):
     def testNullValueInListNoNullOption(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data; separator=\", \">")
         data = [ None, 1, None, 3, 4, None ]
@@ -5524,7 +5524,7 @@ class TestNullOption(unittest.TestCase):
     def testNullValueInListWithTemplateApply(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
         group.defineTemplate("array", "<it>")
@@ -5537,7 +5537,7 @@ class TestNullOption(unittest.TestCase):
     def testNullValueInListWithTemplateApplyNullFirstValue(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
         group.defineTemplate("array", "<it>")
@@ -5550,7 +5550,7 @@ class TestNullOption(unittest.TestCase):
     def testNullSingleValueInListWithTemplateApply(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
         group.defineTemplate("array", "<it>")
@@ -5563,7 +5563,7 @@ class TestNullOption(unittest.TestCase):
     def testNullSingleValueWithTemplateApply(self):
         group = StringTemplateGroup(
             name="test",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = group.defineTemplate("t", "<data:array(); null=\"-1\", separator=\", \">")
         group.defineTemplate("array", "<it>")
@@ -5727,7 +5727,7 @@ class TestMapProperties(unittest.TestCase):
         group = StringTemplateGroup(
             name="dummy",
             rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = StringTemplate(
             group=group,
@@ -5744,7 +5744,7 @@ class TestMapProperties(unittest.TestCase):
         group = StringTemplateGroup(
             name="dummy",
             rootDir=".",
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         t = StringTemplate(
             group=group,
@@ -5800,7 +5800,7 @@ class TestSuperReferenceInIfClause(unittest.TestCase):
             )
         superGroup = StringTemplateGroup(
             file=StringIO(superGroupString),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         subGroupString = (
             "group sub;\n" +
@@ -5810,7 +5810,7 @@ class TestSuperReferenceInIfClause(unittest.TestCase):
             )
         subGroup = StringTemplateGroup(
             file=StringIO(subGroupString),
-            lexer=AngleBracketTemplateLexer.Lexer
+            lexer='angle-bracket'
             )
         subGroup.superGroup = superGroup
         a = subGroup.getInstanceOf("a")

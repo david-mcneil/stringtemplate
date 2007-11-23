@@ -282,7 +282,6 @@ class StringTemplate(object):
             self.group = StringTemplateGroup(name='defaultGroup', rootDir='.')
 
         if lexer is not None:
-            assert issubclass(lexer, antlr.CharScanner), repr(lexer)
             self.group.templateLexerClass = lexer
 
         ## If this template is defined within a group file, what line number?

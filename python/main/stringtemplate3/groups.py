@@ -185,8 +185,7 @@ class StringTemplateGroup(object):
             self.lastCheckedDisk = time.time()
             StringTemplateGroup.nameToGroupMap[self.name] = self
 
-            assert lexer is None or issubclass(lexer, antlr.CharScanner)
-            self._templateLexerClass = lexer
+            self.templateLexerClass = lexer
             
 
         if file is not None:
@@ -195,10 +194,9 @@ class StringTemplateGroup(object):
             self.templatesDefinedInGroupFile = True
 
             if lexer is not None:
-                assert issubclass(lexer, antlr.CharScanner)
-                self._templateLexerClass = lexer
+                self.templateLexerClass = lexer
             else:
-                self._templateLexerClass = AngleBracketTemplateLexer.Lexer
+                self.templateLexerClass = AngleBracketTemplateLexer.Lexer
 
             assert superGroup is None or isinstance(superGroup, StringTemplateGroup)
             self.superGroup = superGroup
@@ -219,7 +217,23 @@ class StringTemplateGroup(object):
         return self.defaultTemplateLexerClass
 
     def setTemplateLexerClass(self, lexer):
-        self._templateLexerClass = lexer
+        if isinstance(lexer, basestring):
+            try:
+                self._templateLexerClass = {
+                    'default': DefaultTemplateLexer.Lexer,
+                    'angle-bracket': AngleBracketTemplateLexer.Lexer,
+                    }[lexer]
+            except KeyError:
+                raise ValueError('Unknown lexer id %r' % lexer)
+
+        elif isinstance(lexer, type) and issubclass(lexer, antlr.CharScanner):
+            self._templateLexerClass = lexer
+
+        elif lexer is not None:
+            raise TypeError(
+                "Lexer must be string or lexer class, got %r"
+                % type(lexer).__name__
+                )
 
     templateLexerClass = property(getTemplateLexerClass, setTemplateLexerClass)
     getTemplateLexerClass = deprecated(getTemplateLexerClass)
