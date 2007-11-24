@@ -858,7 +858,7 @@ class Walker(antlr.TreeParser):
                 tmp25_AST_in = _t
                 self.match(_t,DOTDOTDOT)
                 _t = _t.getNextSibling()
-                embedded.setPassThroughAttributes(True)
+                embedded.passThroughAttributes = True
             else:
                     raise antlr.NoViableAltException(_t)
                 
