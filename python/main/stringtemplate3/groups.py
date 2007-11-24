@@ -340,10 +340,12 @@ class StringTemplateGroup(object):
 
         st = self.lookupTemplate(name, enclosingInstance)
         if st is not None:
+            st = st.getInstanceOf()
+            
             if attributes is not None:
                 st.attributes = attributes
                 
-            return st.getInstanceOf()
+            return st
         
         return None
 
