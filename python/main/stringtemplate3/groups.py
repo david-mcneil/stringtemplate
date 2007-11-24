@@ -187,6 +187,9 @@ class StringTemplateGroup(object):
 
             self.templateLexerClass = lexer
             
+            assert superGroup is None or isinstance(superGroup, StringTemplateGroup)
+            self.superGroup = superGroup
+
 
         if file is not None:
             assert hasattr(file, 'read')
