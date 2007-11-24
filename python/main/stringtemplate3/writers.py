@@ -292,7 +292,6 @@ class NoIndentWriter(AutoIndentWriter):
 
 
     def write(self, str, wrap=None):
-        self.out.write(wrap)
         self.out.write(str)
         return len(str)
 
