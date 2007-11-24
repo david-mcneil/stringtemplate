@@ -309,5 +309,5 @@ argumentAssignment[embedded, argumentContext]
                 self.this.rawSetArgumentAttribute(embedded, argumentContext, \
                     arg.getText(), e)
         }
-    |   DOTDOTDOT { embedded.setPassThroughAttributes(True) }
+    |   DOTDOTDOT { embedded.passThroughAttributes = True }
     ;

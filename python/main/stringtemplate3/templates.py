@@ -986,6 +986,7 @@ class StringTemplate(object):
                 self.formalArguments[name] = a
                 
 
+    @deprecated
     def setPassThroughAttributes(self, passThroughAttributes):
         """
         Normally if you call template y from x, y cannot see any attributes
@@ -995,6 +996,7 @@ class StringTemplate(object):
         """
         
         self.passThroughAttributes = passThroughAttributes
+
 
     @deprecated
     def setAttributeRenderers(self, renderers):
