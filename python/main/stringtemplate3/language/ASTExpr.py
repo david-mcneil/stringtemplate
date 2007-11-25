@@ -422,6 +422,7 @@ class ASTExpr(Expr):
             # use getPropertyName() lookup
             methodSuffix = propertyName[0].upper() + propertyName[1:]
             methodName = 'get' + methodSuffix
+            m = None
             if hasattr(o, methodName):
                 m = getattr(o, methodName)
             else:
@@ -443,13 +444,15 @@ class ASTExpr(Expr):
                                    ' has no such attribute: ' + propertyName +
                                    ' in template context ' +
                                    this.enclosingInstanceStackString, ae)
-            try:
-                value = m()
-            except Exception, e:
-                this.error('Can\'t get property ' + propertyName +
-                           ' using method get/is' + methodSuffix +
-                           ' or direct field access from ' +
-                           o.__class__.__name__ + ' instance', e)
+
+            if m is not None:
+                try:
+                    value = m()
+                except Exception, e:
+                    this.error('Can\'t get property ' + propertyName +
+                               ' using method get/is' + methodSuffix +
+                               ' or direct field access from ' +
+                               o.__class__.__name__ + ' instance', e)
 
         return value
 
