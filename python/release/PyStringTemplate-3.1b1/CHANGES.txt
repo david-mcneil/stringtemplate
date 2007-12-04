@@ -1,0 +1,5 @@
+2007-12-03: Release 3.1b1
+
+- Initial beta release of V3.1.
+- Lots of API breaking changes, please read the wiki for more information:
+  <http://www.antlr.org/wiki/display/ST/Python+notes>
