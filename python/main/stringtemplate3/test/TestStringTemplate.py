@@ -5822,5 +5822,20 @@ class TestSuperReferenceInIfClause(unittest.TestCase):
         self.assertEquals(c.toString(), "sub.c")
 
 
+class TestRegression(unittest.TestCase):
+    def testBuggyListIterator(self):
+	templates = (
+            "group simple;" +
+            "f1() ::= << <f2([\"a\", \"b\"])> >>" +
+            "f2(x) ::= << <x> <x> >>"
+            )
+        group = StringTemplateGroup(
+            file=StringIO(templates)
+            )
+        t = group.getInstanceOf("f1")
+
+        self.assertEqual(t.toString(), "  ab ab  ")
+
+
 if __name__ == '__main__':
     unittest.main()
