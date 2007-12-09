@@ -735,11 +735,13 @@ class StringTemplateGroup(object):
             return self.superGroup.getAttributeRenderer(attributeClassType)
 
         if self.attributeRenderers.has_key(attributeClassType):
-            renderer = self.attributeRenderers[attributeClassType]
-        else:
+            return self.attributeRenderers[attributeClassType]
+
+        elif self.superGroup is not None:
             # no renderer registered for this class, check super group
-            renderer = self.superGroup.getAttributeRenderer(attributeClassType)
-        return renderer
+            return self.superGroup.getAttributeRenderer(attributeClassType)
+        
+        return None
 
     def getMap(self, name):
         if not self.maps:

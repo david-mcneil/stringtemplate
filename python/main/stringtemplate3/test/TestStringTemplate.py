@@ -3726,6 +3726,12 @@ class StringRenderer(AttributeRenderer):
             
         return o
 
+
+class UnicodeRenderer(AttributeRenderer):
+    def toString(self, o, formatString=None):
+        return o.encode('utf8')
+
+
 class TestRenderer(unittest.TestCase):
     def testRendererForST(self):
         st = StringTemplate(
@@ -3786,6 +3792,24 @@ class TestRenderer(unittest.TestCase):
         group.registerRenderer(date, DateRenderer())
         expecting = "date: 2005.07.05"
         result = str(st)
+        self.assertEqual(result, expecting)
+
+
+    def testUnicodeRendererForGroup(self):
+        templates = (
+            "group test;" + os.linesep +
+            "foo(bar) ::= \"foo: <bar>\"" + os.linesep
+            )
+
+        group = StringTemplateGroup(
+            file=StringIO(templates)
+            )
+
+        st = group.getInstanceOf("foo")
+        st["bar"] = u"abc"
+        group.registerRenderer(unicode, UnicodeRenderer())
+        expecting = "foo: abc"
+        result = st.toString()
         self.assertEqual(result, expecting)
 
 
