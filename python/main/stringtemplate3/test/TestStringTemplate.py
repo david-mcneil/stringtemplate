@@ -4470,6 +4470,19 @@ class TestIncomingLists(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
+    def testMultipleRefsToListAttribute(self):
+        templates = (
+            "group test;" + os.linesep +
+            "f(x) ::= \"<x> <x>\"" + os.linesep
+            )
+        group = StringTemplateGroup(file=StringIO(templates))
+        e = group.getInstanceOf("f")
+        e.setAttribute("x", "Ter")
+        e.setAttribute("x", "Tom")
+        expecting = "TerTom TerTom"
+        self.assertEqual(e.toString(), expecting)
+
+
 class TestApplyTemplateWithSingleFormalArgs(unittest.TestCase):
         
     def setUp(self):
@@ -5859,6 +5872,12 @@ class TestRegression(unittest.TestCase):
         t = group.getInstanceOf("f1")
 
         self.assertEqual(t.toString(), "  ab ab  ")
+
+
+    def testValueZero(self):
+        st = StringTemplate('$foo$')
+        st['foo'] = 0
+        self.assertEqual(st.toString(), "0")
 
 
 if __name__ == '__main__':

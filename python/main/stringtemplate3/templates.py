@@ -647,7 +647,7 @@ class StringTemplate(object):
             # a normal call to setAttribute with unknown attribute
             raise KeyError("no such attribute: " + name +
                " in template context " + self.enclosingInstanceStackString)
-        if value:
+        if value is not None:
             attributes[name] = value
         elif isinstance(value, list) or \
              isinstance(value, dict) or \
