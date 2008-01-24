@@ -46,3 +46,6 @@ scp stringtemplate-3.1.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/downlo
 
 # push api
 scp -r /tmp/stdoc/api parrt@antlr.org:/var/data/magenta/resources/doc
+
+# push CHANGES.txt
+scp -r /tmp/stringtemplate-3.1/CHANGES.txt parrt@antlr.org:/var/data/magenta/resources
