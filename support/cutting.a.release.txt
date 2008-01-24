@@ -1,10 +1,10 @@
 # cut release; create branch and do it
-p4 branch stringtemplate-2.3
-#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-2.3/...
-p4 integrate -b stringtemplate-2.3
+p4 branch stringtemplate-3.1
+#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.1/...
+p4 integrate -b stringtemplate-3.1
 p4 submit
 
-cd ~/antlr/code/stringtemplate/java/release-2.3
+cd ~/antlr/code/stringtemplate/java/release-3.1
 
 # build antlr generated files
 pushd src/org/antlr/stringtemplate/language
@@ -18,7 +18,7 @@ popd
 
 # compile
 pushd src
-javac -source jsr14 -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
+javac -target jsr14 -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
 mkdir ../lib
@@ -30,24 +30,19 @@ find org -name '*.class' -exec rm {} \;
 popd
 
 find . -name '*~' -exec rm {} \;
-
-cd ..
-cp -r release-3.0 /tmp/stringtemplate-3.0
-pushd /tmp/stringtemplate-3.0/
-chmod -R +w *
-
 find . -name '*.iml' -exec rm {} \;
 
-# make tarball (next time name release stringtemplate-2.3b7 dir)
+cd ..
+cp -r release-3.1 /tmp/stringtemplate-3.1
+pushd /tmp/stringtemplate-3.1/
+chmod -R +w *
+
+# make tarball (next time name release stringtemplate-3.1b7 dir)
 pushd /tmp
-tar cvfz stringtemplate-3.0.tar.gz stringtemplate-3.0
+tar cvfz stringtemplate-3.1.tar.gz stringtemplate-3.1
 
 # push
-scp stringtemplate-3.0.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
-
-# push bugs
-pushd ~/antlr/code/stringtemplate/support
-scp bugs.tml parrt@antlr.org:/var/data/magenta/resources    
+scp stringtemplate-3.1.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
 
 # push api
 scp -r /tmp/stdoc/api parrt@antlr.org:/var/data/magenta/resources/doc
