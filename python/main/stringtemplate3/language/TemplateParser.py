@@ -40,11 +40,13 @@ NL = 13
 EXPR = 14
 TEMPLATE = 15
 IF_EXPR = 16
-ESC = 17
-SUBTEMPLATE = 18
-NESTED_PARENS = 19
-INDENT = 20
-COMMENT = 21
+ESC_CHAR = 17
+ESC = 18
+HEX = 19
+SUBTEMPLATE = 20
+NESTED_PARENS = 21
+INDENT = 22
+COMMENT = 23
 
 
 ###/** A parser used to break up a single template into chunks, text literals
@@ -263,7 +265,9 @@ _tokenNames = [
     "EXPR", 
     "TEMPLATE", 
     "IF_EXPR", 
+    "ESC_CHAR", 
     "ESC", 
+    "HEX", 
     "SUBTEMPLATE", 
     "NESTED_PARENS", 
     "INDENT", 
