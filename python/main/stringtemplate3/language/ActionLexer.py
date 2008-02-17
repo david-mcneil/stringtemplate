@@ -242,7 +242,7 @@ class Lexer(antlr.CharScanner) :
         _ttype = INT
         _saveIndex = 0
         pass
-        _cnt60= 0
+        _cnt63= 0
         while True:
             if ((self.LA(1) >= u'0' and self.LA(1) <= u'9')):
                 pass
@@ -250,8 +250,8 @@ class Lexer(antlr.CharScanner) :
             else:
                 break
             
-            _cnt60 += 1
-        if _cnt60 < 1:
+            _cnt63 += 1
+        if _cnt63 < 1:
             self.raise_NoViableAlt(self.LA(1))
         self.set_return_token(_createToken, _token, _ttype, _begin)
     
@@ -343,19 +343,19 @@ class Lexer(antlr.CharScanner) :
         _saveIndex = self.text.length()
         self.match('{')
         self.text.setLength(_saveIndex)
-        synPredMatched67 = False
+        synPredMatched70 = False
         if (_tokenSet_1.member(self.LA(1))) and (_tokenSet_2.member(self.LA(2))):
-            _m67 = self.mark()
-            synPredMatched67 = True
+            _m70 = self.mark()
+            synPredMatched70 = True
             self.inputState.guessing += 1
             try:
                 pass
                 self.mTEMPLATE_ARGS(False)
             except antlr.RecognitionException, pe:
-                synPredMatched67 = False
-            self.rewind(_m67)
+                synPredMatched70 = False
+            self.rewind(_m70)
             self.inputState.guessing -= 1
-        if synPredMatched67:
+        if synPredMatched70:
             pass
             args=self.mTEMPLATE_ARGS(False)
             if (_tokenSet_3.member(self.LA(1))) and ((self.LA(2) >= u'\u0003' and self.LA(2) <= u'\ufffe')):

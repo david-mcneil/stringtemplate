@@ -34,6 +34,7 @@ import codecs
 from stringtemplate3.utils import deprecated
 from stringtemplate3.groups import StringTemplateGroup
 from stringtemplate3.interfaces import StringTemplateGroupInterface
+from stringtemplate3.language import AngleBracketTemplateLexer
 
 
 class StringTemplateGroupLoader(object):
@@ -43,12 +44,14 @@ class StringTemplateGroupLoader(object):
     to load interfaces
     """
 
-    def loadGroup(self, groupName, superGroup=None):
+    def loadGroup(self, groupName, superGroup=None, lexer=None):
         """
         Load the group called groupName from somewhere.  Return null
         if no group is found.
         Groups with region definitions must know their supergroup to find
         templates during parsing.
+        Specify the template lexer to use for parsing templates.  If null,
+        it assumes angle brackets <...>.
         """
         
         raise NotImplementedError
@@ -87,7 +90,9 @@ class PathGroupLoader(StringTemplateGroupLoader):
         self.fileCharEncoding = sys.getdefaultencoding()
         
 
-    def loadGroup(self, groupName, superGroup=None):
+    def loadGroup(self, groupName, superGroup=None, lexer=None):
+        if lexer is None:
+            lexer = AngleBracketTemplateLexer.Lexer
         try:
             fr = self.locate(groupName+".stg")
             if fr is None:
@@ -97,6 +102,7 @@ class PathGroupLoader(StringTemplateGroupLoader):
             try:
                 return StringTemplateGroup(
                     file=fr,
+                    lexer=lexer,
                     errors=self.errors,
                     superGroup=superGroup
                     )

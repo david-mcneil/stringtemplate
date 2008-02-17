@@ -5,7 +5,7 @@ from distutils.core import setup
 
 setup(
     name="stringtemplate3",
-    version="3.1b1",
+    version="3.1",
     description="A powerful template engine with strict model-view separation",
     long_description="""
     ST (StringTemplate) is a template engine for generating source code, web
@@ -17,7 +17,7 @@ setup(
     strictly enforces model-view separation unlike other engines.
     """,
     classifiers=[
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',

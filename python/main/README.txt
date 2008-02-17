@@ -1,5 +1,5 @@
-StringTemplate 3.1b1 (Python)
-December 3, 2007
+StringTemplate 3.1 (Python)
+February 17, 2008
 
 
 AUTHORS

@@ -7,9 +7,7 @@ from stringtemplate3.language.Expr import Expr
 from stringtemplate3.language import ActionEvaluator
 from stringtemplate3.language.StringTemplateAST import StringTemplateAST
 from stringtemplate3.language.CatIterator import CatList
-from stringtemplate3.language.FormalArgument import (
-    FormalArgument, UNKNOWN_ARGS
-    )
+from stringtemplate3.language.FormalArgument import UNKNOWN_ARGS
 import stringtemplate3
 
 class IllegalStateException(Exception):
@@ -304,8 +302,8 @@ class ASTExpr(Expr):
                     # formalArgs might be UNKNOWN, which is non-empty but treated
                     # like 'no formal args'. FIXME: Is this correct
                     if not (isAnonymous and formalArgs is not None and len(formalArgs) > 0 and formalArgs != UNKNOWN_ARGS):
-                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME] = attributeValue[ithValue]
-                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = attributeValue[ithValue]
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME] = { ithValue: attributeValue[ithValue] }
+                        argumentContext[self.DEFAULT_ATTRIBUTE_NAME_DEPRECATED] = { ithValue: attributeValue[ithValue] }
                 else:
                     argumentContext[self.DEFAULT_ATTRIBUTE_KEY] = None
                     # formalArgs might be UNKNOWN, which is non-empty but treated

@@ -205,6 +205,8 @@ class StringTemplateGroup(object):
             self.superGroup = superGroup
 
             self.parseGroup(file)
+            assert self.name is not None
+            StringTemplateGroup.nameToGroupMap[self.name] = self
             self.verifyInterfaceImplementations()
 
 
@@ -257,17 +259,24 @@ class StringTemplateGroup(object):
             self._superGroup = superGroup
             
         elif isinstance(superGroup, basestring):
-            group = StringTemplateGroup.nameToGroupMap.get(superGroup, None)
-            if group is not None:
+            # Called by group parser when ": supergroupname" is found.
+            # This method forces the supergroup's lexer to be same as lexer
+            # for this (sub) group.
+
+            superGroupName = superGroup
+            superGroup = StringTemplateGroup.nameToGroupMap.get(
+                superGroupName, None)
+            if superGroup is not None:
                 # we've seen before; just use it
-                self.superGroup = group
+                self.superGroup = superGroup
 
             else:
-                # else load it
-                group = self.loadGroup(superGroup)
-                if group is not None:
-                    StringTemplateGroup.nameToGroupMap[superGroup] = group
-                    self._superGroup = group
+                # else load it using this group's template lexer
+                superGroup = self.loadGroup(
+                    superGroupName, lexer=self.templateLexerClass)
+                if superGroup is not None:
+                    StringTemplateGroup.nameToGroupMap[superGroup] = superGroup
+                    self._superGroup = superGroup
 
                 elif self.groupLoader is None:
                     self.listener.error("no group loader registered", None)
@@ -285,6 +294,18 @@ class StringTemplateGroup(object):
     getSuperGroup = deprecated(getSuperGroup)
     setSuperGroup = deprecated(setSuperGroup)
     
+
+    def getGroupHierarchyStackString(self):
+        """Walk up group hierarchy and show top down to this group"""
+
+        groupNames = []
+        p = self
+        while p is not None:
+            groupNames.insert(0, p.name)
+            p = p.superGroup
+
+        return '[' + ' '.join(groupNames) + ']'
+
 
     @deprecated
     def getRootDir(self):
@@ -421,6 +442,8 @@ class StringTemplateGroup(object):
                         "; context is "+
                         enclosingInstance.enclosingInstanceStackString
                         )
+                hier = self.getGroupHierarchyStackString()
+                context += "; group hierarchy is "+hier
                 raise ValueError(
                     "Can't load template " +
                     self.getFileNameFromTemplateName(name) +
@@ -772,9 +795,9 @@ class StringTemplateGroup(object):
         cls.defaultTemplateLexerClass = lexerClass
 
     @classmethod
-    def loadGroup(cls, name, superGroup=None):
+    def loadGroup(cls, name, superGroup=None, lexer=None):
         if cls.groupLoader is not None:
-            return cls.groupLoader.loadGroup(name, superGroup)
+            return cls.groupLoader.loadGroup(name, superGroup, lexer)
 
         return None
     

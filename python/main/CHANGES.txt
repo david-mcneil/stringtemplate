@@ -1,3 +1,10 @@
+2008-02-17: Release 3.1
+
+- Resolve ST-34.  Super group loading was not using template lexer
+  (<...> or $...$) according to subclass. Updated group loader interface.
+- Improved error message for "template not found"
+- $first(list).prop$ was not allowed.  Fixed and added a unit test.
+
 2007-12-03: Release 3.1b1
 
 - Initial beta release of V3.1.

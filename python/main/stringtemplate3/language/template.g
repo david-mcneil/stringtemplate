@@ -252,10 +252,16 @@ ACTION
 {
     startCol = self.getColumn()
 }
-    :   "$\\n$"! {$setText('\n'); $setType(LITERAL) }
-    |   "$\\r$"! {$setText('\r'); $setType(LITERAL) }
-    |   "$\\t$"! {$setText('\t'); $setType(LITERAL) }
-    |   "$\\ $"! {$setText(' '); $setType(LITERAL) }
+    : // Match escapes not in a string like <\n\ufea5>
+        {
+            buf = u""
+            uc = u"\000"
+        }
+        '$'! (uc=ESC_CHAR {buf += uc} )+'$'!
+        {
+            $setText(buf)
+            $setType(LITERAL)
+        }
     |   COMMENT {$skip}
     |   ( // $EXPR$ is ambig with $endif$ etc...
           options { generateAmbigWarnings=false; }
@@ -360,7 +366,21 @@ IF_EXPR
     ;
 
 protected
+ESC_CHAR returns [uc='\u0000']
+      : "\\n"! {uc = '\n'}
+      | "\\r"! {uc = '\r'}
+      | "\\t"! {uc = '\t'}
+      | "\\ "! {uc = ' '}
+      | "\\u"! a:HEX! b:HEX! c:HEX! d:HEX!
+        {uc = unichr(int(a.getText()+b.getText()+c.getText()+d.getText(), 16))}
+      ;
+
+protected
 ESC :   '\\' . // ('$'|'n'|'t'|'"'|'\''|':'|'{'|'}')
+    ;
+
+protected
+HEX : '0'..'9'|'A'..'F'|'a'..'f'
     ;
 
 protected

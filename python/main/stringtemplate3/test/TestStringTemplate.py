@@ -184,6 +184,37 @@ class TestInterfaces(unittest.TestCase):
         self.assertEqual(str(errors), expecting)
 
 
+    def testGroupExtendsSuperGroupWithAngleBrackets(self):
+        # this also tests the group loader
+        errors = ErrorBuffer()
+        tmpdir = tempfile.gettempdir()
+        StringTemplateGroup.registerGroupLoader(
+            PathGroupLoader(tmpdir,errors)
+            )
+
+        superGroup = (
+            "group superG;" +os.linesep+
+            "bold(item) ::= <<*<item>*>>;\n"+os.linesep
+            )
+        writeFile(tmpdir, "superG.stg", superGroup)
+
+        templates = (
+            "group testG : superG;" +os.linesep+
+            "main(x) ::= \"<bold(x)>\""+os.linesep
+            )
+        writeFile(tmpdir, "testG.stg", templates)
+
+        group = StringTemplateGroup(
+            file=open(tmpdir+"/testG.stg"),
+            errors=errors
+            )
+        st = group.getInstanceOf("main")
+        st.setAttribute("x", "foo")
+
+        expecting = "*foo*"
+        self.assertEquals(expecting, st.toString())
+
+
     def testMissingInterfaceTemplate(self):
         # this also tests the group loader
         errors = ErrorBuffer()
@@ -311,8 +342,6 @@ class TestGroupLoader(unittest.TestCase):
         self.assertEqual(str(group), expecting)
 
 
-    #FIXME: which lexer should be used when using super group?
-    @broken
     def testGroupExtendsSuperGroup(self):
         # this also tests the group loader
         errors = ErrorBuffer()
@@ -1376,7 +1405,7 @@ class TestNullTemplateApplication(unittest.TestCase):
         t["names"] = "Terence"
         #expecting="" # bold not found...empty string
         #self.assertEqual(str(t), expecting)
-        expecting = "Can't load template bold.st; context is [anonymous]"
+        expecting = "Can't load template bold.st; context is [anonymous]; group hierarchy is [test]"
         error = ""
         try:
             result = str(t)
@@ -1396,7 +1425,7 @@ class TestNullTemplateToMultiValuedApplication(unittest.TestCase):
         t["names"] = "Tom"
         #expecting="" # bold not found...empty string
         #self.assertEqual(str(t), expecting)
-        expecting = "Can't load template bold.st; context is [anonymous]"
+        expecting = "Can't load template bold.st; context is [anonymous]; group hierarchy is [test]"
         error = ""
         try:
             result = str(t)
@@ -4192,6 +4221,28 @@ class TestUnicode(unittest.TestCase):
         expecting = u"ö-blort: äöü-ö"
         self.assertEqual(duh.toString(), expecting)
 
+        
+    def testUnicodeLiterals(self):
+        st = StringTemplate(
+            "Foo <\\uFEA5\\n\\u00C2> bar" + os.linesep,
+            lexer=AngleBracketTemplateLexer.Lexer
+            )
+        expecting =u"Foo \ufea5"+os.linesep+u"\u00C2 bar"+os.linesep
+        result = st.toString()
+        self.assertEquals(expecting, result)
+
+        st = StringTemplate(
+            "Foo $\\uFEA5\\n\\u00C2$ bar" +os.linesep)
+        expecting =u"Foo \ufea5"+os.linesep+u"\u00C2 bar"+os.linesep
+        result = st.toString()
+        self.assertEquals(expecting, result)
+
+        st = StringTemplate(
+            "Foo$\\ $bar$\\n$")
+        expecting ="Foo bar"+os.linesep
+        result = st.toString()
+        self.assertEquals(expecting, result)
+
 
 class TestFirstOp(unittest.TestCase):
 
@@ -4567,9 +4618,9 @@ class TestAnonTemplate(unittest.TestCase):
         self.assertEqual(str(e), expecting)
 
 
-class TestFirstWithCatAttribute(unittest.TestCase):
+class testFirst(unittest.TestCase):
 
-    def runTest(self):
+    def testFirstWithCatAttribute(self):
         e = StringTemplate(
             template="$first([names,phones])$"
             )
@@ -4580,6 +4631,44 @@ class TestFirstWithCatAttribute(unittest.TestCase):
         e["phones"] = "2"
         expecting = "Ter"
         self.assertEqual(str(e), expecting)
+
+
+    def testFirstWithListOfMaps(self):
+        e = StringTemplate(
+            "$first(maps).Ter$"
+            )
+        e = e.getInstanceOf()
+        m1 = { "Ter": "x5707" }
+        e.setAttribute("maps", m1)
+        m2 = {"Tom": "x5332" }
+        e.setAttribute("maps", m2)
+        expecting = "x5707"
+        self.assertEquals(expecting, e.toString())
+
+        e = e.getInstanceOf()
+        lst = [ m1, m2 ]
+        e.setAttribute("maps", lst)
+        expecting = "x5707"
+        self.assertEquals(expecting, e.toString())
+
+
+    def testFirstWithListOfMaps2(self):
+        e =  StringTemplate(
+            "$first(maps):{$it.Ter$}$"
+            )
+        e = e.getInstanceOf()
+        m1 = { "Ter": "x5707" }
+        e.setAttribute("maps", m1)
+        m2 = { "Tom": "x5332" }
+        e.setAttribute("maps", m2)
+        expecting = "x5707"
+        self.assertEquals(expecting, e.toString())
+
+        e = e.getInstanceOf()
+        lst = [ m1, m2 ]
+        e.setAttribute("maps", lst)
+        expecting = "x5707"
+        self.assertEquals(expecting, e.toString())
 
 
 class TestJustCat(unittest.TestCase):
@@ -5861,7 +5950,7 @@ class TestSuperReferenceInIfClause(unittest.TestCase):
 
 class TestRegression(unittest.TestCase):
     def testBuggyListIterator(self):
-	templates = (
+        templates = (
             "group simple;" +
             "f1() ::= << <f2([\"a\", \"b\"])> >>" +
             "f2(x) ::= << <x> <x> >>"

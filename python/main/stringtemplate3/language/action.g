@@ -103,6 +103,11 @@ primaryExpr
         )*
     |   
     |   function
+        ( DOT^
+            ( ID
+            |   valueExpr
+            )
+        )*
     |   valueExpr
     |   list_
     ;
