@@ -1,10 +1,10 @@
 # cut release; create branch and do it
-p4 branch stringtemplate-3.1
-#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.1/...
-p4 integrate -b stringtemplate-3.1
+p4 branch stringtemplate-3.2
+#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.2/...
+p4 integrate -b stringtemplate-3.2
 p4 submit
 
-cd ~/antlr/code/stringtemplate/java/release-3.1
+cd ~/antlr/code/stringtemplate/java/release-3.2
 
 # build antlr generated files
 pushd src/org/antlr/stringtemplate/language
@@ -33,19 +33,19 @@ find . -name '*~' -exec rm {} \;
 find . -name '*.iml' -exec rm {} \;
 
 cd ..
-cp -r release-3.1 /tmp/stringtemplate-3.1
-pushd /tmp/stringtemplate-3.1/
+cp -r release-3.2 /tmp/stringtemplate-3.2
+pushd /tmp/stringtemplate-3.2/
 chmod -R +w *
 
-# make tarball (next time name release stringtemplate-3.1b7 dir)
+# make tarball (next time name release stringtemplate-3.2b7 dir)
 pushd /tmp
-tar cvfz stringtemplate-3.1.tar.gz stringtemplate-3.1
+tar cvfz stringtemplate-3.2.tar.gz stringtemplate-3.2
 
 # push
-scp stringtemplate-3.1.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
+scp stringtemplate-3.2.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
 
 # push api
 scp -r /tmp/stdoc/api parrt@antlr.org:/var/data/magenta/resources/doc
 
 # push CHANGES.txt
-scp -r /tmp/stringtemplate-3.1/CHANGES.txt parrt@antlr.org:/var/data/magenta/resources
+scp -r /tmp/stringtemplate-3.2/CHANGES.txt parrt@antlr.org:/var/data/magenta/resources
