@@ -1,8 +1,8 @@
 # cut release; create branch and do it
-p4 branch stringtemplate-3.2
+#p4 branch stringtemplate-3.2
 #//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.2/...
-p4 integrate -b stringtemplate-3.2
-p4 submit
+#p4 integrate -b stringtemplate-3.2
+#p4 submit
 
 cd ~/antlr/code/stringtemplate/java/release-3.2
 
@@ -21,7 +21,7 @@ pushd src
 javac -target jsr14 -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
-mkdir ../lib
+mkdir -f ../lib
 jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
 cp /usr/local/lib/antlr-2.7.7.jar ../lib
 
@@ -33,6 +33,7 @@ find . -name '*~' -exec rm {} \;
 find . -name '*.iml' -exec rm {} \;
 
 cd ..
+rm -rf /tmp/stringtemplate-3.2
 cp -r release-3.2 /tmp/stringtemplate-3.2
 pushd /tmp/stringtemplate-3.2/
 chmod -R +w *
