@@ -55,8 +55,11 @@ COMMENT = 23
 class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
+       if stringtemplate3.crashOnActionParseError:
+           raise e
+    
        group = self.this.group
-       if group == stringtemplate3.StringTemplate.defaultGroup:
+       if group == stringtemplate3.DEFAULT_GROUP_NAME:
            self.this.error("template parse error; template context is "+self.this.enclosingInstanceStackString, e)
     
        else:
@@ -125,18 +128,20 @@ class Parser(antlr.LLkParser):
                 self.match(ACTION)
                 indent = a.indentation
                 c = this.parseAction(a.getText())
-                c.indentation = indent
-                this.addChunk(c)
+                if c is not None:
+                   c.indentation = indent
+                   this.addChunk(c)
             elif la1 and la1 in [IF]:
                 pass
                 i = self.LT(1)
                 self.match(IF)
                 c = this.parseAction(i.getText())
-                # create and precompile the subtemplate
-                subtemplate = stringtemplate3.StringTemplate(group=this.group)
-                subtemplate.enclosingInstance = this
-                subtemplate.name = i.getText() + "_subtemplate"
-                this.addChunk(c)
+                if c is not None:
+                   # create and precompile the subtemplate
+                   subtemplate = stringtemplate3.StringTemplate(group=this.group)
+                   subtemplate.enclosingInstance = this
+                   subtemplate.name = i.getText() + "_subtemplate"
+                   this.addChunk(c)
                 self.template(subtemplate)
                 if c: c.subtemplate = subtemplate
                 while True:
@@ -145,12 +150,13 @@ class Parser(antlr.LLkParser):
                         ei = self.LT(1)
                         self.match(ELSEIF)
                         ec = this.parseAction(ei.getText())
-                        # create and precompile the subtemplate
-                        elseIfSubtemplate = stringtemplate3.StringTemplate(group=this.group)
-                        elseIfSubtemplate.enclosingInstance = this
-                        elseIfSubtemplate.name = ei.getText()+"_subtemplate"
+                        if ec:
+                           # create and precompile the subtemplate
+                           elseIfSubtemplate = stringtemplate3.StringTemplate(group=this.group)
+                           elseIfSubtemplate.enclosingInstance = this
+                           elseIfSubtemplate.name = ei.getText()+"_subtemplate"
                         self.template(elseIfSubtemplate)
-                        if c is not None:
+                        if ec is not None:
                            c.addElseIfSubtemplate(ec, elseIfSubtemplate)
                     else:
                         break
@@ -211,8 +217,9 @@ class Parser(antlr.LLkParser):
                    # treat as regular action: mangled template include
                    indent = rr.indentation
                    c = this.parseAction(mangledRef+"()")
-                   c.indentation = indent
-                   this.addChunk(c)
+                   if c is not None:
+                       c.indentation = indent
+                       this.addChunk(c)
             elif la1 and la1 in [REGION_DEF]:
                 pass
                 rd = self.LT(1)
@@ -231,8 +238,9 @@ class Parser(antlr.LLkParser):
                    # treat as regular action: mangled template include
                    indent = rd.indentation
                    c = this.parseAction(regionST.name + "()")
-                   c.indentation = indent
-                   this.addChunk(c)
+                   if c is not None:
+                       c.indentation = indent
+                       this.addChunk(c)
                 
                 else:
                    this.error("embedded region definition screwed up")

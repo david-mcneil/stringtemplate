@@ -153,6 +153,8 @@ REGION_EXPLICIT = 3
 
 ANONYMOUS_ST_NAME = "anonymous"
 
+DEFAULT_GROUP_NAME = 'defaultGroup'
+
 
 ## incremental counter for templates IDs
 templateCounter = 0
@@ -276,7 +278,8 @@ class StringTemplate(object):
             assert isinstance(group, StringTemplateGroup)
             self.group = group
         else:
-            self.group = StringTemplateGroup(name='defaultGroup', rootDir='.')
+            self.group = StringTemplateGroup(
+                name=DEFAULT_GROUP_NAME, rootDir='.')
 
         if lexer is not None:
             self.group.templateLexerClass = lexer
@@ -821,7 +824,11 @@ class StringTemplate(object):
             chunkStream.setTokenObjectClass(ChunkToken)
             chunkifier = TemplateParser.Parser(chunkStream)
             chunkifier.template(self)
+
         except Exception, e:
+            if stringtemplate3.crashOnActionParseError:
+                raise
+
             name = "<unknown>"
             outerName = self.getOutermostName()
             if self.name:
@@ -846,10 +853,11 @@ class StringTemplate(object):
                 else:
                     a = ASTExpr(self, tree, options)
 
-        except antlr.RecognitionException, re:
-            self.error('Can\'t parse chunk: ' + str(action), re)
-        except antlr.TokenStreamException, tse:
-            self.error('Can\'t parse chunk: ' + str(action), tse)
+        except (antlr.RecognitionException, antlr.TokenStreamException), exc:
+            if stringtemplate3.crashOnActionParseError:
+                raise
+
+            self.error('Can\'t parse chunk: ' + str(action), exc)
 
         return a
 

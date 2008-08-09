@@ -17,6 +17,7 @@ import tempfile
 import textwrap
 import warnings
 import odict
+import antlr
 
 warnings.simplefilter('error', Warning)
 
@@ -33,6 +34,8 @@ from stringtemplate3.language import (
     AngleBracketTemplateLexer, IllegalStateException
     )
 import stringtemplate3
+
+stringtemplate3.crashOnActionParseError = True
 
 
 class BrokenTest(unittest.TestCase.failureException):
@@ -1375,14 +1378,19 @@ class TestTemplateNameExpression(unittest.TestCase):
 class TestMissingEndDelimiter(unittest.TestCase):
 
     def runTest(self):
-        group = StringTemplateGroup(name="test")
-        errors = ErrorBuffer()
-        group.errorListener = errors
-        t = StringTemplate(
-            group=group, template="stuff $a then more junk etc..."
-            )
-        expectingError = "problem parsing template 'anonymous' : line 1:31: expecting '$', found '<EOF>'\n"
-        self.assertEqual(str(errors), expectingError)
+        try:
+            stringtemplate3.crashOnActionParseError = False
+
+            group = StringTemplateGroup(name="test")
+            errors = ErrorBuffer()
+            group.errorListener = errors
+            t = StringTemplate(
+                group=group, template="stuff $a then more junk etc..."
+                )
+            expectingError = "problem parsing template 'anonymous' : line 1:31: expecting '$', found '<EOF>'\n"
+            self.assertEqual(str(errors), expectingError)
+        finally:
+            stringtemplate3.crashOnActionParseError = True
 
 
 class TestSetButNotRefd(unittest.TestCase):
@@ -6284,6 +6292,14 @@ class TestRegression(unittest.TestCase):
         st = StringTemplate('$foo$')
         st['foo'] = 0
         self.assertEqual(st.toString(), "0")
+
+
+    def testBadDefaultGroupCheckInReportError(self):
+        try:
+            StringTemplate(template="$[a:{$it$}]$")
+            self.fail()
+        except antlr.RecognitionException:
+            pass
 
 
 if __name__ == '__main__':

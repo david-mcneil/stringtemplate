@@ -9,6 +9,11 @@ __version__ = "3.2b1"
 #  you set attributes that are not used.
 lintMode = False
 
+## Set this to True, if you want parse errors to propagate all the way up
+#  to the caller. Primarily here to improve unittesting.
+crashOnActionParseError = False
+
+
 from stringtemplate3.errors import *
 from stringtemplate3.writers import *
 from stringtemplate3.templates import *

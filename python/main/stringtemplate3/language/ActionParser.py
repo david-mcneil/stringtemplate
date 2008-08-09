@@ -71,8 +71,11 @@ WS_CHAR = 43
 class Parser(antlr.LLkParser):
     ### user action >>>
     def reportError(self, e):
+       if stringtemplate3.crashOnActionParseError:
+           raise e
+    
        group = self.this.group
-       if group == stringtemplate3.StringTemplate.defaultGroup:
+       if group.name == stringtemplate3.DEFAULT_GROUP_NAME:
            self.this.error("action parse error; template context is "+self.this.enclosingInstanceStackString, e)
     
        else:
