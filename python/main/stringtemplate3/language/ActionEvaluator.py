@@ -161,7 +161,7 @@ class Walker(antlr.TreeParser):
                 pass
                 value=self.function(_t)
                 _t = self._retTree
-            elif la1 and la1 in [LIST,NOTHING]:
+            elif la1 and la1 in [LIST]:
                 pass
                 value=self.list(_t)
                 _t = self._retTree
@@ -332,7 +332,7 @@ class Walker(antlr.TreeParser):
                     _t = self._retTree
                     _t = _t35
                     _t = _t.getNextSibling()
-                    if e: propName = str(e)
+                    if e is not None: propName = e
                 else:
                         raise antlr.NoViableAltException(_t)
                     
@@ -538,49 +538,39 @@ class Walker(antlr.TreeParser):
             list_AST_in = _t
         e = None
         elements = []
-        value = CatList(elements)
         try:      ## for error handling
-            if not _t:
-                _t = antlr.ASTNULL
-            la1 = _t.getType()
-            if False:
-                pass
-            elif la1 and la1 in [LIST]:
-                pass
-                _t6 = _t
-                tmp17_AST_in = _t
-                self.match(_t,LIST)
-                _t = _t.getFirstChild()
-                _cnt8= 0
-                while True:
-                    if not _t:
-                        _t = antlr.ASTNULL
-                    if (_tokenSet_0.member(_t.getType())):
-                        pass
-                        e=self.expr(_t)
-                        _t = self._retTree
-                        if e:
-                           from stringtemplate3.language.ASTExpr import convertAnythingToList
-                           e = convertAnythingToList(e)
-                           elements.append(e)
-                    else:
+            pass
+            _t6 = _t
+            tmp17_AST_in = _t
+            self.match(_t,LIST)
+            _t = _t.getFirstChild()
+            _cnt8= 0
+            while True:
+                if not _t:
+                    _t = antlr.ASTNULL
+                la1 = _t.getType()
+                if False:
+                    pass
+                elif la1 and la1 in [APPLY,MULTI_APPLY,INCLUDE,VALUE,FUNCTION,LIST,ID,PLUS,DOT,ANONYMOUS_TEMPLATE,STRING,INT]:
+                    pass
+                    e=self.expr(_t)
+                    _t = self._retTree
+                    if e is not None: elements.append(e)
+                elif la1 and la1 in [NOTHING]:
+                    pass
+                    tmp18_AST_in = _t
+                    self.match(_t,NOTHING)
+                    _t = _t.getNextSibling()
+                    element.append([None])
+                else:
                         break
                     
-                    _cnt8 += 1
-                if _cnt8 < 1:
-                    raise antlr.NoViableAltException(_t)
-                _t = _t6
-                _t = _t.getNextSibling()
-            elif la1 and la1 in [NOTHING]:
-                pass
-                tmp18_AST_in = _t
-                self.match(_t,NOTHING)
-                _t = _t.getNextSibling()
-                nullSingleton = [None]
-                element.append(nullSingleton)
-            else:
-                    raise antlr.NoViableAltException(_t)
-                
+                _cnt8 += 1
+            if _cnt8 < 1:
+                raise antlr.NoViableAltException(_t)
+            _t = _t6
+            _t = _t.getNextSibling()
+            value = CatList(elements)
         
         except antlr.RecognitionException, ex:
             self.reportError(ex)
@@ -718,7 +708,7 @@ class Walker(antlr.TreeParser):
             la1 = _t.getType()
             if False:
                 pass
-            elif la1 and la1 in [APPLY,MULTI_APPLY,INCLUDE,VALUE,FUNCTION,LIST,NOTHING,ID,PLUS,DOT,ANONYMOUS_TEMPLATE,STRING,INT]:
+            elif la1 and la1 in [APPLY,MULTI_APPLY,INCLUDE,VALUE,FUNCTION,LIST,ID,PLUS,DOT,ANONYMOUS_TEMPLATE,STRING,INT]:
                 pass
                 a=self.ifAtom(_t)
                 _t = self._retTree
@@ -972,6 +962,6 @@ _tokenNames = [
 ### generate bit set
 def mk_tokenSet_0(): 
     ### var1
-    data = [ 60180949680L, 0L]
+    data = [ 60180933296L, 0L]
     return data
 _tokenSet_0 = antlr.BitSet(mk_tokenSet_0())

@@ -838,13 +838,29 @@ class StringTemplateGroup(object):
     def emitTemplateStartDebugString(self, st, out):
         if (self.noDebugStartStopStrings is None or
             st.name not in self.noDebugStartStopStrings ):
-            out.write("<"+st.name+">")
+            groupPrefix = ""
+            if not st.getName().startswith("if") and not st.getName().startswith("else"):
+                if st.getNativeGroup() is not None:
+                    groupPrefix = st.getNativeGroup().getName() + "."
+
+                else:
+                    groupPrefix = st.getGroup().getName() + "."
+
+            out.write("<" + groupPrefix + st.getName() + ">")
 
 
     def emitTemplateStopDebugString(self, st, out):
         if (self.noDebugStartStopStrings is None or
             st.name not in self.noDebugStartStopStrings ):
-            out.write("</"+st.name+">")
+            groupPrefix = ""
+            if not st.getName().startswith("if") and not st.getName().startswith("else"):
+                if st.getNativeGroup() is not None:
+                    groupPrefix = st.getNativeGroup().getName() + "."
+
+                else:
+                    groupPrefix = st.getGroup().getName() + "."
+
+            out.write("</" + groupPrefix + st.getName() + ">")
 
 
     def toString(self, showTemplatePatterns=True):

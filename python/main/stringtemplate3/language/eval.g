@@ -77,23 +77,15 @@ list returns [value=None]
 {
     e = None
     elements = []
-    value = CatList(elements)
 }
     :   #( LIST
-          ( e=expr
-            {
-              if e:
-                  from stringtemplate3.language.ASTExpr import convertAnythingToList
-                  e = convertAnythingToList(e)
-                  elements.append(e)
-            }
-          )+
+            ( e=expr
+                { if e is not None: elements.append(e) }
+            |   NOTHING
+                { element.append([None]) }
+            )+
         )
-    |   NOTHING
-        {
-            nullSingleton = [None]
-            element.append(nullSingleton)
-        }
+        { value = CatList(elements) }
     ;
 
 templateInclude returns [value = None]
@@ -227,8 +219,12 @@ attribute returns [value = None]
 }
     :   #( DOT obj=expr
            ( prop:ID { propName = prop.getText() }
+           // don't force early eval here in case it's a map
+           // we need the right type on the key.
+           // E.g., <aMap.keys:{k|<k>:<aMap.(k)>}>
+           // If aMap has Integer keys, can't convert k to string then lookup.
            | #(VALUE e=expr)
-             { if e: propName = str(e) }
+             { if e is not None: propName = e }
            )
         )
         { value = self.chunk.getObjectProperty(self.this, obj, propName) }

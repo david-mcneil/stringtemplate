@@ -26,6 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import os
+
 from stringtemplate3.utils import deprecated
 
 
@@ -132,10 +134,13 @@ class AutoIndentWriter(StringTemplateWriter):
     
     This is a filter on a Writer.
 
-    It may be screwed up for '\r' '\n' on PC's.
+    \n is the proper way to say newline for options and templates.
+    Templates can mix them but use \n for sure and options like   
+    wrap="\n". ST will generate the right thing. Override the default (locale)
+    newline by passing in a string to the constructor.                        
     """
 
-    def __init__(self, out):
+    def __init__(self, out, newline=os.linesep):
         StringTemplateWriter.__init__(self)
 
 	## stack of indents
@@ -155,6 +160,9 @@ class AutoIndentWriter(StringTemplateWriter):
         self.lineWidth = self.NO_WRAP
 
         self.charPositionOfStartOfExpr = 0
+
+        ## \n or \r\n?
+        self.newline = newline
 
 
     @deprecated
@@ -202,16 +210,27 @@ class AutoIndentWriter(StringTemplateWriter):
         n = 0
         if wrap is not None:
             n += self.writeWrapSeparator(wrap)
-            
+
+        skipLF = False # Ignore the \n after a \r
         for c in text:
-            if c == '\n':
+            # found \n or \r\n newline?
+            if c in '\n\r':
+                if c == '\n' and skipLF:
+                    skipLF = False
+                    continue
+                if c == '\r':
+                    skipLF = True
+                    
                 self.atStartOfLine = True
                 self.charPosition = -1 # set so the write below sets to 0
+                n += len(self.newline)
+                self.out.write(self.newline)
+                self.charPosition += n # wrote n more char
+                continue
 
-            else:
-                if self.atStartOfLine:
-                    n += self.indent()
-                    self.atStartOfLine = False
+            if self.atStartOfLine:
+                n += self.indent()
+                self.atStartOfLine = False
 
             n += 1
             self.out.write(c)
@@ -231,7 +250,7 @@ class AutoIndentWriter(StringTemplateWriter):
             # ok to wrap
             # Walk wrap string and look for A\nB.  Spit out A\n
             # then spit indent or anchor, whichever is larger
-            # then spit out B
+            # then spit out B.
             for c in wrap:
                 if c == '\n':
                     n += 1

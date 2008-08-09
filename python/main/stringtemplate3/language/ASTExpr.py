@@ -20,14 +20,14 @@ def isiterable(o):
     if isinstance(o, (basestring, stringtemplate3.StringTemplate)):
         # don't consider strings and templates as iterables
         return False
-    
+
     try:
         iter(o)
     except TypeError:
         return False
     else:
         return True
-    
+
 def convertAnyCollectionToList(o):
     list_ = None
     if isinstance(o, list):
@@ -37,9 +37,7 @@ def convertAnyCollectionToList(o):
     elif isinstance(o, dict):
         list_ = o.values()
     elif isinstance(o, CatList):
-        list_ = []
-        for item in o.lists():
-            list_.append(item)
+        list_ = list(o)
     if not list_:
         return o
     return list_
@@ -54,9 +52,7 @@ def convertAnythingToList(o):
     elif isinstance(o, dict):
         list_ = o.values()
     elif isinstance(o, CatList):
-        list_ = []
-        for item in o.lists():
-            list_.append(item)
+        list_ = list(o)
     if not list_:
         return [o]
     return list_
@@ -94,7 +90,7 @@ class ASTExpr(Expr):
         "separator",
         "wrap"
         ])
-    
+
     def __init__(self, enclosingTemplate, exprTree, options):
         super(ASTExpr, self).__init__(enclosingTemplate)
         self.exprTree = exprTree
@@ -124,7 +120,7 @@ class ASTExpr(Expr):
         # A cached value of option format=expr
         self.formatString = None
 
-        
+
     ## Return the tree interpreted when self template is written out.
     @deprecated
     def getAST(self):
@@ -132,7 +128,7 @@ class ASTExpr(Expr):
 
     def __str__(self):
         return str(self.exprTree)
-    
+
     ## To write out the value of an ASTExpr, invoke the evaluator in eval.g
     #  to walk the tree writing out the values.  For efficiency, don't
     #  compute a bunch of strings and then pack them together.  Write out
@@ -154,7 +150,7 @@ class ASTExpr(Expr):
             out.pushAnchorPoint()
 
         self.handleExprOptions(this)
-        
+
         evaluator = ActionEvaluator.Walker()
         evaluator.initialize(this, self, out)
         n = 0
@@ -176,7 +172,7 @@ class ASTExpr(Expr):
         # make sure options don't use format / renderer.  They are usually
          # strings which might invoke a string renderer etc...
         self.formatString = None
-        
+
         wrapAST = self.getOption("wrap")
         if wrapAST is not None:
             self.wrapString = self.evaluateExpression(this, wrapAST)
@@ -197,7 +193,7 @@ class ASTExpr(Expr):
             for option in self.options.keys():
                 if option not in self.supportedOptions:
                     this.warning("ignoring unsupported option: "+option)
-                    
+
 
 # -----------------------------------------------------------------------------
 #             HELP ROUTINES CALLED BY EVALUATOR TREE WALKER
@@ -210,7 +206,7 @@ class ASTExpr(Expr):
         if (not attributes) or (not templateToApply):
             return None # do not apply if missing templates or empty values
         argumentContext = None
-        
+
         # indicate it's an ST-created list
         results = stringtemplate3.STAttributeList()
 
@@ -263,7 +259,7 @@ class ASTExpr(Expr):
             embedded.argumentContext = argumentContext
             results.append(embedded)
             i += 1
-            
+
         return results
 
     def applyListOfAlternatingTemplates(self, this, attributeValue, templatesToApply):
@@ -371,8 +367,8 @@ class ASTExpr(Expr):
     #  that object).  Also try isXXX() for booleans.  Allow HashMap,
     #  Hashtable as special case (grab value for key).
     #
-    def getObjectProperty(self, this, o, propertyName):
-        if (not o) or (not propertyName):
+    def getObjectProperty(self, this, o, property):
+        if o is None or property is None:
             return None
         value = None
 
@@ -380,7 +376,7 @@ class ASTExpr(Expr):
         # attribute name: "{obj.{prop1,prop2}}"
         if isinstance(o, stringtemplate3.Aggregate):
             #sys.stderr.write("[getObjectProperty] o = " + str(o) + '\n')
-            value = o.get(propertyName, None)
+            value = o.get(str(property), None)
             if value is None:
                 # no property defined; if a map in this group
                 # then there may be a default value
@@ -389,35 +385,33 @@ class ASTExpr(Expr):
         # Or: if it's a dictionary then pull using key not the
         # property method.
         elif isinstance(o, dict):
-            if propertyName == 'keys':
+            if property == 'keys':
                 value = o.keys()
 
-            elif propertyName == 'values':
+            elif property == 'values':
                 value = o.values()
 
             else:
-                value = o.get(propertyName, None)
+                value = o.get(property, None)
+                if value is None:
+                    # if we can't find the key, toString it
+                    value = o.get(str(property), None)
                 if value is None:
                     value = o.get(self.DEFAULT_MAP_VALUE_NAME, None)
 
             if value is self.MAP_KEY_VALUE:
-                value = propertyName
-                
-            return value
+                value = property
 
         # Special case: if it's a template, pull property from
         # it's attribute table.
         # TODO: TJP just asked himself why we can't do inherited attr here?
         elif isinstance(o, stringtemplate3.StringTemplate):
-            attributes = o.attributes
-            if attributes:
-                if attributes.has_key(propertyName): # prevent KeyError...
-                    value = attributes[propertyName]
-                else:
-                    value = None
+            if o.attributes is not None:
+                value = o.attributes.get(str(property), None)
 
         else:
             # use getPropertyName() lookup
+            propertyName = str(property)
             methodSuffix = propertyName[0].upper() + propertyName[1:]
             methodName = 'get' + methodSuffix
             m = None
@@ -490,7 +484,7 @@ class ASTExpr(Expr):
             return a
 
         return unicode(a) + unicode(b)
-    
+
     ## Call a string template with args and return result.  Do not convert
     #  to a string yet.  It may need attributes that will be available after
     #  self is inserted into another template.
@@ -532,7 +526,7 @@ class ASTExpr(Expr):
             if self.nullValue is None:
                 return 0
             o = self.nullValue
-            
+
         n = 0
         try:
             if isinstance(o, stringtemplate3.StringTemplate):
@@ -572,7 +566,7 @@ class ASTExpr(Expr):
                             o.write(sw)
                             n = out.write(renderer.toString(buf.getvalue(), self.formatString))
                             return n
-                        
+
                     n = o.write(out)
                 return n
 
@@ -592,10 +586,10 @@ class ASTExpr(Expr):
                         if ( seenPrevValue and
                              self.separatorString is not None ):
                             n += out.writeSeparator(self.separatorString)
-                            
+
                         seenPrevValue = True
                         n += self._write(this, iterValue, out)
-                        
+
 
             else:
                 renderer = this.getAttributeRenderer(o.__class__)
@@ -608,9 +602,9 @@ class ASTExpr(Expr):
                     n = out.write(v, self.wrapString)
                 else:
                     n = out.write(v)
-                    
+
                 return n
-            
+
         except IOError, io:
             this.error('problem writing object: ' + o, io)
         return n
@@ -624,14 +618,14 @@ class ASTExpr(Expr):
         so that we can convert to string and then reuse, don't want to compute
         all the time; must precompute w/o writing to output buffer.
         """
-        
+
         if expr is None:
             return None
 
         if isinstance(expr, StringTemplateAST):
             # must evaluate, writing to a string so we can hang on to it
             buf = StringIO()
-            
+
             sw = this.group.getStringTemplateWriter(buf)
             evaluator = ActionEvaluator.Walker()
             evaluator.initialize(this, self, sw)
@@ -721,7 +715,6 @@ class ASTExpr(Expr):
             if not attribute:
                 # if not more than one value, return None
                 return None
-            # return suitably altered iterator
             theRest = attribute
         else:
             # rest of single-valued attribute is None
@@ -744,33 +737,44 @@ class ASTExpr(Expr):
 
 
     def strip(self, attribute):
-        """Return an iterator that skips all null values."""
+        """Return a new list w/o all None values."""
 
         if attribute is None:
-            yield None
+            return None
 
         elif isinstance(attribute, basestring):
             # don't iterate over string
-            yield attribute
+            return attribute
 
         else:
             try:
                 it = iter(attribute)
             except TypeError:
                 # attribute is not iterable
-                yield attribute
+                return attribute
 
             else:
-                for value in it:
-                    if value is not None:
-                        yield value
-                
+                return [value for value in it if value is not None]
+
 
     def trunc(self, attribute):
         """
         Return all but the last element.  trunc(x)=null if x is single-valued.
         """
-        return None # not impl.
+
+        if attribute is None:
+            return None
+
+        attribute = convertAnythingToList(attribute)
+
+        # remove last element
+        attribute = attribute[:-1]
+        
+        if not attribute:
+            # trunc(x)==None when x single-valued attribute
+            return None
+
+        return attribute
 
 
     def length(self, attribute):
@@ -794,11 +798,11 @@ class ASTExpr(Expr):
         else:
             try:
                 it = iter(attribute)
-                
+
             except TypeError:
                 # can't iterate over it, we have at least one of something.
                 i = 1
-                
+
             else:
                 # count items
                 i = sum(1 for _ in it)

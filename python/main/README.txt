@@ -1,5 +1,5 @@
-StringTemplate 3.1 (Python)
-February 17, 2008
+StringTemplate 3.2 (Python)
+August 9, 2008
 
 
 AUTHORS
@@ -44,11 +44,11 @@ The main website is:
 
 The documentation is in the wiki: 
 
-	http://www.antlr.org/wiki/display/ST/StringTemplate+3.1+Documentation
+	http://www.antlr.org/wiki/display/ST/StringTemplate+Documentation
 
-Here are the 3.1 release notes:
+Here are the 3.2 release notes:
 
-	http://www.antlr.org/wiki/display/ST/StringTemplate+3.1+Release+Notes
+	http://www.antlr.org/wiki/display/ST/3.2+Release+Notes
 
 
 LICENSE

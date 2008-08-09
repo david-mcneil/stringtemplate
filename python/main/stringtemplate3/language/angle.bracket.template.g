@@ -123,6 +123,8 @@ options {
           options { generateAmbigWarnings = false; }
           : '<'! "if" (' '!)* "(" IF_EXPR ")" '>'! { $setType(IF) }
             ( NL! {$newline})? // ignore any newline right after an IF
+          | '<'! "elseif" (' '!)* "(" IF_EXPR ")" '>'! { $setType(ELSEIF) }
+            ( NL! {$newline})? // ignore any newline right after an ELSEIF
           | '<'! "else" '>'! { $setType(ELSE) }
             ( NL! {$newline})? // ignore any newline right after an ELSE
           | '<'! "endif" '>'! { $setType(ENDIF) }

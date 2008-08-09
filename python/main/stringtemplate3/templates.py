@@ -204,9 +204,6 @@ class StringTemplate(object):
         #  IF-subtemplates are considered embedded as well.
         self._enclosingInstance = None
 
-        ## A list of embedded templates
-        self.embeddedInstances = None
-
         ## If self template is an embedded template such as when you apply
         #  a template to an attribute, then the arguments passed to self
         #  template represent the argument context--a set of values
@@ -396,24 +393,17 @@ class StringTemplate(object):
                                  str(self.name) + ' in itself')
         # set the parent for this template
         self._enclosingInstance = enclosingInstance
-        # make the parent track self template as an embedded template
-        if enclosingInstance:
-            self._enclosingInstance.addEmbeddedInstance(self)
 
     enclosingInstance = property(getEnclosingInstance, setEnclosingInstance)
     getEnclosingInstance = deprecated(getEnclosingInstance)
     setEnclosingInstance = deprecated(setEnclosingInstance)
+
     
     def getOutermostEnclosingInstance(self):
         if self.enclosingInstance is not None:
             return self.enclosingInstance.getOutermostEnclosingInstance()
 
         return self
-
-    def addEmbeddedInstance(self, embeddedInstance):
-        if not self.embeddedInstances:
-            self.embeddedInstances = []
-        self.embeddedInstances.append(embeddedInstance)
 
 
     @deprecated
@@ -518,7 +508,8 @@ class StringTemplate(object):
             return
 
     def removeAttribute(self, name):
-        del self.attributes[name]
+        if self.attributes is not None:
+            del self.attributes[name]
 
     __delitem__ = removeAttribute
 
