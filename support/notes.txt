@@ -1,3 +1,17 @@
+Sept 18, 2008:
+
+* Notes on ST v4
+	?: op instead of IF.
+	Allow || and && in IF
+	Unify groups
+	Annotations for templates to associate with code
+	Multiple group loaders
+	Fix relative versus abs paths
+	Dot graph file w all subtemp and attr values
+	Setattribute to add attr
+	Create Exception object to track all setAttributes
+		so we know where attr came from; dbg mode only
+
 TODO:
 
 o make ST spit out start/stop boundaries of template in output for debugging
