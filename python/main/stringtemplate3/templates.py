@@ -1445,9 +1445,9 @@ class StringTemplate(object):
         wr.lineWidth = lineWidth
         try:
             self.write(wr)
-        except IOError, io:
-            self.error("Got IOError writing to writer" + \
-                       str(wr.__class__.__name__))
+        except IOError, exc:
+            self.error("Got IOError writing to writer %s: %s"
+                       % (type(wr).__name__, exc))
             
         # reset so next toString() does not wrap; normally this is a new writer
         # each time, but just in case they override the group to reuse the

@@ -6303,5 +6303,12 @@ class TestRegression(unittest.TestCase):
             pass
 
 
+    def testLoadTemplateOfNonExistingFile(self):
+        stg = StringTemplateGroup(
+            name="test",
+            rootDir=os.path.dirname(__file__))
+        st = stg.loadTemplate('a_template', 'does-not-exist.st')
+        self.assert_(st is None)
+
 if __name__ == '__main__':
     unittest.main()

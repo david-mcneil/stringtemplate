@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import os
 import sys
 import traceback
 import imp
@@ -486,9 +487,14 @@ class StringTemplateGroup(object):
         try:
             if isinstance(src, basestring):
                 # src is a filename
-                close_it = True
-                stream = open(src, 'r')
-                stream = decodeFile(stream, src)
+
+                # Make sure the file exists. If it doesn't, return None,
+                # so ST keeps looking in superGroups. If it exists then
+                # subsequence errors should be treated as real errors.
+                if os.path.isfile(src):
+                    close_stream = True
+                    stream = open(src, 'r')
+                    stream = decodeFile(stream, src)
 
             elif hasattr(src, 'read'):
                 # src is a filelike object
@@ -499,15 +505,16 @@ class StringTemplateGroup(object):
                     'loadTemplate must be called with a file or filename'
                     )
 
-            # strip newlines etc.. from front/back since filesystem
-            # may add newlines etc...
-            template = stream.read().strip()
+            if stream is not None:
+                # strip newlines etc.. from front/back since filesystem
+                # may add newlines etc...
+                template = stream.read().strip()
 
-            if not template:
-                self.error("no text in template '"+name+"'")
-                return None
-            
-            return self.defineTemplate(name, template)
+                if not template:
+                    self.error("no text in template '"+name+"'")
+                    return None
+
+                return self.defineTemplate(name, template)
 
         finally:
             if stream is not None and close_stream:
@@ -544,7 +551,8 @@ class StringTemplateGroup(object):
 
             return template
         # load via rootDir
-        template = self.loadTemplate(name, self.rootDir + '/' + fileName)
+        template = self.loadTemplate(
+            name, os.path.join(self.rootDir, fileName))
         return template
 
     ## (def that people can override behavior; not a general
