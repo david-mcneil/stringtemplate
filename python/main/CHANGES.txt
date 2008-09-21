@@ -1,3 +1,19 @@
+2008-09-21: Release 3.2b1
+
+- StringTemplate.toString() now returns unicode strings and stringtemplate uses
+  unicode internally as well (i.e. all passed in byte strings are converted to
+  unicode).
+- Added native group name to template name tags in the debug output.
+- Fixed: int map keys didn't work.
+- Added trunc, fixed rest and strip.
+- Fixed ST-33; make [a,b] cat work.
+- Added \r\n normalization in AutoIndentWriter. Converts \r\n or \n
+  to whatever the writer's newline instance var is.  wrap="\n" will
+  give the proper newline by locale as will \n and \r\n in the
+  templates or even incoming data attributes (toString()'d of course).
+  It even works with special literals <\r\n> and <\n>.
+- Fixed ST-36; allow <elseif> keyword.
+
 2008-02-17: Release 3.1
 
 - Resolve ST-34.  Super group loading was not using template lexer
