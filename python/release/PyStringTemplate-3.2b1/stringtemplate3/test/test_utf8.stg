@@ -1,0 +1,6 @@
+// coding: utf-8
+group test;
+
+a(s)::= "<s:{cäse <i>: <it> breäk;}>"
+b(t)::= "<t; separator=\",\">"
+c(t)::= << <t; separator=","> >>
