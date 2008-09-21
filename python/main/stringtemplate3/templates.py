@@ -1445,15 +1445,12 @@ class StringTemplate(object):
         wr.lineWidth = lineWidth
         try:
             self.write(wr)
-        except IOError, exc:
-            self.error("Got IOError writing to writer %s: %s"
-                       % (type(wr).__name__, exc))
-            
-        # reset so next toString() does not wrap; normally this is a new writer
-        # each time, but just in case they override the group to reuse the
-        # writer.
-        wr.lineWidth = StringTemplateWriter.NO_WRAP
-        
+        finally:
+            # reset so next toString() does not wrap; normally this is a new
+            # writer each time, but just in case they override the group to
+            # reuse the writer.
+            wr.lineWidth = StringTemplateWriter.NO_WRAP
+
         return out.getvalue()
 
     __str__ = toString
