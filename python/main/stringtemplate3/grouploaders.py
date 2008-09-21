@@ -31,7 +31,7 @@ import os
 import traceback
 import codecs
 
-from stringtemplate3.utils import deprecated
+from stringtemplate3.utils import deprecated, decodeFile
 from stringtemplate3.groups import StringTemplateGroup
 from stringtemplate3.interfaces import StringTemplateGroupInterface
 from stringtemplate3.language import AngleBracketTemplateLexer
@@ -141,9 +141,7 @@ class PathGroupLoader(StringTemplateGroupLoader):
             path = os.path.join(dir, name)
             if os.path.isfile(path):
                 fr = open(path, 'r')
-                # FIXME: something breaks, when stream return unicode
-                if self.fileCharEncoding is not None:
-                    fr = codecs.getreader(self.fileCharEncoding)(fr)
+                fr = decodeFile(fr, path, self.fileCharEncoding)
                 return fr
 
         return None

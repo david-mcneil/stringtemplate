@@ -79,8 +79,8 @@ class ASTExpr(Expr):
     EMPTY_OPTION = "empty expr option"
 
     defaultOptionValues = {
-        "anchor": StringTemplateAST(ActionEvaluator.STRING, "true"),
-        "wrap": StringTemplateAST(ActionEvaluator.STRING, "\n")
+        "anchor": StringTemplateAST(ActionEvaluator.STRING, u"true"),
+        "wrap": StringTemplateAST(ActionEvaluator.STRING, u"\n")
         }
 
     supportedOptions = set([
@@ -279,6 +279,9 @@ class ASTExpr(Expr):
                         continue
                     ithValue = self.nullValue
 
+                if isinstance(ithValue, str):
+                    ithValue = unicode(ithValue)
+
                 templateIndex = i % len(templatesToApply) # rotate through
                 embedded = templatesToApply[templateIndex]
                 # template to apply is an actual stringtemplate.StringTemplate (created in
@@ -425,7 +428,7 @@ class ASTExpr(Expr):
                     # try for a visible field
                     try:
                         try:
-                            return getattr(o, propertyName)
+                            value = getattr(o, propertyName)
                         except AttributeError, ae2:
                             this.error('Can\'t get property ' + propertyName +
                                        ' using method get/is' + methodSuffix +
@@ -445,6 +448,9 @@ class ASTExpr(Expr):
                                ' using method get/is' + methodSuffix +
                                ' or direct field access from ' +
                                o.__class__.__name__ + ' instance', e)
+
+        if isinstance(value, str):
+            value = unicode(value)
 
         return value
 
@@ -561,7 +567,7 @@ class ASTExpr(Expr):
                             # template because the template must be written to
                             # a temp StringWriter so it can be formatted before
                             # being written to the real output.
-                            buf = StringIO
+                            buf = StringIO()
                             sw = this.getGroup().getStringTemplateWriter(buf)
                             o.write(sw)
                             n = out.write(renderer.toString(buf.getvalue(), self.formatString))
@@ -581,6 +587,9 @@ class ASTExpr(Expr):
                 for iterValue in lst:
                     if iterValue is None:
                         iterValue = self.nullValue
+
+                    if isinstance(iterValue, str):
+                        iterValue = unicode(iterValue)
 
                     if iterValue is not None:
                         if ( seenPrevValue and
@@ -624,7 +633,7 @@ class ASTExpr(Expr):
 
         if isinstance(expr, StringTemplateAST):
             # must evaluate, writing to a string so we can hang on to it
-            buf = StringIO()
+            buf = StringIO(u"")
 
             sw = this.group.getStringTemplateWriter(buf)
             evaluator = ActionEvaluator.Walker()
@@ -641,7 +650,7 @@ class ASTExpr(Expr):
 
         else:
             # just in case we expand in the future and it's something else
-            return str(expr)
+            return unicode(expr)
 
 
     ## Evaluate an argument list within the context of the enclosing

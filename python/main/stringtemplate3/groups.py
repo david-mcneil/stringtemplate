@@ -40,7 +40,7 @@ from stringtemplate3.language import (
     GroupLexer, GroupParser,
     )
 
-from stringtemplate3.utils import deprecated
+from stringtemplate3.utils import deprecated, decodeFile
 from stringtemplate3.errors import (
     DEFAULT_ERROR_LISTENER
     )
@@ -100,7 +100,7 @@ class StringTemplateGroup(object):
     #  then it is used as an override.
     defaultTemplateLexerClass = DefaultTemplateLexer.Lexer
         
-    def __init__(self, name=None, rootDir=None, lexer=None, file=None, errors=None, superGroup=None):
+    def __init__(self, name=None, rootDir=None, lexer=None, fileName=None, file=None, errors=None, superGroup=None):
         ## What is the group name
         #
         self.name = None
@@ -191,9 +191,13 @@ class StringTemplateGroup(object):
             self.superGroup = superGroup
 
 
+        if fileName is not None:
+            if file is None:
+                file = decodeFile(open(fileName, 'rb'), fileName)
+
         if file is not None:
             assert hasattr(file, 'read')
-            
+
             self.templatesDefinedInGroupFile = True
 
             if lexer is not None:
@@ -466,38 +470,48 @@ class StringTemplateGroup(object):
             self.lastCheckedDisk = time.time()
 
 
-    def loadTemplate(self, name, src):
-        if isinstance(src, basestring):
-            template = None
-            try:
-                br = open(src, 'r')
-                try:
-                    template = self.loadTemplate(name, br)
-                finally:
-                    br.close()
+    def _loadTemplateFromStream(self, name, stream):
+            
+        if not template:
+            self.error("no text in template '"+name+"'")
+            return None
+            
+        return template
 
-            # FIXME: eek, that's ugly
-            except Exception, e:
-                raise
-            
-            return template
-        
-        elif hasattr(src, 'readlines'):
-            buf = src.readlines()
-            
+
+    def loadTemplate(self, name, src):
+        stream = None
+        close_stream = False
+
+        try:
+            if isinstance(src, basestring):
+                # src is a filename
+                close_it = True
+                stream = open(src, 'r')
+                stream = decodeFile(stream, src)
+
+            elif hasattr(src, 'read'):
+                # src is a filelike object
+                stream = decodeFile(src, '<template %r from buffer>' % name)
+
+            else:
+                raise TypeError(
+                    'loadTemplate must be called with a file or filename'
+                    )
+
             # strip newlines etc.. from front/back since filesystem
             # may add newlines etc...
-            pattern = str().join(buf).strip()
-            
-            if not pattern:
+            template = stream.read().strip()
+
+            if not template:
                 self.error("no text in template '"+name+"'")
                 return None
             
-            return self.defineTemplate(name, pattern)
-        
-        raise TypeError(
-            'loadTemplate should be called with a file or filename'
-            )
+            return self.defineTemplate(name, template)
+
+        finally:
+            if stream is not None and close_stream:
+                stream.close()
 
 
     ## Load a template whose name is derived from the template filename.

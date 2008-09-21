@@ -15,6 +15,9 @@ class StringTemplateAST(antlr.CommonAST):
 	# track template for ANONYMOUS blocks
         self.st = None
 
+    def setText(self, text):
+        super(StringTemplateAST, self).setText(unicode(text))
+        
     def getStringTemplate(self):
         return self.st
 

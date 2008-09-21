@@ -538,6 +538,9 @@ class StringTemplate(object):
         if len(values) == 1:
             value = values[0]
 
+            if isinstance(value, str):
+                value = unicode(value)
+
             if value is None or name is None:
                 return
 
@@ -641,11 +644,11 @@ class StringTemplate(object):
             # a normal call to setAttribute with unknown attribute
             raise KeyError("no such attribute: " + name +
                " in template context " + self.enclosingInstanceStackString)
+
+        if isinstance(value, str):
+            value = unicode(value)
+
         if value is not None:
-            attributes[name] = value
-        elif isinstance(value, list) or \
-             isinstance(value, dict) or \
-             isinstance(value, set):
             attributes[name] = value
 
 
@@ -662,11 +665,11 @@ class StringTemplate(object):
             raise KeyError("template " + embedded.name +
                 " has no such attribute: " + name + " in template context " +
                 self.enclosingInstanceStackString)
-        if value:
-            attributes[name] = value
-        elif isinstance(value, list) or \
-             isinstance(value, dict) or \
-             isinstance(value, set):
+
+        if isinstance(value, str):
+            value = unicode(value)
+
+        if value is not None:
             attributes[name] = value
 
 
@@ -839,7 +842,7 @@ class StringTemplate(object):
 
 
     def parseAction(self, action):
-        lexer = ActionLexer.Lexer(StringIO(str(action)))
+        lexer = ActionLexer.Lexer(StringIO(action))
         parser = ActionParser.Parser(lexer, self)
         parser.setASTNodeClass(StringTemplateAST)
         lexer.setTokenObjectClass(StringTemplateToken)
@@ -857,7 +860,7 @@ class StringTemplate(object):
             if stringtemplate3.crashOnActionParseError:
                 raise
 
-            self.error('Can\'t parse chunk: ' + str(action), exc)
+            self.error('Can\'t parse chunk: %s' % action, exc)
 
         return a
 
@@ -1437,7 +1440,7 @@ class StringTemplate(object):
 
     def toString(self, lineWidth=StringTemplateWriter.NO_WRAP):
         # Write the output to a StringIO
-        out = StringIO(u'')
+        out = StringIO(u"")
         wr = self.group.getStringTemplateWriter(out)
         wr.lineWidth = lineWidth
         try:

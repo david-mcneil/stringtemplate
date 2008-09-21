@@ -1,0 +1,29 @@
+// -*- coding:utf-8 -*-
+group html;
+
+page(title,menu,body) ::= <<
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+                      "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>$title$</title>
+  </head>
+  <body>
+    Îñţérñåţîöñåļîžåţîöñ
+    $menu$
+
+    $body$
+  </body>
+</html>
+>>
+
+menu(items) ::= <<
+<ul>
+  <li><a href="/">Îñţérñåţîöñåļîžåţîöñ</a></li>
+  $items; separator="\n"$
+</ul>
+>>
+
+menuItem(url, text) ::= <<
+<li><a href="$url$">Îñţérñåţîöñåļîžåţîöñ $text$</a></li>
+>>

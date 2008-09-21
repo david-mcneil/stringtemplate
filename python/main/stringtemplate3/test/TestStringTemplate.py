@@ -8,6 +8,10 @@
 import sys
 sys.path.insert(0, '../..')
 
+# bailout on warnings
+import warnings
+warnings.simplefilter('error', Warning)
+
 import os
 import traceback
 import unittest
@@ -15,11 +19,10 @@ from StringIO import StringIO
 from datetime import date
 import tempfile
 import textwrap
-import warnings
-import odict
 import antlr
 
-warnings.simplefilter('error', Warning)
+from stringtemplate3.test.odict import OrderedDict
+from stringtemplate3.test.brokentest import broken
 
 from stringtemplate3 import (
     StringTemplate, StringTemplateGroup,
@@ -33,29 +36,12 @@ from stringtemplate3 import (
 from stringtemplate3.language import (
     AngleBracketTemplateLexer, IllegalStateException
     )
+from stringtemplate3.utils import (
+    decodeFile
+    )
 import stringtemplate3
 
 stringtemplate3.crashOnActionParseError = True
-
-
-class BrokenTest(unittest.TestCase.failureException):
-    def __str__(self):
-        name = self.args[0]
-        return '%s: %s: works now' % (
-            (self.__class__.__name__, name))
-
-
-def broken(test_method):
-    def wrapper(*args, **kwargs):
-        try:
-            test_method(*args, **kwargs)
-        except Exception:
-            pass
-        else:
-            raise BrokenTest(test_method.__name__)
-    wrapper.__doc__ = test_method.__doc__
-    wrapper.__name__ = 'XXX_' + test_method.__name__
-    return wrapper
 
 
 def writeFile(dir, fileName, content):
@@ -593,7 +579,7 @@ class TestUndefinedArgumentAssignment(unittest.TestCase):
             str(t)
         except KeyError, e:
             error = str(e)
-        expecting = "'template body has no such attribute: font in template context [page <invoke body arg context>]'"
+        expecting = "u'template body has no such attribute: font in template context [page <invoke body arg context>]'"
         self.assertEqual(error, expecting)
 
 
@@ -637,7 +623,7 @@ class TestUndefinedArgumentAssignmentInApply(unittest.TestCase):
             str(t)
         except KeyError, e:
             error = str(e)
-        expecting = "'template bold has no such attribute: font in template context [page <invoke bold arg context>]'"
+        expecting = "u'template bold has no such attribute: font in template context [page <invoke bold arg context>]'"
         self.assertEqual(error, expecting)
 
 
@@ -719,6 +705,21 @@ class TestAngleBracketsWithGroupFile(unittest.TestCase):
         t["s"] = "Test"
         expecting = "case 1: Test break;"
         self.assertEqual(str(t), expecting)
+
+
+class TestAngleBracketsWithUTF8GroupFile(unittest.TestCase):
+
+    def runTest(self):
+        # mainly testing to ensure we don't get parse errors of above
+        path = os.path.join(os.path.dirname(__file__), "test_utf8.stg")
+        group = StringTemplateGroup(
+            file=decodeFile(open(path, 'r'), path)
+            )
+
+        t = group.getInstanceOf("a")
+        t["s"] = "Test"
+        expecting = u"cäse 1: Test breäk;"
+        self.assertEqual(t.toString(), expecting)
 
 
 class TestAngleBracketsNoGroup(unittest.TestCase):
@@ -2544,7 +2545,7 @@ class TestApplyAnonymousTemplate(unittest.TestCase):
         st = StringTemplate(
             template="$items:{<li>$it$</li>}$"
             )
-        m = odict.OrderedDict()
+        m = OrderedDict()
         m["a"] = "1"
         m["b"] = "2"
         m["c"] = "3"
@@ -2596,7 +2597,7 @@ class TestApplyAnonymousTemplate(unittest.TestCase):
         st = StringTemplate(
             template="$items:{<li>$ik$</li>}$"
             )
-        m = odict.OrderedDict()
+        m = OrderedDict()
         m["a"] = "1"
         m["b"] = "2"
         m["c"] = "3"
@@ -2644,7 +2645,7 @@ class TestDump(unittest.TestCase):
             template="$items; separator=\",\"$"
             )
 
-        m = odict.OrderedDict()
+        m = OrderedDict()
         m["a"] = "1"
         m["b"] = "2"
         m["c"] = "3"
@@ -2697,7 +2698,7 @@ class Connector3(object):
         return [1, 2, 3]
 
     def getStuff(self):
-        m = odict.OrderedDict()
+        m = OrderedDict()
         m["a"] = "1"
         m["b"] = "2"
         return m
@@ -2876,7 +2877,7 @@ class TestDeliberateRecursiveTemplateApplication(unittest.TestCase):
             expectingError = (
                 "infinite recursion to <ifstat(['stats'])@4> referenced in <block(['stats'])@3>; stack trace:" + os.linesep + 
                 "<ifstat(['stats'])@4>, attributes=[stats=<block()@3>]>" + os.linesep +
-                "<block(['stats'])@3>, attributes=[stats=<ifstat()@4>], references=['stats']>" + os.linesep +
+                "<block(['stats'])@3>, attributes=[stats=<ifstat()@4>], references=[u'stats']>" + os.linesep +
                 "<ifstat(['stats'])@4> (start of recursive cycle)" + os.linesep +
                 "..."
                 )
@@ -4042,7 +4043,7 @@ class TestRenderer(unittest.TestCase):
         st.setAttribute("names", "ter")
         st.setAttribute("names", "tom")
         st.setAttribute("names", "sriram")
-        st.registerRenderer(str, StringRenderer())
+        st.registerRenderer(unicode, StringRenderer())
         expecting = "The names: TERTOMSRIRAM"
         result = st.toString()
         self.assertEqual(result, expecting)
@@ -4056,7 +4057,7 @@ class TestRenderer(unittest.TestCase):
         st.setAttribute("names", "ter")
         st.setAttribute("names", "tom")
         st.setAttribute("names", "sriram")
-        st.registerRenderer(str, StringRenderer())
+        st.registerRenderer(unicode, StringRenderer())
         expecting = "The names: TER and TOM and SRIRAM"
         result = st.toString()
         self.assertEqual(result, expecting)
@@ -4069,7 +4070,7 @@ class TestRenderer(unittest.TestCase):
             )
         names = [ "ter", None, "sriram" ]
         st.setAttribute("names", names)
-        st.registerRenderer(str, StringRenderer())
+        st.registerRenderer(unicode, StringRenderer())
         expecting = "The names: TER and N/A and SRIRAM"
         result = st.toString()
         self.assertEqual(result, expecting)
@@ -4377,10 +4378,10 @@ class TestUnicode(unittest.TestCase):
 
     def testStringTemplate(self):
         e = StringTemplate(
-            template=u"äöü"
+            template=u"Ã¤Ã¶Ã¼"
             )
         e = e.getInstanceOf()
-        expecting = u"äöü"
+        expecting = u"Ã¤Ã¶Ã¼"
         self.assertEqual(e.toString(), expecting)
 
 
@@ -4392,27 +4393,27 @@ class TestUnicode(unittest.TestCase):
             group=group,
             template="$(\"blort: \"+(list)):bold()$"
             )
-        duh["list"] = u"ä"
-        duh["list"] = u"ö"
-        duh["list"] = u"ü"
+        duh["list"] = u"Ã¤"
+        duh["list"] = u"Ã¶"
+        duh["list"] = u"Ã¼"
 
-        expecting = u"<b>blort: äöü</b>"
+        expecting = u"<b>blort: Ã¤Ã¶Ã¼</b>"
         self.assertEqual(duh.toString(), expecting)
 
 
     def testTemplate(self):
         group = StringTemplateGroup(name="dummy", rootDir=".")
-        group.defineTemplate("bold", u"ö-$it$-ö")
+        group.defineTemplate("bold", u"Ã¶-$it$-Ã¶")
 
         duh = StringTemplate(
             group=group,
             template="$(\"blort: \"+(list)):bold()$"
             )
-        duh["list"] = u"ä"
-        duh["list"] = u"ö"
-        duh["list"] = u"ü"
+        duh["list"] = u"Ã¤"
+        duh["list"] = u"Ã¶"
+        duh["list"] = u"Ã¼"
 
-        expecting = u"ö-blort: äöü-ö"
+        expecting = u"Ã¶-blort: Ã¤Ã¶Ã¼-Ã¶"
         self.assertEqual(duh.toString(), expecting)
 
 
@@ -6201,7 +6202,7 @@ class TestMapProperties(unittest.TestCase):
         t = StringTemplate(
             group=group,
             template="<aMap.keys:{k|<k>:<aMap.(k)>}; separator=\", \">")
-        map = odict.OrderedDict()
+        map = OrderedDict()
         map[1] = ["ick", "foo"]
         map[2] = ["x", "y"]
         t.setAttribute("aMap", map)

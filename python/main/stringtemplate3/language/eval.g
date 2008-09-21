@@ -64,7 +64,7 @@ expr returns [value]
     |   #( VALUE e=expr )
         // convert to string (force early eval)
         {
-            buf = StringIO()
+            buf = StringIO(u"")
             sw = self.this.group.getStringTemplateWriter(buf)
             n = self.chunk.writeAttribute(self.this, e, sw)
             if n > 0:
@@ -234,7 +234,7 @@ attribute returns [value = None]
     |   s:STRING { value = s.getText() }
     |   at:ANONYMOUS_TEMPLATE
         {
-            value = at.getText();
+            value = at.getText()
             if at.getText():
                 from stringtemplate3.templates import StringTemplate
                 valueST = StringTemplate(
