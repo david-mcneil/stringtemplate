@@ -11,6 +11,7 @@ Sept 18, 2008:
 	Setattribute to add attr
 	Create Exception object to track all setAttributes
 		so we know where attr came from; dbg mode only
+	make sure <names:{n | <if()>...<endif>}; separator=","> gives no separator if no text.
 
 TODO:
 
