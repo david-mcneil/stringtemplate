@@ -1,0 +1,47 @@
+<expr>	expr
+	write
+
+<expr; o1=e1, o2=e2>
+        e1
+        option o1
+        e2
+        option o2
+       	expr
+	write
+
+text	load constant-pool-index
+	write
+
+attr	load attr
+
+a.b	load a
+	load_prop b
+
+t()	call #1	  ; 1 is constant pool index of t
+
+t(x=e1,y=e2)
+	new #1
+	e1
+	astore x  ; can we assign x a unique ID
+	e2
+	astore y
+	call
+
+a:t()	load a
+	map t
+
+a:t(),u()
+	load a
+	load_st t
+	load_st u
+	mmap 2
+
+first(a)
+	load a
+	eval first
+
+<if(a)>t<endif>
+	load a
+	brf end
+	t
+end:
