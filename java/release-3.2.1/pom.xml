@@ -12,7 +12,7 @@
         will be deplyed to the ANTLR snapshot repository at antlr.org with the word
         SNAPSHOT replaced with the the data, time and unique number.
     -->
-    <version>3.3-SNAPSHOT</version>
+    <version>3.2.1</version>
     
     <!--
         The name of the project as seen by IDEs and release documentation etc.
@@ -169,7 +169,7 @@ There are currently about 600 StringTemplate source downloads a month.
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.4</source>
-                    <target>1.4</target>
+                    <target>jsr14</target>
                     <sourceDirectory>src</sourceDirectory>
                 </configuration>
             </plugin>
