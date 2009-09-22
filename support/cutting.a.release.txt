@@ -1,10 +1,10 @@
 # cut release; create branch and do it
-#p4 branch stringtemplate-3.2
-#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.2/...
-#p4 integrate -b stringtemplate-3.2
+#p4 branch stringtemplate-3.2.1
+#//depot/code/stringtemplate/java/main/... //depot/code/stringtemplate/java/release-3.2.1/...
+#p4 integrate -b stringtemplate-3.2.1
 #p4 submit
 
-cd ~/antlr/code/stringtemplate/java/release-3.2
+cd ~/antlr/code/stringtemplate/java/release-3.2.1
 
 # build antlr generated files
 pushd src/org/antlr/stringtemplate/language
@@ -21,8 +21,8 @@ pushd src
 javac -target jsr14 -classpath .:/usr/local/lib/antlr-2.7.7.jar:/usr/local/lib/junit.jar org/antlr/stringtemplate/*.java org/antlr/stringtemplate/*/*.java
 
 # build a jar
-mkdir -f ../lib
-jar cvf ../lib/stringtemplate.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
+mkdir ../lib
+jar cvf ../lib/stringtemplate-3.2.1.jar org/antlr/stringtemplate/*.class org/antlr/stringtemplate/*/*.class
 cp /usr/local/lib/antlr-2.7.7.jar ../lib
 
 # remove .class files
@@ -33,20 +33,20 @@ find . -name '*~' -exec rm {} \;
 find . -name '*.iml' -exec rm {} \;
 
 cd ..
-rm -rf /tmp/stringtemplate-3.2
-cp -r release-3.2 /tmp/stringtemplate-3.2
-pushd /tmp/stringtemplate-3.2/
+rm -rf /tmp/stringtemplate-3.2.1
+cp -r release-3.2.1 /tmp/stringtemplate-3.2.1
+pushd /tmp/stringtemplate-3.2.1/
 chmod -R +w *
 
-# make tarball (next time name release stringtemplate-3.2b7 dir)
+# make tarball
 pushd /tmp
-tar cvfz stringtemplate-3.2.tar.gz stringtemplate-3.2
+tar cvfz stringtemplate-3.2.1.tar.gz stringtemplate-3.2.1
 
 # push
-scp stringtemplate-3.2.tar.gz parrt@antlr.org:/usr/local/site/magenta/web/download
+scp stringtemplate-3.2.1.tar.gz parrt@antlr.org:/usr/local/website/st/download
 
-# push api
-scp -r /tmp/stdoc/api parrt@antlr.org:/var/data/magenta/resources/doc
+# push api (run gen javadoc in intellij)
+scp -r /tmp/stdoc/api parrt@antlr.org:/usr/local/website/st/api
 
 # push CHANGES.txt
-scp -r /tmp/stringtemplate-3.2/CHANGES.txt parrt@antlr.org:/var/data/magenta/resources
+scp -r /tmp/stringtemplate-3.2.1/CHANGES.txt parrt@antlr.org:/usr/local/website/st
