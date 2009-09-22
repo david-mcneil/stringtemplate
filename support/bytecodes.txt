@@ -40,8 +40,36 @@ first(a)
 	load a
 	eval first
 
+# IF STUFF
+
+upon if, create 'end' label.
+upon else, create 'else' label.
+
 <if(a)>t<endif>
 	load a
 	brf end
 	t
+end:
+
+<if(a)>t<else>u<endif>
+	load a
+	brf else
+	t
+	br end
+else:
+	u
+end:
+
+<if(a)>t<elseif(b)>u<else>v<endif>
+	load a
+	brf lab1
+	t
+	br end
+lab1:
+	load b
+	brf lab2
+	u
+	br end
+lab2:
+	v
 end:
