@@ -259,7 +259,7 @@ attribute returns [Object value=null]
 
     |   i3:ID
         {
-        value=self.getAttribute(i3.getText());
+        value=self.getAttribute(i3.getText().toLowerCase());
         }
 
     |   i:INT {value=new Integer(i.getText());}
