@@ -247,7 +247,7 @@ attribute returns [Object value=null]
     Object e = null;
 }
     :   #( DOT obj=expr
-           ( prop:ID {propName = prop.getText();}
+           ( prop:ID {propName = prop.getText().toLowerCase();}
            // don't force early eval here in case it's a map
            // we need the right type on the key.
            // E.g., <aMap.keys:{k|<k>:<aMap.(k)>}>
